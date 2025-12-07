@@ -80,6 +80,7 @@ document.addEventListener('DOMContentLoaded', function(){
   const chartsHum = [];
   const sondasActivas = Array(totalSondas).fill(true);
 
+  // Valores de prueba
   const valoresPrueba = Array.from({length: totalSondas}, (_, i) => ({
     Temperatura_C: Math.floor(Math.random()*10 + 20),
     Humedad_pct: Math.floor(Math.random()*30 + 40),
@@ -133,7 +134,7 @@ document.addEventListener('DOMContentLoaded', function(){
         sondaSeleccionada = sondaDiv;
       });
 
-      // Toggle activo/desactivo
+      // Toggle
       const toggle = sondaDiv.querySelector(`#toggle-${sondaIndex}`);
       toggle.addEventListener('change', ()=>{
         sondasActivas[sondaIndex-1] = toggle.checked;
@@ -143,12 +144,8 @@ document.addEventListener('DOMContentLoaded', function(){
 
       bloqueDiv.appendChild(sondaDiv);
 
-      // Inicializar gráficos
-      const tempCanvas = document.getElementById(`tempChart-${sondaIndex}`);
-      const humCanvas = document.getElementById(`humChart-${sondaIndex}`);
-      if(!tempCanvas || !humCanvas) continue;
-
-      const ctxTemp = tempCanvas.getContext('2d');
+      // Gráficos
+      const ctxTemp = document.getElementById(`tempChart-${sondaIndex}`).getContext('2d');
       const gradTemp = ctxTemp.createLinearGradient(0,0,0,80);
       gradTemp.addColorStop(0,'#00ff00');
       gradTemp.addColorStop(0.5,'#ffff00');
@@ -161,7 +158,7 @@ document.addEventListener('DOMContentLoaded', function(){
       });
       chartsTemp.push(tempChart);
 
-      const ctxHum = humCanvas.getContext('2d');
+      const ctxHum = document.getElementById(`humChart-${sondaIndex}`).getContext('2d');
       const humChart = new Chart(ctxHum,{
         type:'doughnut',
         data:{ labels:['Hum','Resto'], datasets:[{data:[valoresPrueba[sondaIndex-1].Humedad_pct,100-valoresPrueba[sondaIndex-1].Humedad_pct], backgroundColor:['#36cce7','#eee'], borderWidth:0}] },
@@ -172,7 +169,7 @@ document.addEventListener('DOMContentLoaded', function(){
     bloquesContainer.appendChild(bloqueDiv);
   }
 
-  // Actualizar datos cada 10s (simula ESP32)
+  // Simular datos cada 10s
   setInterval(()=>{
     for(let i=0;i<totalSondas;i++){
       if(!sondasActivas[i]) continue;
