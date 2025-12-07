@@ -102,6 +102,7 @@ document.addEventListener('DOMContentLoaded', function(){
     document.getElementById('promHum').innerText = activas?Math.round(sumHum/activas):0;
   }
 
+  // Crear bloques
   for(let b=0; b<totalSondas/sondasPorBloque; b++){
     const bloqueDiv = document.createElement('div');
     bloqueDiv.classList.add('bloque');
@@ -115,9 +116,9 @@ document.addEventListener('DOMContentLoaded', function(){
       sondaDiv.innerHTML = `
         <h2>Sonda ${sondaIndex}</h2>
         <label class="toggle">Activo <input type="checkbox" id="toggle-${sondaIndex}" checked></label>
-        <canvas id="tempChart-${sondaIndex}" width="80" height="80"></canvas>
+        <canvas id="tempChart-${sondaIndex}"></canvas>
         <div class="valor" id="valorTemp-${sondaIndex}">${valoresPrueba[sondaIndex-1].Temperatura_C}°C</div>
-        <canvas id="humChart-${sondaIndex}" width="80" height="80"></canvas>
+        <canvas id="humChart-${sondaIndex}"></canvas>
         <div class="valor" id="valorHum-${sondaIndex}">${valoresPrueba[sondaIndex-1].Humedad_pct}%</div>
         <div class="valor">Distancia: <span id="dist-${sondaIndex}">${valoresPrueba[sondaIndex-1].Distancia_mm}</span> mm</div>
         <div class="alerta" id="alerta-${sondaIndex}" style="display:${valoresPrueba[sondaIndex-1].Distancia_mm>30?'block':'none'}">
@@ -125,12 +126,14 @@ document.addEventListener('DOMContentLoaded', function(){
         </div>
       `;
 
+      // Selección
       sondaDiv.addEventListener('click', ()=>{
         if(sondaSeleccionada) sondaSeleccionada.classList.remove('seleccionada');
         sondaDiv.classList.add('seleccionada');
         sondaSeleccionada = sondaDiv;
       });
 
+      // Toggle activo/desactivo
       const toggle = sondaDiv.querySelector(`#toggle-${sondaIndex}`);
       toggle.addEventListener('change', ()=>{
         sondasActivas[sondaIndex-1] = toggle.checked;
@@ -140,25 +143,28 @@ document.addEventListener('DOMContentLoaded', function(){
 
       bloqueDiv.appendChild(sondaDiv);
 
-      // Gráficos
-      const ctxTemp = document.getElementById(`tempChart-${sondaIndex}`).getContext('2d');
+      // Inicializar gráficos
+      const tempCanvas = document.getElementById(`tempChart-${sondaIndex}`);
+      const humCanvas = document.getElementById(`humChart-${sondaIndex}`);
+      if(!tempCanvas || !humCanvas) continue;
+
+      const ctxTemp = tempCanvas.getContext('2d');
+      const gradTemp = ctxTemp.createLinearGradient(0,0,0,80);
+      gradTemp.addColorStop(0,'#00ff00');
+      gradTemp.addColorStop(0.5,'#ffff00');
+      gradTemp.addColorStop(1,'#ff0000');
+
       const tempChart = new Chart(ctxTemp,{
         type:'doughnut',
-        data:{
-          labels:['Temp','Resto'],
-          datasets:[{data:[valoresPrueba[sondaIndex-1].Temperatura_C,50], backgroundColor:['#00ff00','#eee'], borderWidth:0}]
-        },
+        data:{ labels:['Temp','Resto'], datasets:[{data:[valoresPrueba[sondaIndex-1].Temperatura_C,50], backgroundColor:[gradTemp,'#eee'], borderWidth:0}] },
         options:{ cutout:'70%', plugins:{legend:{display:false}}, rotation:-90, circumference:180 }
       });
       chartsTemp.push(tempChart);
 
-      const ctxHum = document.getElementById(`humChart-${sondaIndex}`).getContext('2d');
+      const ctxHum = humCanvas.getContext('2d');
       const humChart = new Chart(ctxHum,{
         type:'doughnut',
-        data:{
-          labels:['Hum','Resto'],
-          datasets:[{data:[valoresPrueba[sondaIndex-1].Humedad_pct,100-valoresPrueba[sondaIndex-1].Humedad_pct], backgroundColor:['#36cce7','#eee'], borderWidth:0}]
-        },
+        data:{ labels:['Hum','Resto'], datasets:[{data:[valoresPrueba[sondaIndex-1].Humedad_pct,100-valoresPrueba[sondaIndex-1].Humedad_pct], backgroundColor:['#36cce7','#eee'], borderWidth:0}] },
         options:{ cutout:'70%', plugins:{legend:{display:false}}, rotation:-90, circumference:180 }
       });
       chartsHum.push(humChart);
@@ -166,6 +172,7 @@ document.addEventListener('DOMContentLoaded', function(){
     bloquesContainer.appendChild(bloqueDiv);
   }
 
+  // Actualizar datos cada 10s (simula ESP32)
   setInterval(()=>{
     for(let i=0;i<totalSondas;i++){
       if(!sondasActivas[i]) continue;
