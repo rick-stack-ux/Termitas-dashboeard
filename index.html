@@ -5,7 +5,7 @@
   <title>Dashboard Termitas</title>
   <style>
     body {
-      background-color: #f0f0f0;
+      background-color: #e0e0e0; /* fondo gris claro */
       font-family: Arial, sans-serif;
       margin: 0;
       padding: 20px;
@@ -25,7 +25,7 @@
     .sonda {
       background-color: #fff;
       border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
       padding: 15px;
       width: 180px;
       display: flex;
@@ -75,11 +75,18 @@
   </div>
 
   <script>
-    const totalSondas = 20; // Número de sondas
+    const totalSondas = 20;
     const grid = document.getElementById('gridSondas');
     let sondaSeleccionada = null;
 
-    // Crear bloques de sondas dinámicamente
+    // Valores de prueba por defecto
+    const valoresPrueba = Array.from({length: totalSondas}, (_, i) => ({
+      Temperatura_C: Math.floor(Math.random() * 10 + 20), // 20-29°C
+      Humedad_%: Math.floor(Math.random() * 30 + 40),     // 40-70%
+      Distancia_mm: Math.floor(Math.random() * 20 + 25)   // 25-44 mm
+    }));
+
+    // Crear bloques de sondas
     for(let i = 1; i <= totalSondas; i++) {
       const sondaDiv = document.createElement('div');
       sondaDiv.classList.add('sonda');
@@ -87,13 +94,15 @@
       sondaDiv.innerHTML = `
         <h2>Sonda ${i}</h2>
         <div class="variables">
-          Temperatura: <span id="temp-${i}">--</span> °C<br>
-          Humedad: <span id="hum-${i}">--</span> %<br>
-          Distancia: <span id="dist-${i}">--</span> mm
+          Temperatura: <span id="temp-${i}">${valoresPrueba[i-1].Temperatura_C}</span> °C<br>
+          Humedad: <span id="hum-${i}">${valoresPrueba[i-1].Humedad_%}</span> %<br>
+          Distancia: <span id="dist-${i}">${valoresPrueba[i-1].Distancia_mm}</span> mm
         </div>
-        <div class="alerta" id="alerta-${i}">¡Alerta de termitas!</div>
+        <div class="alerta" id="alerta-${i}" style="display: ${valoresPrueba[i-1].Distancia_mm > 30 ? 'block' : 'none'}">
+          ¡Alerta de termitas!
+        </div>
       `;
-      // Evento para seleccionar la sonda
+      // Selección de bloque
       sondaDiv.addEventListener('click', () => {
         if(sondaSeleccionada) sondaSeleccionada.classList.remove('seleccionada');
         sondaDiv.classList.add('seleccionada');
@@ -102,11 +111,12 @@
       grid.appendChild(sondaDiv);
     }
 
-    // Función para actualizar datos desde data.json
+    // Función para actualizar datos reales desde data.json si existe
     async function actualizarDatos() {
       try {
         const response = await fetch('data/data.json');
         const data = await response.json();
+        if(!data.sondas) return;
 
         data.sondas.forEach((sonda, index) => {
           const i = index + 1;
@@ -122,12 +132,12 @@
           }
         });
       } catch (error) {
-        console.error('Error al leer data.json:', error);
+        console.warn('No se pudo leer data.json, usando valores de prueba');
       }
     }
 
-    actualizarDatos();
-    setInterval(actualizarDatos, 10000); // Actualizar cada 10s
+    // Actualiza cada 10s
+    setInterval(actualizarDatos, 10000);
   </script>
 </body>
 </html>
