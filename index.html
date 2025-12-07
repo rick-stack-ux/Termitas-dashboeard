@@ -6,7 +6,7 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     body {
-      background-color: #ffffff;
+      background-color: #f9f9f9;
       font-family: Arial, sans-serif;
       display: flex;
       flex-direction: column;
@@ -20,45 +20,49 @@
     }
     .graficos {
       display: flex;
-      gap: 50px;
+      gap: 40px;
       flex-wrap: wrap;
       justify-content: center;
     }
-    .grafico-container {
+    .tarjeta {
+      background: #fff;
+      border-radius: 15px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      padding: 20px;
       width: 200px;
-      height: 200px;
+      text-align: center;
       position: relative;
     }
-    .valor-centro {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      font-size: 1.5em;
-      font-weight: bold;
-      text-align: center;
+    .tarjeta .icono {
+      font-size: 2.5em;
+      margin-bottom: 10px;
     }
-    .valor-centro span {
-      font-size: 0.7em;
-      vertical-align: super;
+    .tarjeta .nombre {
+      font-weight: bold;
+      margin-bottom: 5px;
+      color: #555;
+    }
+    .tarjeta .valor {
+      font-size: 1.8em;
+      font-weight: bold;
     }
     .alerta {
+      background-color: #ff4d4d;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      border-radius: 15px;
       width: 200px;
       height: 200px;
-      border-radius: 50%;
-      background-color: red;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      color: white;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      font-size: 1.3em;
       font-weight: bold;
-      text-align: center;
-      flex-direction: column;
-      font-size: 1.2em;
+      gap: 10px;
     }
     .alerta img {
-      width: 50px;
-      margin-bottom: 10px;
+      width: 60px;
     }
   </style>
 </head>
@@ -66,21 +70,26 @@
   <h1>Dashboard Termitas</h1>
   <div class="graficos">
     <!-- Temperatura -->
-    <div class="grafico-container">
+    <div class="tarjeta">
+      <div class="icono">🌡️</div>
+      <div class="nombre">Temperatura</div>
       <canvas id="graficoTemp"></canvas>
-      <div class="valor-centro" id="valorTemp">--<span>°C</span></div>
+      <div class="valor" id="valorTemp">--°C</div>
     </div>
 
     <!-- Humedad -->
-    <div class="grafico-container">
+    <div class="tarjeta">
+      <div class="icono">💧</div>
+      <div class="nombre">Humedad</div>
       <canvas id="graficoHum"></canvas>
-      <div class="valor-centro" id="valorHum">--<span>%</span></div>
+      <div class="valor" id="valorHum">--%</div>
     </div>
 
-    <!-- Presencia de termitas -->
+    <!-- Distancia / Presencia de termitas -->
     <div class="alerta" id="alertaTermitas">
       <img src="https://cdn-icons-png.flaticon.com/512/616/616408.png" alt="Termita">
-      <div>Presencia de termitas</div>
+      <div>Objeto detectado</div>
+      <div class="valor" id="valorDistancia">-- mm</div>
     </div>
   </div>
 
@@ -91,17 +100,14 @@
       type: 'doughnut',
       data: {
         labels: ['Temperatura', 'Resto'],
-        datasets: [{
-          data: [0, 100],
-          backgroundColor: ['#ff6384', '#eee'],
-          borderWidth: 0
-        }]
+        datasets: [{ data: [0, 100], backgroundColor: ['#ff6384', '#eee'], borderWidth: 0 }]
       },
       options: {
         cutout: '70%',
         rotation: -90,
         circumference: 180,
-        plugins: { legend: { display: false } }
+        plugins: { legend: { display: false } },
+        animation: { duration: 800, easing: 'easeOutQuad' }
       }
     });
 
@@ -110,17 +116,14 @@
       type: 'doughnut',
       data: {
         labels: ['Humedad', 'Resto'],
-        datasets: [{
-          data: [0, 100],
-          backgroundColor: ['rgba(0, 255, 0, 0.5)', '#eee'],
-          borderWidth: 0
-        }]
+        datasets: [{ data: [0, 100], backgroundColor: ['#36a2eb', '#eee'], borderWidth: 0 }]
       },
       options: {
         cutout: '70%',
         rotation: -90,
         circumference: 180,
-        plugins: { legend: { display: false } }
+        plugins: { legend: { display: false } },
+        animation: { duration: 800, easing: 'easeOutQuad' }
       }
     });
 
@@ -135,25 +138,28 @@
         graficoTemp.data.datasets[0].data[0] = temp;
         graficoTemp.data.datasets[0].data[1] = 100 - temp;
         graficoTemp.update();
-        document.getElementById('valorTemp').innerHTML = `${temp}<span>°C</span>`;
+        document.getElementById('valorTemp').innerText = `${temp}°C`;
 
         // Humedad
         const hum = data.Humedad_% ?? 0;
         graficoHum.data.datasets[0].data[0] = hum;
         graficoHum.data.datasets[0].data[1] = 100 - hum;
         graficoHum.update();
-        document.getElementById('valorHum').innerHTML = `${hum}<span>%</span>`;
+        document.getElementById('valorHum').innerText = `${hum}%`;
 
-        // Presencia de termitas
-        const presencia = data.Presencia_de_termitas ?? 0;
-        document.getElementById('alertaTermitas').style.display = presencia ? 'flex' : 'none';
+        // Distancia / presencia de termitas
+        const distancia = data.Distancia_mm ?? 0;
+        const alerta = distancia > 30; // 3cm = 30mm
+        const alertaDiv = document.getElementById('alertaTermitas');
+        alertaDiv.style.display = alerta ? 'flex' : 'none';
+        document.getElementById('valorDistancia').innerText = `${distancia} mm`;
       } catch (error) {
         console.error('Error al leer data.json:', error);
       }
     }
 
     actualizarDatos();
-    setInterval(actualizarDatos, 10000);
+    setInterval(actualizarDatos, 10000); // actualizar cada 10s
   </script>
 </body>
 </html>
