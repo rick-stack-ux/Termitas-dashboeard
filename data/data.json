@@ -1,0 +1,7 @@
+{
+  "temperatura": null,
+  "humedad": null,
+  "presencia": 0,
+  "distancia_mm": null,
+  "ts": "1970-01-01T00:00:00Z"
+}
