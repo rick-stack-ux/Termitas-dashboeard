@@ -1,39 +1,157 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
   <title>Dashboard Termitas</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    body { font-family: Arial, sans-serif; margin: 20px; }
-    h1 { color: #333; }
-    .dato { margin: 10px 0; font-size: 1.2em; }
+    body {
+      background-color: #ffffff;
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin: 0;
+      padding: 20px;
+    }
+    h1 {
+      color: #333;
+      margin-bottom: 30px;
+    }
+    .graficos {
+      display: flex;
+      gap: 50px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .grafico-container {
+      width: 200px;
+      height: 200px;
+      position: relative;
+    }
+    .valor-centro {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 1.5em;
+      font-weight: bold;
+      text-align: center;
+    }
+    .valor-centro span {
+      font-size: 0.7em;
+      vertical-align: super;
+    }
+    .alerta {
+      width: 200px;
+      height: 200px;
+      border-radius: 50%;
+      background-color: red;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: white;
+      font-weight: bold;
+      text-align: center;
+      flex-direction: column;
+      font-size: 1.2em;
+    }
+    .alerta img {
+      width: 50px;
+      margin-bottom: 10px;
+    }
   </style>
 </head>
 <body>
   <h1>Dashboard Termitas</h1>
-  <div class="dato">Temperatura: <span id="temperatura">--</span> °C</div>
-  <div class="dato">Humedad: <span id="humedad">--</span> %</div>
-  <div class="dato">Presencia: <span id="presencia">--</span></div>
-  <div class="dato">Distancia: <span id="distancia_mm">--</span> mm</div>
-  <div class="dato">Última actualización: <span id="ts">--</span></div>
+  <div class="graficos">
+    <!-- Temperatura -->
+    <div class="grafico-container">
+      <canvas id="graficoTemp"></canvas>
+      <div class="valor-centro" id="valorTemp">--<span>°C</span></div>
+    </div>
+
+    <!-- Humedad -->
+    <div class="grafico-container">
+      <canvas id="graficoHum"></canvas>
+      <div class="valor-centro" id="valorHum">--<span>%</span></div>
+    </div>
+
+    <!-- Presencia de termitas -->
+    <div class="alerta" id="alertaTermitas">
+      <img src="https://cdn-icons-png.flaticon.com/512/616/616408.png" alt="Termita">
+      <div>Presencia de termitas</div>
+    </div>
+  </div>
 
   <script>
+    // Inicializar gráficos
+    const ctxTemp = document.getElementById('graficoTemp').getContext('2d');
+    const graficoTemp = new Chart(ctxTemp, {
+      type: 'doughnut',
+      data: {
+        labels: ['Temperatura', 'Resto'],
+        datasets: [{
+          data: [0, 100],
+          backgroundColor: ['#ff6384', '#eee'],
+          borderWidth: 0
+        }]
+      },
+      options: {
+        cutout: '70%',
+        rotation: -90,
+        circumference: 180,
+        plugins: { legend: { display: false } }
+      }
+    });
+
+    const ctxHum = document.getElementById('graficoHum').getContext('2d');
+    const graficoHum = new Chart(ctxHum, {
+      type: 'doughnut',
+      data: {
+        labels: ['Humedad', 'Resto'],
+        datasets: [{
+          data: [0, 100],
+          backgroundColor: ['rgba(0, 255, 0, 0.5)', '#eee'],
+          borderWidth: 0
+        }]
+      },
+      options: {
+        cutout: '70%',
+        rotation: -90,
+        circumference: 180,
+        plugins: { legend: { display: false } }
+      }
+    });
+
+    // Función para actualizar datos desde data.json
     async function actualizarDatos() {
       try {
         const response = await fetch('data/data.json');
         const data = await response.json();
-        document.getElementById('temperatura').textContent = data.temperatura ?? '--';
-        document.getElementById('humedad').textContent = data.humedad ?? '--';
-        document.getElementById('presencia').textContent = data.presencia ?? '--';
-        document.getElementById('distancia_mm').textContent = data.distancia_mm ?? '--';
-        document.getElementById('ts').textContent = data.ts ?? '--';
+
+        // Temperatura
+        const temp = data.temperatura ?? 0;
+        graficoTemp.data.datasets[0].data[0] = temp;
+        graficoTemp.data.datasets[0].data[1] = 100 - temp;
+        graficoTemp.update();
+        document.getElementById('valorTemp').innerHTML = `${temp}<span>°C</span>`;
+
+        // Humedad
+        const hum = data.humedad ?? 0;
+        graficoHum.data.datasets[0].data[0] = hum;
+        graficoHum.data.datasets[0].data[1] = 100 - hum;
+        graficoHum.update();
+        document.getElementById('valorHum').innerHTML = `${hum}<span>%</span>`;
+
+        // Presencia de termitas
+        const presencia = data.presencia ?? 0;
+        document.getElementById('alertaTermitas').style.display = presencia ? 'flex' : 'none';
       } catch (error) {
         console.error('Error al leer data.json:', error);
       }
     }
 
-    // Actualiza al cargar y cada 10 segundos
     actualizarDatos();
     setInterval(actualizarDatos, 10000);
   </script>
