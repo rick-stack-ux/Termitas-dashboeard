@@ -1,1 +1,41 @@
 Actualizar index.html con dashboard completo
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Dashboard Termitas</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    h1 { color: #333; }
+    .dato { margin: 10px 0; font-size: 1.2em; }
+  </style>
+</head>
+<body>
+  <h1>Dashboard Termitas</h1>
+  <div class="dato">Temperatura: <span id="temperatura">--</span> °C</div>
+  <div class="dato">Humedad: <span id="humedad">--</span> %</div>
+  <div class="dato">Presencia: <span id="presencia">--</span></div>
+  <div class="dato">Distancia: <span id="distancia_mm">--</span> mm</div>
+  <div class="dato">Última actualización: <span id="ts">--</span></div>
+
+  <script>
+    async function actualizarDatos() {
+      try {
+        const response = await fetch('data/data.json');
+        const data = await response.json();
+        document.getElementById('temperatura').textContent = data.temperatura ?? '--';
+        document.getElementById('humedad').textContent = data.humedad ?? '--';
+        document.getElementById('presencia').textContent = data.presencia ?? '--';
+        document.getElementById('distancia_mm').textContent = data.distancia_mm ?? '--';
+        document.getElementById('ts').textContent = data.ts ?? '--';
+      } catch (error) {
+        console.error('Error al leer data.json:', error);
+      }
+    }
+
+    // Actualiza al cargar y cada 10 segundos
+    actualizarDatos();
+    setInterval(actualizarDatos, 10000);
+  </script>
+</body>
+</html>
