@@ -86,11 +86,11 @@
     const chartsTemp = [];
     const chartsHum = [];
 
-    // Valores de prueba por defecto
+    // Valores de prueba iniciales
     const valoresPrueba = Array.from({length: totalSondas}, (_, i) => ({
-      Temperatura_C: Math.floor(Math.random() * 10 + 20),
-      Humedad_%: Math.floor(Math.random() * 30 + 40),
-      Distancia_mm: Math.floor(Math.random() * 20 + 25)
+      Temperatura_C: Math.floor(Math.random() * 10 + 20), // 20-29°C
+      Humedad_pct: Math.floor(Math.random() * 30 + 40),   // 40-70%
+      Distancia_mm: Math.floor(Math.random() * 20 + 25)   // 25-44 mm
     }));
 
     // Crear bloques de sondas
@@ -123,7 +123,11 @@
         type: 'doughnut',
         data: {
           labels: ['Temp','Resto'],
-          datasets: [{ data: [valoresPrueba[i-1].Temperatura_C, 50], backgroundColor: ['#ff6384','#eee'], borderWidth:0 }]
+          datasets: [{
+            data: [valoresPrueba[i-1].Temperatura_C, 50],
+            backgroundColor: ['#ff6384','#eee'],
+            borderWidth:0
+          }]
         },
         options: { cutout: '70%', plugins:{legend:{display:false}}, rotation:-90, circumference:180 }
       });
@@ -134,7 +138,11 @@
         type: 'doughnut',
         data: {
           labels: ['Hum','Resto'],
-          datasets: [{ data: [valoresPrueba[i-1].Humedad_%, 100 - valoresPrueba[i-1].Humedad_%], backgroundColor: ['#36a2eb','#eee'], borderWidth:0 }]
+          datasets: [{
+            data: [valoresPrueba[i-1].Humedad_pct, 100 - valoresPrueba[i-1].Humedad_pct],
+            backgroundColor: ['#36a2eb','#eee'],
+            borderWidth:0
+          }]
         },
         options: { cutout: '70%', plugins:{legend:{display:false}}, rotation:-90, circumference:180 }
       });
@@ -151,7 +159,7 @@
         data.sondas.forEach((sonda, index) => {
           const i = index;
           const temp = sonda.Temperatura_C ?? valoresPrueba[i].Temperatura_C;
-          const hum = sonda.Humedad_% ?? valoresPrueba[i].Humedad_%;
+          const hum = sonda.Humedad_pct ?? valoresPrueba[i].Humedad_pct;
           const dist = sonda.Distancia_mm ?? valoresPrueba[i].Distancia_mm;
 
           // Actualizar gráficos
