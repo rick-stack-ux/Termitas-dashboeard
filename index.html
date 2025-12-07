@@ -68,12 +68,14 @@ document.addEventListener('DOMContentLoaded', function(){
   const chartsTemp = [];
   const chartsHum = [];
 
+  // Valores iniciales de prueba
   const valoresPrueba = Array.from({length: totalSondas}, (_, i) => ({
-    Temperatura_C: Math.floor(Math.random()*10+20), // 20-29°C
-    Humedad_pct: Math.floor(Math.random()*30+40),   // 40-70%
-    Distancia_mm: Math.floor(Math.random()*20+25)   // 25-44 mm
+    Temperatura_C: Math.floor(Math.random()*10 + 20),
+    Humedad_pct: Math.floor(Math.random()*30 + 40),
+    Distancia_mm: Math.floor(Math.random()*20 + 25)
   }));
 
+  // Crear bloques
   for(let b=0; b<totalSondas/sondasPorBloque; b++){
     const bloqueDiv = document.createElement('div');
     bloqueDiv.classList.add('bloque');
@@ -94,7 +96,7 @@ document.addEventListener('DOMContentLoaded', function(){
           ¡Alerta de termitas!
         </div>
       `;
-
+      // Selección
       sondaDiv.addEventListener('click', ()=>{
         if(sondaSeleccionada) sondaSeleccionada.classList.remove('seleccionada');
         sondaDiv.classList.add('seleccionada');
@@ -102,6 +104,7 @@ document.addEventListener('DOMContentLoaded', function(){
       });
       bloqueDiv.appendChild(sondaDiv);
 
+      // Inicializar gráficos
       const tempCanvas = document.getElementById(`tempChart-${sondaIndex}`);
       const humCanvas = document.getElementById(`humChart-${sondaIndex}`);
       if(!tempCanvas || !humCanvas) continue;
@@ -129,37 +132,28 @@ document.addEventListener('DOMContentLoaded', function(){
     bloquesContainer.appendChild(bloqueDiv);
   }
 
-  async function actualizarDatos(){
-    try{
-      const response = await fetch('data/data.json');
-      const data = await response.json();
-      if(!data.sondas) return;
+  // Actualizar datos cada 10s (simula ESP32)
+  setInterval(()=>{
+    for(let i=0;i<totalSondas;i++){
+      const temp = Math.floor(Math.random()*10 + 20);
+      const hum = Math.floor(Math.random()*30 + 40);
+      const dist = Math.floor(Math.random()*20 + 25);
 
-      data.sondas.forEach((sonda,index)=>{
-        if(!sonda) return;
-        const temp = sonda.Temperatura_C ?? valoresPrueba[index].Temperatura_C;
-        const hum = sonda.Humedad_pct ?? valoresPrueba[index].Humedad_pct;
-        const dist = sonda.Distancia_mm ?? valoresPrueba[index].Distancia_mm;
+      chartsTemp[i].data.datasets[0].data[0] = temp;
+      chartsTemp[i].update();
+      document.getElementById(`valorTemp-${i+1}`).innerText = temp+'°C';
 
-        chartsTemp[index].data.datasets[0].data[0] = temp;
-        chartsTemp[index].update();
-        document.getElementById(`valorTemp-${index+1}`).innerText = temp+'°C';
+      chartsHum[i].data.datasets[0].data[0] = hum;
+      chartsHum[i].update();
+      document.getElementById(`valorHum-${i+1}`).innerText = hum+'%';
 
-        chartsHum[index].data.datasets[0].data[0] = hum;
-        chartsHum[index].update();
-        document.getElementById(`valorHum-${index+1}`).innerText = hum+'%';
+      document.getElementById(`dist-${i+1}`).innerText = dist;
 
-        document.getElementById(`dist-${index+1}`).innerText = dist;
-
-        const alertaDiv = document.getElementById(`alerta-${index+1}`);
-        alertaDiv.style.display = dist>30?'block':'none';
-      });
-    }catch(e){
-      console.warn('No se pudo leer data.json, usando valores de prueba');
+      const alertaDiv = document.getElementById(`alerta-${i+1}`);
+      alertaDiv.style.display = dist>30?'block':'none';
     }
-  }
+  },10000);
 
-  setInterval(actualizarDatos,10000);
 });
 </script>
 </body>
