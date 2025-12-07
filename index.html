@@ -131,21 +131,21 @@
         const data = await response.json();
 
         // Temperatura
-        const temp = data.temperatura ?? 0;
+        const temp = data.Temperatura_C ?? 0;
         graficoTemp.data.datasets[0].data[0] = temp;
         graficoTemp.data.datasets[0].data[1] = 100 - temp;
         graficoTemp.update();
         document.getElementById('valorTemp').innerHTML = `${temp}<span>°C</span>`;
 
         // Humedad
-        const hum = data.humedad ?? 0;
+        const hum = data.Humedad_% ?? 0;
         graficoHum.data.datasets[0].data[0] = hum;
         graficoHum.data.datasets[0].data[1] = 100 - hum;
         graficoHum.update();
         document.getElementById('valorHum').innerHTML = `${hum}<span>%</span>`;
 
         // Presencia de termitas
-        const presencia = data.presencia ?? 0;
+        const presencia = data.Presencia_de_termitas ?? 0;
         document.getElementById('alertaTermitas').style.display = presencia ? 'flex' : 'none';
       } catch (error) {
         console.error('Error al leer data.json:', error);
