@@ -3,129 +3,104 @@
 <head>
   <meta charset="UTF-8">
   <title>Dashboard Termitas</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     body {
-      background-color: #f9f9f9;
+      background-color: #f0f0f0;
       font-family: Arial, sans-serif;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
       margin: 0;
       padding: 20px;
     }
     h1 {
+      text-align: center;
       color: #333;
       margin-bottom: 30px;
     }
-    .graficos {
-      display: flex;
-      gap: 40px;
-      flex-wrap: wrap;
-      justify-content: center;
+    .grid-sondas {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 20px;
+      justify-items: center;
+      margin-bottom: 40px;
     }
-    .tarjeta {
-      background: #fff;
-      border-radius: 15px;
+    .sonda {
+      background-color: #fff;
+      border-radius: 12px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-      padding: 20px;
-      width: 200px;
-      text-align: center;
-      position: relative;
+      padding: 15px;
+      width: 180px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      transition: transform 0.3s, border 0.3s;
+      cursor: pointer;
     }
-    .tarjeta .icono {
-      font-size: 2.5em;
+    .sonda:hover {
+      transform: translateY(-5px);
+    }
+    .sonda.seleccionada {
+      border: 3px solid #007bff;
+    }
+    .sonda h2 {
+      margin: 0;
+      font-size: 1.1em;
+      color: #555;
       margin-bottom: 10px;
     }
-    .tarjeta .nombre {
-      font-weight: bold;
-      margin-bottom: 5px;
-      color: #555;
-    }
-    .tarjeta .valor {
-      font-size: 1.8em;
-      font-weight: bold;
+    .variables {
+      font-size: 0.9em;
+      color: #333;
+      margin-bottom: 10px;
+      text-align: center;
     }
     .alerta {
       background-color: #ff4d4d;
       color: #fff;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      border-radius: 15px;
-      width: 200px;
-      height: 200px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-      font-size: 1.3em;
       font-weight: bold;
-      gap: 10px;
+      padding: 5px 10px;
+      border-radius: 8px;
+      display: none;
+      text-align: center;
+      width: 100%;
     }
-    .alerta img {
-      width: 60px;
-    }
+    @media(max-width: 1200px) { .grid-sondas { grid-template-columns: repeat(4, 1fr); } }
+    @media(max-width: 992px) { .grid-sondas { grid-template-columns: repeat(3, 1fr); } }
+    @media(max-width: 768px) { .grid-sondas { grid-template-columns: repeat(2, 1fr); } }
+    @media(max-width: 480px) { .grid-sondas { grid-template-columns: 1fr; } }
   </style>
 </head>
 <body>
   <h1>Dashboard Termitas</h1>
-  <div class="graficos">
-    <!-- Temperatura -->
-    <div class="tarjeta">
-      <div class="icono">🌡️</div>
-      <div class="nombre">Temperatura</div>
-      <canvas id="graficoTemp"></canvas>
-      <div class="valor" id="valorTemp">--°C</div>
-    </div>
-
-    <!-- Humedad -->
-    <div class="tarjeta">
-      <div class="icono">💧</div>
-      <div class="nombre">Humedad</div>
-      <canvas id="graficoHum"></canvas>
-      <div class="valor" id="valorHum">--%</div>
-    </div>
-
-    <!-- Distancia / Presencia de termitas -->
-    <div class="alerta" id="alertaTermitas">
-      <img src="https://cdn-icons-png.flaticon.com/512/616/616408.png" alt="Termita">
-      <div>Objeto detectado</div>
-      <div class="valor" id="valorDistancia">-- mm</div>
-    </div>
+  <div class="grid-sondas" id="gridSondas">
+    <!-- Bloques de sondas se generarán dinámicamente -->
   </div>
 
   <script>
-    // Inicializar gráficos
-    const ctxTemp = document.getElementById('graficoTemp').getContext('2d');
-    const graficoTemp = new Chart(ctxTemp, {
-      type: 'doughnut',
-      data: {
-        labels: ['Temperatura', 'Resto'],
-        datasets: [{ data: [0, 100], backgroundColor: ['#ff6384', '#eee'], borderWidth: 0 }]
-      },
-      options: {
-        cutout: '70%',
-        rotation: -90,
-        circumference: 180,
-        plugins: { legend: { display: false } },
-        animation: { duration: 800, easing: 'easeOutQuad' }
-      }
-    });
+    const totalSondas = 20; // Número de sondas
+    const grid = document.getElementById('gridSondas');
+    let sondaSeleccionada = null;
 
-    const ctxHum = document.getElementById('graficoHum').getContext('2d');
-    const graficoHum = new Chart(ctxHum, {
-      type: 'doughnut',
-      data: {
-        labels: ['Humedad', 'Resto'],
-        datasets: [{ data: [0, 100], backgroundColor: ['#36a2eb', '#eee'], borderWidth: 0 }]
-      },
-      options: {
-        cutout: '70%',
-        rotation: -90,
-        circumference: 180,
-        plugins: { legend: { display: false } },
-        animation: { duration: 800, easing: 'easeOutQuad' }
-      }
-    });
+    // Crear bloques de sondas dinámicamente
+    for(let i = 1; i <= totalSondas; i++) {
+      const sondaDiv = document.createElement('div');
+      sondaDiv.classList.add('sonda');
+      sondaDiv.id = `sonda-${i}`;
+      sondaDiv.innerHTML = `
+        <h2>Sonda ${i}</h2>
+        <div class="variables">
+          Temperatura: <span id="temp-${i}">--</span> °C<br>
+          Humedad: <span id="hum-${i}">--</span> %<br>
+          Distancia: <span id="dist-${i}">--</span> mm
+        </div>
+        <div class="alerta" id="alerta-${i}">¡Alerta de termitas!</div>
+      `;
+      // Evento para seleccionar la sonda
+      sondaDiv.addEventListener('click', () => {
+        if(sondaSeleccionada) sondaSeleccionada.classList.remove('seleccionada');
+        sondaDiv.classList.add('seleccionada');
+        sondaSeleccionada = sondaDiv;
+      });
+      grid.appendChild(sondaDiv);
+    }
 
     // Función para actualizar datos desde data.json
     async function actualizarDatos() {
@@ -133,33 +108,26 @@
         const response = await fetch('data/data.json');
         const data = await response.json();
 
-        // Temperatura
-        const temp = data.Temperatura_C ?? 0;
-        graficoTemp.data.datasets[0].data[0] = temp;
-        graficoTemp.data.datasets[0].data[1] = 100 - temp;
-        graficoTemp.update();
-        document.getElementById('valorTemp').innerText = `${temp}°C`;
+        data.sondas.forEach((sonda, index) => {
+          const i = index + 1;
+          document.getElementById(`temp-${i}`).innerText = sonda.Temperatura_C ?? '--';
+          document.getElementById(`hum-${i}`).innerText = sonda.Humedad_% ?? '--';
+          document.getElementById(`dist-${i}`).innerText = sonda.Distancia_mm ?? '--';
 
-        // Humedad
-        const hum = data.Humedad_% ?? 0;
-        graficoHum.data.datasets[0].data[0] = hum;
-        graficoHum.data.datasets[0].data[1] = 100 - hum;
-        graficoHum.update();
-        document.getElementById('valorHum').innerText = `${hum}%`;
-
-        // Distancia / presencia de termitas
-        const distancia = data.Distancia_mm ?? 0;
-        const alerta = distancia > 30; // 3cm = 30mm
-        const alertaDiv = document.getElementById('alertaTermitas');
-        alertaDiv.style.display = alerta ? 'flex' : 'none';
-        document.getElementById('valorDistancia').innerText = `${distancia} mm`;
+          const alertaDiv = document.getElementById(`alerta-${i}`);
+          if((sonda.Distancia_mm ?? 0) > 30){
+            alertaDiv.style.display = 'block';
+          } else {
+            alertaDiv.style.display = 'none';
+          }
+        });
       } catch (error) {
         console.error('Error al leer data.json:', error);
       }
     }
 
     actualizarDatos();
-    setInterval(actualizarDatos, 10000); // actualizar cada 10s
+    setInterval(actualizarDatos, 10000); // Actualizar cada 10s
   </script>
 </body>
 </html>
