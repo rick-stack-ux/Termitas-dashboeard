@@ -1,1 +1,417 @@
-https://pastebin.com/raw/5dLtF3pw
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Panel Sondas T</title>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
+
+<style>
+  :root{
+    --bg:#0f1720;
+    --card:#0f1725;
+    --text:#e6eef6;
+    --muted:#9aa9bd;
+    --accent:#00c8ff;
+    --danger:#ff3b3b;
+    --shadow: 0 8px 20px rgba(2,8,23,0.6);
+  }
+  /* Light mode variables (applied when .light on body) */
+  body.light {
+    --bg:#f3f6fb;
+    --card:#ffffff;
+    --text:#1b2330;
+    --muted:#556575;
+    --accent:#007BFF;
+    --danger:#ff3b3b;
+    --shadow: 0 6px 18px rgba(16,24,40,0.08);
+  }
+
+  /* Basic layout */
+  html,body{height:100%;margin:0;padding:0;font-family:Inter,system-ui,Arial,sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased}
+  .app {
+    max-width:1200px;
+    margin:18px auto;
+    padding:14px;
+  }
+
+  /* Header */
+  .header{
+    display:flex;
+    gap:12px;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom:16px;
+  }
+  .title {
+    display:flex;
+    flex-direction:column;
+  }
+  .title h1{margin:0;font-size:20px;letter-spacing:0.2px}
+  .title p{margin:0;color:var(--muted);font-size:13px}
+
+  /* Controls */
+  .controls{
+    display:flex;
+    gap:10px;
+    align-items:center;
+  }
+  .mode-btn{
+    background:transparent;
+    border:1px solid rgba(255,255,255,0.06);
+    color:var(--text);
+    padding:8px 10px;
+    border-radius:8px;
+    cursor:pointer;
+    font-size:13px;
+  }
+  .mode-btn.light { background:rgba(255,255,255,0.06) }
+
+  /* Summary */
+  .summary{
+    display:flex;
+    gap:12px;
+    margin-bottom:18px;
+    flex-wrap:wrap;
+  }
+  .metric{
+    background:var(--card);
+    padding:12px 14px;
+    border-radius:10px;
+    box-shadow:var(--shadow);
+    min-width:140px;
+    text-align:center;
+  }
+  .metric small{display:block;color:var(--muted);font-size:12px}
+  .metric b{display:block;font-size:18px;margin-top:6px}
+
+  /* Grid of cards */
+  .grid{
+    display:grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap:16px;
+  }
+
+  .card{
+    background:var(--card);
+    border-radius:12px;
+    padding:14px;
+    box-shadow:var(--shadow);
+    position:relative;
+    transition: box-shadow .25s ease, transform .18s ease, border-color .15s ease;
+    border: 2px solid transparent;
+    overflow:hidden;
+  }
+  .card:hover{ transform: translateY(-6px); }
+
+  .card.alert {
+    border-color: var(--danger);
+    box-shadow: 0 12px 30px rgba(255,50,50,0.12);
+  }
+
+  .card .sonda-title{ font-weight:600; font-size:15px; margin-bottom:8px; color:var(--text) }
+  .tog { font-size:13px; color:var(--muted); display:flex; gap:8px; align-items:center; margin-bottom:8px; }
+
+  /* canvas sizing */
+  .charts{ display:flex; gap:10px; align-items:center; justify-content:center; flex-wrap:wrap; padding:6px 0; }
+  canvas { width:110px !important; height:110px !important; }
+
+  .labels { display:flex; gap:10px; justify-content:center; margin-top:6px; flex-wrap:wrap; }
+  .lbl { font-size:12px; color:var(--muted); text-align:center; min-width:95px; }
+  .val { font-weight:700; color:var(--text); margin-top:4px; font-size:14px }
+
+  /* inactive overlay */
+  .card.inactive{ opacity:.35; filter:grayscale(.1); }
+
+  /* small footer note */
+  .note{ margin-top:12px;color:var(--muted);font-size:13px; text-align:center }
+  @media (max-width:460px){
+    .metrics-row{flex-direction:column;gap:10px}
+    canvas{ width:98px !important; height:98px !important; }
+  }
+</style>
+</head>
+<body>
+  <div class="app">
+    <div class="header">
+      <div class="title">
+        <h1>Panel Sondas T</h1>
+        <p>Monitoreo: Temperatura · Humedad · Distancia (mm)</p>
+      </div>
+
+      <div class="controls">
+        <button id="modeToggle" class="mode-btn">Modo claro / oscuro</button>
+      </div>
+    </div>
+
+    <!-- Summary -->
+    <div class="summary">
+      <div class="metric"><small>Sondas activas</small><b id="numActivas">0</b></div>
+      <div class="metric"><small>Alertas distancia</small><b id="numAlertas">0</b></div>
+      <div class="metric"><small>Temp. promedio</small><b id="promTemp">-- °C</b></div>
+      <div class="metric"><small>Humedad promedio</small><b id="promHum">-- %</b></div>
+    </div>
+
+    <!-- Grid -->
+    <div class="grid" id="grid"></div>
+
+    <div class="note">Umbral alerta distancia: <b> > 40 mm </b> (4 cm → objeto caído)</div>
+  </div>
+
+<script>
+/*
+  Panel Sondas T - FINAL
+  - 5 sondas
+  - alerta SOLO por distancia (mm). umbral 40 mm
+  - Temperatura: degradado visual (color dinámico)
+  - Humedad: celeste
+  - Animación suave, responsive
+  - data.json support: { "sondas": [ { "Temperatura_C":.., "Humedad_pct":.., "Distancia_mm":.. }, ... ] }
+  - fallback values simulated when data.json missing
+*/
+
+/* CONFIG */
+const NUM = 5;
+const DIST_THRESHOLD_MM = 40; // alerta si > 40 mm
+const UPDATE_MS = 5000; // cada 5s (simulación / refresco)
+
+/* State holders */
+const chartsT = new Array(NUM);
+const chartsH = new Array(NUM);
+const active = new Array(NUM).fill(true);
+const lastValues = new Array(NUM).fill(null); // store last {t,h,dist}
+
+/* Colors / helpers */
+function tempColor(v){
+  // smooth color via thresholds (green -> yellow -> red)
+  if (v <= 25) return '#2ecc71';       // green
+  if (v <= 30) return '#f1c40f';       // yellow
+  return '#e74c3c';                    // red
+}
+function humColor(){ return '#00c8ff'; } // celeste
+
+/* create card HTML and charts */
+function createCard(i, initial){
+  const grid = document.getElementById('grid');
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.id = `card-${i+1}`;
+  card.innerHTML = `
+    <div class="sonda-title">Sonda ${i+1}</div>
+    <div class="tog">
+      <label><input type="checkbox" id="toggle-${i+1}" checked> Activar</label>
+      <div style="flex:1"></div>
+      <div style="font-size:12px;color:var(--muted)">Dist: <span id="dist-${i+1}">--</span> mm</div>
+    </div>
+
+    <div class="charts">
+      <canvas id="t-${i+1}"></canvas>
+      <canvas id="h-${i+1}"></canvas>
+    </div>
+
+    <div class="labels">
+      <div class="lbl">
+        <div class="muted">Temperatura</div>
+        <div class="val" id="tempVal-${i+1}">-- °C</div>
+      </div>
+      <div class="lbl">
+        <div class="muted">Humedad</div>
+        <div class="val" id="humVal-${i+1}">-- %</div>
+      </div>
+    </div>
+  `;
+  grid.appendChild(card);
+
+  // toggle behavior
+  const toggle = card.querySelector(`#toggle-${i+1}`);
+  toggle.addEventListener('change', (ev)=>{
+    active[i] = ev.target.checked;
+    card.classList.toggle('inactive', !active[i]);
+    updateSummary();
+  });
+
+  // clicking card selects (visual)
+  card.addEventListener('click', (ev)=>{
+    // ignore clicks on toggle checkbox container to avoid toggling selection
+    if(ev.target.tagName.toLowerCase() === 'input') return;
+    // toggle selection
+    const currently = document.querySelector('.card.selected');
+    if(currently) currently.classList.remove('selected');
+    card.classList.add('selected');
+  });
+
+  // initialize Chart.js doughnuts
+  const ctxT = card.querySelector(`#t-${i+1}`).getContext('2d');
+  const ctxH = card.querySelector(`#h-${i+1}`).getContext('2d');
+
+  const tChart = new Chart(ctxT, {
+    type:'doughnut',
+    data:{ datasets:[ { data:[initial.t, 50-initial.t], backgroundColor:[tempColor(initial.t),'#2b3944'], borderWidth:0 } ] },
+    options:{
+      rotation:-90, circumference:180, cutout:'72%',
+      animation:{ animateRotate:true, duration:700 },
+      plugins:{ legend:{display:false}, tooltip:{enabled:false} }
+    }
+  });
+  const hChart = new Chart(ctxH, {
+    type:'doughnut',
+    data:{ datasets:[ { data:[initial.h, 100-initial.h], backgroundColor:[humColor(),'#2b3944'], borderWidth:0 } ] },
+    options:{
+      rotation:-90, circumference:180, cutout:'72%',
+      animation:{ animateRotate:true, duration:700 },
+      plugins:{ legend:{display:false}, tooltip:{enabled:false} }
+    }
+  });
+
+  chartsT[i] = tChart;
+  chartsH[i] = hChart;
+  lastValues[i] = initial;
+
+  // Set displayed values
+  document.getElementById(`tempVal-${i+1}`).textContent = initial.t + ' °C';
+  document.getElementById(`humVal-${i+1}`).textContent = initial.h + ' %';
+  document.getElementById(`dist-${i+1}`).textContent = initial.dist;
+
+  // set alert border if needed
+  applyDistanceAlert(i, initial.dist);
+}
+
+/* Apply distance alert border to card */
+function applyDistanceAlert(index, dist_mm){
+  const card = document.getElementById(`card-${index+1}`);
+  if(!card) return;
+  if(dist_mm > DIST_THRESHOLD_MM){
+    card.classList.add('alert');
+  } else {
+    card.classList.remove('alert');
+  }
+}
+
+/* Update summary metrics */
+function updateSummary(){
+  let act=0, alerts=0, sumT=0, sumH=0, count=0;
+  for(let i=0;i<NUM;i++){
+    if(!active[i]) continue;
+    act++;
+    const v = lastValues[i];
+    if(!v) continue;
+    sumT += v.t;
+    sumH += v.h;
+    count++;
+    if(v.dist > DIST_THRESHOLD_MM) alerts++;
+  }
+  document.getElementById('numActivas').textContent = act;
+  document.getElementById('numAlertas').textContent = alerts;
+  document.getElementById('promTemp').textContent = (count?Math.round(sumT/count):'--') + ' °C';
+  document.getElementById('promHum').textContent = (count?Math.round(sumH/count):'--') + ' %';
+}
+
+/* Try to fetch data.json; fallback to simulation */
+async function fetchDataOnce(){
+  try{
+    const resp = await fetch('data/data.json', {cache:'no-store'});
+    if(!resp.ok) throw new Error('no data.json');
+    const j = await resp.json();
+    // Accept either j.sondas array OR top-level array
+    const arr = Array.isArray(j.sondas)? j.sondas : (Array.isArray(j)? j : (j.data && Array.isArray(j.data) ? j.data : null));
+    if(!arr) throw new Error('mal formato data.json');
+    // use first NUM sondas to initialize
+    return arr.slice(0,NUM).map(s => ({
+      t: Number(s.Temperatura_C ?? s.temperatura ?? 0) || 0,
+      h: Number(s.Humedad_pct ?? s.humedad ?? 0) || 0,
+      dist: Number(s.Distancia_mm ?? s.distancia_mm ?? s.distancia ?? 0) || 0
+    }));
+  }catch(e){
+    // fallback: generate simulated initial values
+    const simulated = [];
+    for(let i=0;i<NUM;i++){
+      simulated.push({
+        t: Math.floor(Math.random()*10 + 20),
+        h: Math.floor(Math.random()*30 + 40),
+        dist: Math.floor(Math.random()*20 + 25)
+      });
+    }
+    return simulated;
+  }
+}
+
+/* Periodic update: either fetch from data.json or simulate */
+async function periodicUpdate(){
+  // attempt to fetch, but don't fail page if fetch missing
+  let arr = null;
+  try{
+    const resp = await fetch('data/data.json', {cache:'no-store'});
+    if(resp.ok){
+      const j = await resp.json();
+      arr = Array.isArray(j.sondas)? j.sondas : (Array.isArray(j)? j : (j.data && Array.isArray(j.data) ? j.data : null));
+    }
+  }catch(e){
+    arr = null;
+  }
+
+  for(let i=0;i<NUM;i++){
+    if(!active[i]) continue;
+    let newT, newH, newDist;
+    if(arr && arr[i]){
+      newT = Number(arr[i].Temperatura_C ?? arr[i].temperatura ?? 0) || 0;
+      newH = Number(arr[i].Humedad_pct ?? arr[i].humedad ?? 0) || 0;
+      newDist = Number(arr[i].Distancia_mm ?? arr[i].distancia_mm ?? arr[i].distancia ?? 0) || 0;
+    } else {
+      // simulation small variation from last value
+      const prev = lastValues[i] || {t:22,h:48,dist:30};
+      newT = Math.max(0, Math.round(prev.t + (Math.random()*4-2)));
+      newH = Math.max(0, Math.round(prev.h + (Math.random()*6-3)));
+      newDist = Math.max(0, Math.round(prev.dist + (Math.random()*10-5)));
+    }
+
+    // update charts with animation
+    chartsT[i].data.datasets[0].data[0] = newT;
+    chartsT[i].data.datasets[0].backgroundColor[0] = tempColor(newT);
+    chartsT[i].update();
+
+    chartsH[i].data.datasets[0].data[0] = newH;
+    chartsH[i].data.datasets[0].backgroundColor[0] = humColor();
+    chartsH[i].update();
+
+    // update labels
+    document.getElementById(`tempVal-${i+1}`).textContent = `${newT} °C`;
+    document.getElementById(`humVal-${i+1}`).textContent = `${newH} %`;
+    document.getElementById(`dist-${i+1}`).textContent = `${newDist}`;
+
+    // save
+    lastValues[i] = {t:newT, h:newH, dist:newDist};
+
+    // apply distance alert (border red)
+    applyDistanceAlert(i, newDist);
+  }
+
+  updateSummary();
+}
+
+/* MODE toggle */
+const modeBtnColors = document.getElementById('modeToggle');
+modeBtnColors?.addEventListener('click', ()=>{
+  document.body.classList.toggle('light');
+});
+
+/* Initialize app */
+(async function init(){
+  // load initial data (either data.json or simulated)
+  const initial = await fetchDataOnce();
+
+  // build cards
+  for(let i=0;i<NUM;i++){
+    createCard(i, initial[i] || {t:20,h:50,dist:30});
+  }
+
+  // initial update (simulate quick update after load)
+  setTimeout(()=> periodicUpdate(), 600);
+
+  // periodic updates
+  setInterval(periodicUpdate, UPDATE_MS);
+})();
+</script>
+</body>
+</html>
