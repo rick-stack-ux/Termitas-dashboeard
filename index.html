@@ -1,485 +1,256 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Panel Sondas T - Final</title>
-
-<!-- Chart.js -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<meta charset="UTF-8">
+<title>Panel sondas T</title>
 
 <style>
-:root{
-  --bg:#0f1720; --card:#0f1725; --text:#e6eef6; --muted:#9aa9bd;
-  --accent:#00c8ff; --danger:#ff3b3b; --ok:#2ecc71; --warn:#f1c40f;
-  --shadow: 0 8px 20px rgba(2,8,23,0.6);
+body{
+  margin:0;padding:0;
+  font-family:Arial;
+  background:#121212;
+  color:white;
 }
-body.light { --bg:#f3f6fb; --card:#fff; --text:#1b2330; --muted:#556575; --accent:#007BFF; --shadow:0 6px 18px rgba(16,24,40,0.08); }
-html,body{height:100%;margin:0;padding:0;background:var(--bg);color:var(--text);font-family:Arial,Helvetica,sans-serif}
-.app{max-width:1200px;margin:14px auto;padding:12px}
-.header{display:flex;justify-content:space-between;align-items:center;gap:14px}
-.title h1{margin:0;font-size:20px}
-.title p{margin:0;color:var(--muted);font-size:13px}
-.controls{display:flex;gap:8px;align-items:center}
-.mode-btn{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--text);padding:8px 10px;border-radius:8px;cursor:pointer}
-.summary{display:flex;gap:12px;margin:14px 0 18px;flex-wrap:wrap}
-.metric{background:var(--card);padding:10px 12px;border-radius:10px;box-shadow:var(--shadow);min-width:140px;text-align:center}
-.metric small{display:block;color:var(--muted);font-size:12px}
-.metric b{display:block;font-size:16px;margin-top:6px}
+.container{
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:center;
+  gap:20px;
+  padding:20px;
+}
+.card{
+  width:300px;
+  background:#1c1c1c;
+  padding:15px;
+  border-radius:10px;
+  box-shadow:0 0 10px rgba(0,0,0,.5);
+  border:4px solid gray;
+}
+.card.active{
+  /* sin animación aquí */
+}
+.card.presencia{
+  border:4px solid red;
+  animation:pulse 1s infinite;
+}
+@keyframes pulse{
+  0%{box-shadow:0 0 5px red;}
+  50%{box-shadow:0 0 20px red;}
+  100%{box-shadow:0 0 5px red;}
+}
 
-/* grid cards */
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
-.card{background:var(--card);padding:12px;border-radius:12px;box-shadow:var(--shadow);border:3px solid transparent;transition:all .18s ease;position:relative}
-.card.inactive{opacity:.35;filter:grayscale(.1)}
-.card.alert{border-color:var(--danger);box-shadow:0 12px 30px rgba(255,60,60,0.12)}
-.card.warn{border-color:var(--warn);box-shadow:0 8px 24px rgba(241,196,15,0.08)}
-.card.ok{border-color:var(--ok);box-shadow:0 8px 24px rgba(46,204,113,0.06)}
+h2{margin:0 0 10px;}
+.chartBox{height:140px;margin-bottom:8px;}
 
-.sonda-title{font-weight:700;margin-bottom:6px}
-.datetime{font-size:12px;color:var(--muted);text-align:right;margin-bottom:6px}
-.tog{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;color:var(--muted);font-size:13px}
+label{font-size:.9rem}
 
-/* charts and labels */
-.charts{display:flex;gap:10px;justify-content:center;align-items:center;flex-wrap:wrap;padding:6px 0}
-canvas{width:110px!important;height:110px!important}
-.labels{display:flex;gap:12px;justify-content:center;margin-top:8px;flex-wrap:wrap}
-.lbl{font-size:12px;color:var(--muted);text-align:center;min-width:95px}
-.val{font-weight:700;color:var(--text);margin-top:4px;font-size:14px}
-.small{font-size:11px;color:var(--muted);margin-top:6px; text-align:center}
+/* texto de alerta */
+.alert{
+  font-size:1.1rem;
+  font-weight:bold;
+  color:red;
+  text-align:center;
+  padding:5px;
+}
 
-/* history modal */
-.modal{position:fixed;inset:0;background:rgba(0,0,0,0.45);display:none;align-items:center;justify-content:center;z-index:999}
-.modal.open{display:flex}
-.modal-content{background:var(--card);padding:14px;border-radius:10px;max-width:900px;width:94%;max-height:82vh;overflow:auto}
-.modal h3{margin:0 0 8px}
-.table{width:100%;border-collapse:collapse;font-size:13px}
-.table th,.table td{padding:6px;border-bottom:1px solid rgba(255,255,255,0.04);text-align:left}
-.toolbar{display:flex;gap:8px;align-items:center;justify-content:flex-end;margin-bottom:8px}
-
-/* small utilities */
-.btn{background:var(--accent);border:none;padding:8px 10px;border-radius:8px;color:#fff;cursor:pointer}
-.btn.ghost{background:transparent;border:1px solid rgba(255,255,255,0.06)}
-.note{margin-top:12px;color:var(--muted);font-size:13px;text-align:center}
-@media(max-width:520px){canvas{width:92px!important;height:92px!important}}
+/* responsive */
+@media(max-width:600px){
+  .card{width:95%;}
+}
 </style>
 </head>
 <body>
-  <div class="app">
-    <div class="header">
-      <div class="title">
-        <h1>Panel Sondas T</h1>
-        <p>Monitoreo: Temperatura · Humedad · Distancia (mm) — alarma si distancia &gt; 40 mm</p>
-      </div>
-      <div class="controls">
-        <button id="modeToggle" class="mode-btn">Modo Claro/Oscuro</button>
-        <button id="openHistory" class="mode-btn">Ver Historial (7d)</button>
-        <button id="exportCsv" class="mode-btn">Exportar CSV</button>
-      </div>
-    </div>
 
-    <div class="summary">
-      <div class="metric"><small>Sondas activas</small><b id="numActivas">0</b></div>
-      <div class="metric"><small>Alertas distancia</small><b id="numAlertas">0</b></div>
-      <div class="metric"><small>Temp. promedio</small><b id="promTemp">-- °C</b></div>
-      <div class="metric"><small>Humedad promedio</small><b id="promHum">-- %</b></div>
-    </div>
+<h1 style="text-align:center;">Panel sondas T</h1>
+<div style="text-align:center;margin-bottom:10px;">
+  <span id="fecha"></span> -
+  <span id="hora"></span>
+</div>
 
-    <div class="grid" id="grid"></div>
+<div class="container" id="panel">
+</div>
 
-    <div class="note">Detección de caída confirmada: 3 lecturas consecutivas fuera de rango (>40 mm). Historial guardado en tu navegador (localStorage).</div>
-  </div>
-
-  <!-- Modal historial -->
-  <div id="modal" class="modal" aria-hidden="true">
-    <div class="modal-content">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-        <h3>Historial últimos 7 días</h3>
-        <div><button id="closeModal" class="btn">Cerrar</button></div>
-      </div>
-      <div class="toolbar">
-        <label style="color:var(--muted);font-size:13px;margin-right:auto">Filtro sensor:
-          <select id="filterSensor" style="margin-left:8px;padding:4px;border-radius:6px;background:transparent;color:var(--text)"></select>
-        </label>
-        <button id="clearHistory" class="btn ghost">Borrar historial</button>
-      </div>
-      <table class="table" id="historyTable">
-        <thead><tr><th>Fecha/Hora</th><th>Sonda</th><th>Dist mm</th><th>Temp °C</th><th>Hum %</th><th>Estado</th></tr></thead>
-        <tbody id="historyBody"></tbody>
-      </table>
-    </div>
-  </div>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script>
-/* ----------------------------- CONFIG ----------------------------- */
-const NUM = 5;
-const UPDATE_MS = 5000;           // frecuencia update
-const DIST_ALERT_MM = 40;         // umbral alerta (mm)
-const CONSECUTIVE_CONFIRM = 3;    // 3 lecturas fuera de rango para confirmar caída
-const HISTORY_KEY = 'term_history_v1'; // localStorage key
+/************** CONFIGURACIÓN *****************/
 
-/* ----------------------------- STATE ----------------------------- */
-let chartsT = new Array(NUM);
-let chartsH = new Array(NUM);
-let active = new Array(NUM).fill(true);
-let lastValues = new Array(NUM).fill(null);
-let outCounters = new Array(NUM).fill(0); // cuenta lecturas fuera rango consecutivas
-let status = new Array(NUM).fill('nodata'); // nodata|normal|warn|fall
+const numSondas = 5;
 
-/* ----------------------------- HELPERS ----------------------------- */
-function formatDateISO(ts){
-  const d = new Date(ts);
-  return d.toLocaleString('es-CL', {hour12:false});
-}
-function nowISO(){ return new Date().toISOString(); }
-function tempColor(v){
-  if(v <= 25) return '#2ecc71';
-  if(v <= 30) return '#f1c40f';
-  return '#e74c3c';
-}
-function humColor(){ return '#00c8ff'; }
+const limites = {
+  okMin: 10,      // mm
+  okMax: 30,      // mm dentro normal
+  alertaMax: 40,  // >40 caída
+};
 
-/* ----------------------------- HISTORY (localStorage) ----------------------------- */
-function loadHistory(){
-  try{ const raw = localStorage.getItem(HISTORY_KEY); return raw? JSON.parse(raw): []; }catch(e){return [];}
-}
-function saveHistory(arr){ localStorage.setItem(HISTORY_KEY, JSON.stringify(arr)); }
-function addHistoryEntry(entry){
-  const arr = loadHistory();
-  arr.push(entry);
-  // prune entries older than 7 days
-  const sevenDaysAgo = Date.now() - 7*24*3600*1000;
-  const pruned = arr.filter(e=> new Date(e.ts).getTime() >= sevenDaysAgo);
-  saveHistory(pruned);
-}
-function clearHistory(){
-  localStorage.removeItem(HISTORY_KEY);
-}
+const sondas = [];
 
-/* ----------------------------- UI: create card ----------------------------- */
-function createCard(i, initial){
-  const grid = document.getElementById('grid');
-  const card = document.createElement('div');
-  card.className = 'card';
-  card.id = `card-${i+1}`;
-  card.innerHTML = `
-    <div style="display:flex;justify-content:space-between;align-items:center">
-      <div class="sonda-title">Sonda ${i+1}</div>
-      <div class="datetime small" id="dt-${i+1}">--</div>
-    </div>
-    <div class="tog">
-      <label><input type="checkbox" id="toggle-${i+1}" checked> Activar</label>
-      <div style="flex:1"></div>
-      <div style="font-size:12px;color:var(--muted)">Dist: <span id="dist-${i+1}">--</span> mm</div>
-    </div>
+/***************************************************/
 
-    <div class="charts">
-      <div style="text-align:center">
-        <canvas id="t-${i+1}"></canvas>
-        <div class="label-under small" style="margin-top:6px;color:var(--muted)">Temperatura</div>
+function crearCards(){
+  const panel=document.getElementById("panel");
+  for(let i=1;i<=numSondas;i++){
+    panel.innerHTML+=`
+    <div class="card" id="card${i}">
+      <h2>Sonda ${i}</h2>
+
+      <label>
+        <input type="checkbox" id="enable${i}" onchange="guardarEstado(${i})">
+        Activar sonda
+      </label>
+
+      <div class="chartBox">
+        <canvas id="temp${i}"></canvas>
+        <div style="font-size:.8rem;text-align:center;">temperatura</div>
       </div>
-      <div style="text-align:center">
-        <canvas id="h-${i+1}"></canvas>
-        <div class="label-under small" style="margin-top:6px;color:var(--muted)">Humedad</div>
+
+      <div class="chartBox">
+        <canvas id="hum${i}"></canvas>
+        <div style="font-size:.8rem;text-align:center;">humedad</div>
       </div>
-    </div>
 
-    <div class="labels">
-      <div class="lbl">
-        <div class="muted">Temp</div>
-        <div class="val" id="tempVal-${i+1}">-- °C</div>
-      </div>
-      <div class="lbl">
-        <div class="muted">Humedad</div>
-        <div class="val" id="humVal-${i+1}">-- %</div>
-      </div>
-    </div>
-
-    <div class="small" id="last-${i+1}">Última lectura: --</div>
-    <div class="small" id="fall-${i+1}"></div>
-  `;
-  grid.appendChild(card);
-
-  // Toggle
-  const toggle = card.querySelector(`#toggle-${i+1}`);
-  toggle.addEventListener('change', ev=>{
-    active[i] = ev.target.checked;
-    card.classList.toggle('inactive', !active[i]);
-    updateSummary();
-  });
-
-  // click select visual
-  card.addEventListener('click', ev=>{
-    if(ev.target.tagName.toLowerCase() === 'input') return;
-    document.querySelectorAll('.card.selected').forEach(c=>c.classList.remove('selected'));
-    card.classList.add('selected');
-  });
-
-  // charts
-  const ctxT = card.querySelector(`#t-${i+1}`).getContext('2d');
-  const ctxH = card.querySelector(`#h-${i+1}`).getContext('2d');
-
-  const tChart = new Chart(ctxT, {
-    type:'doughnut',
-    data:{ datasets:[{ data:[initial.t || 0, Math.max(1,100-(initial.t||0))], backgroundColor:[tempColor(initial.t||0),'#26333a'], borderWidth:0 }]},
-    options:{ rotation:-90, circumference:180, cutout:'72%', animation:{animateRotate:true,duration:600}, plugins:{legend:{display:false}, tooltip:{enabled:false}} }
-  });
-  const hChart = new Chart(ctxH, {
-    type:'doughnut',
-    data:{ datasets:[{ data:[initial.h || 0, Math.max(1,100-(initial.h||0))], backgroundColor:[humColor(),'#26333a'], borderWidth:0 }]},
-    options:{ rotation:-90, circumference:180, cutout:'72%', animation:{animateRotate:true,duration:600}, plugins:{legend:{display:false}, tooltip:{enabled:false}} }
-  });
-
-  chartsT[i] = tChart;
-  chartsH[i] = hChart;
-
-  lastValues[i] = initial;
-
-  // Set initial text
-  document.getElementById(`tempVal-${i+1}`).textContent = (initial.t ?? '--') + ' °C';
-  document.getElementById(`humVal-${i+1}`).textContent = (initial.h ?? '--') + ' %';
-  document.getElementById(`dist-${i+1}`).textContent = (initial.dist ?? '--');
-  document.getElementById(`last-${i+1}`).textContent = 'Última lectura: ' + (initial.ts? formatDateISO(initial.ts) : '--');
-  if(initial.fallTs) document.getElementById(`fall-${i+1}`).textContent = 'Caída: ' + formatDateISO(initial.fallTs);
-
-  applyVisualState(i, initial);
+      <div id="alert${i}" class="alert" style="display:none;">PRESENCIA</div>
+    </div>`;
+  }
 }
 
-/* ----------------------------- APPLY VISUAL STATE ----------------------------- */
-function applyVisualState(i, vals){
-  const card = document.getElementById(`card-${i+1}`);
-  if(!card) return;
-  // remove classes
-  card.classList.remove('alert','warn','ok');
-  let s = 'nodata';
+/********* guardar activación ************/
+function guardarEstado(id){
+  localStorage.setItem("sonda"+id, document.getElementById("enable"+id).checked);
+}
 
-  // no reading
-  if(vals == null || typeof vals.dist === 'undefined' || vals.dist === null){
-    s = 'nodata';
-    card.style.borderColor = 'transparent';
-  } else {
-    const d = Number(vals.dist);
-    if(d > DIST_ALERT_MM){
-      s = 'fall';
-      card.classList.add('alert');
-    } else if(d > 30 && d <= DIST_ALERT_MM){
-      s = 'warn';
-      card.classList.add('warn');
+/********* cargar activación *************/
+function cargarEstado(){
+  for(let i=1;i<=numSondas;i++){
+    const est = localStorage.getItem("sonda"+i)==="true";
+    const ch = document.getElementById("enable"+i);
+    ch.checked = est;
+  }
+}
+
+/******************* reloj fijo *******************/
+function actualizarReloj(){
+  const f = new Date();
+  document.getElementById("fecha").textContent = 
+     f.toLocaleDateString("es-CL");
+  document.getElementById("hora").textContent = 
+     f.toLocaleTimeString("es-CL");
+}
+setInterval(actualizarReloj,1000);
+
+/***************** actualización de sensores ************************/
+
+// ESP32 deberá enviar json así por websocket o HTTP:
+// { s1:{temp:22,hum:44,dist:18}, s2:{...}}
+
+function actualizarValores(data){
+  for(let i=1;i<=numSondas;i++){
+    const ch=document.getElementById("enable"+i);
+    if(!ch.checked || !data[`s${i}`]) continue;
+
+    const T = data[`s${i}`].temp;
+    const H = data[`s${i}`].hum;
+    const D = data[`s${i}`].dist;
+
+    actualizarChart(i,T,H);
+
+    let card=document.getElementById("card"+i);
+    let alertDiv=document.getElementById("alert"+i);
+
+    // lógica distancia
+    if(D<limites.okMin || D>limites.alertaMax){
+      // presencia CAÍDA
+      alertDiv.style.display="block";
+      card.classList.add("presencia");
+      card.style.borderColor="red";
+    }
+    else if(D>limites.okMax){
+      // advertencia
+      alertDiv.style.display="none";
+      card.classList.remove("presencia");
+      card.style.borderColor="yellow";
     } else {
-      s = 'normal';
-      card.classList.add('ok');
+      // normal
+      alertDiv.style.display="none";
+      card.classList.remove("presencia");
+      card.style.borderColor="lime";
     }
   }
-  status[i] = s;
 }
 
-/* ----------------------------- SUMMARY ----------------------------- */
-function updateSummary(){
-  let act=0, alerts=0, sumT=0, sumH=0, cnt=0;
-  for(let i=0;i<NUM;i++){
-    if(!active[i]) continue;
-    act++;
-    const v = lastValues[i];
-    if(!v) continue;
-    sumT += v.t || 0;
-    sumH += v.h || 0;
-    cnt++;
-    if(status[i] === 'fall') alerts++;
-  }
-  document.getElementById('numActivas').textContent = act;
-  document.getElementById('numAlertas').textContent = alerts;
-  document.getElementById('promTemp').textContent = (cnt?Math.round(sumT/cnt):'--') + ' °C';
-  document.getElementById('promHum').textContent = (cnt?Math.round(sumH/cnt):'--') + ' %';
-}
+/*************** charts ****************/
+const charts={};
 
-/* ----------------------------- DATA FETCH / SIM ----------------------------- */
-async function fetchInitial(){
-  try{
-    const r = await fetch('data/data.json',{cache:'no-store'});
-    if(!r.ok) throw new Error('no json');
-    const j = await r.json();
-    const arr = Array.isArray(j.sondas)? j.sondas : (Array.isArray(j)? j : (j.data && Array.isArray(j.data) ? j.data : null));
-    if(!arr) throw new Error('mal formato');
-    return arr.slice(0,NUM).map(s=>({
-      t: Number(s.Temperatura_C ?? s.temperatura ?? 0) || 0,
-      h: Number(s.Humedad_pct ?? s.humedad ?? 0) || 0,
-      dist: Number(s.Distancia_mm ?? s.distancia_mm ?? s.distancia ?? 0) || 0,
-      ts: s.ts ?? nowISO(),
-      fallTs: s.fallTs ?? null
-    }));
-  }catch(e){
-    // simulated initial
-    const out = [];
-    for(let i=0;i<NUM;i++){
-      out.push({ t: Math.floor(Math.random()*10+20), h: Math.floor(Math.random()*30+40), dist: Math.floor(Math.random()*20+30), ts: nowISO(), fallTs: null });
-    }
-    return out;
+function initCharts(){
+  for(let i=1;i<=numSondas;i++){
+    charts["t"+i]=new Chart(
+      document.getElementById("temp"+i),
+      {
+        type:"line",
+        data:{labels:[],datasets:[{
+          label:"T",
+          data:[],
+          borderColor:"rgba(0,255,0,.9)",
+          tension:.4
+        }]}
+      }
+    );
+
+    charts["h"+i]=new Chart(
+      document.getElementById("hum"+i),
+      {
+        type:"line",
+        data:{labels:[],datasets:[{
+          label:"H",
+          data:[],
+          borderColor:"rgba(0,200,255,.9)",
+          tension:.4
+        }]}
+      }
+    );
   }
 }
 
-/* ----------------------------- PERIODIC UPDATE ----------------------------- */
-async function periodicUpdate(){
-  // try fetch data.json, else simulate
-  let arr = null;
-  try{
-    const r = await fetch('data/data.json',{cache:'no-store'});
-    if(r.ok){
-      const j = await r.json();
-      arr = Array.isArray(j.sondas)? j.sondas : (Array.isArray(j)? j : (j.data && Array.isArray(j.data) ? j.data : null));
-    }
-  }catch(e){ arr = null; }
+function actualizarChart(id,T,H){
+  const t=charts["t"+id];
+  const h=charts["h"+id];
+  const hora=new Date().toLocaleTimeString("es-CL",{hour:"2-digit",minute:"2-digit"});
 
-  for(let i=0;i<NUM;i++){
-    if(!active[i]) continue;
-    let newT,newH,newDist, ts;
-    if(arr && arr[i]){
-      newT = Number(arr[i].Temperatura_C ?? arr[i].temperatura ?? 0) || 0;
-      newH = Number(arr[i].Humedad_pct ?? arr[i].humedad ?? 0) || 0;
-      newDist = Number(arr[i].Distancia_mm ?? arr[i].distancia_mm ?? arr[i].distancia ?? 0) || 0;
-      ts = arr[i].ts ?? nowISO();
-    } else {
-      // simulate small random walk
-      const prev = lastValues[i] || {t:22,h:50,dist:30};
-      newT = Math.max(0, Math.round(prev.t + (Math.random()*4 - 2)));
-      newH = Math.max(0, Math.round(prev.h + (Math.random()*6 - 3)));
-      newDist = Math.max(0, Math.round(prev.dist + (Math.random()*12 - 6)));
-      ts = nowISO();
-    }
+  if(t.data.labels.length>20) t.data.labels.shift();
+  if(t.data.datasets[0].data.length>20) t.data.datasets[0].data.shift();
+  if(h.data.labels.length>20) h.data.labels.shift();
+  if(h.data.datasets[0].data.length>20) h.data.datasets[0].data.shift();
 
-    // Update chart and labels
-    chartsT[i].data.datasets[0].data[0] = newT;
-    chartsT[i].data.datasets[0].backgroundColor[0] = tempColor(newT);
-    chartsT[i].update();
+  t.data.labels.push(hora);
+  t.data.datasets[0].data.push(T);
 
-    chartsH[i].data.datasets[0].data[0] = newH;
-    chartsH[i].data.datasets[0].backgroundColor[0] = humColor();
-    chartsH[i].update();
+  h.data.labels.push(hora);
+  h.data.datasets[0].data.push(H);
 
-    document.getElementById(`tempVal-${i+1}`).textContent = `${newT} °C`;
-    document.getElementById(`humVal-${i+1}`).textContent = `${newH} %`;
-    document.getElementById(`dist-${i+1}`).textContent = `${newDist}`;
-    document.getElementById(`last-${i+1}`).textContent = `Última lectura: ${formatDateISO(ts)}`;
-    document.getElementById(`dt-${i+1}`).textContent = formatDateISO(Date.now()); // card clock
-
-    // status logic: counters for consecutive out-of-range (>DIST_ALERT_MM)
-    if(newDist > DIST_ALERT_MM){
-      outCounters[i] = (outCounters[i] || 0) + 1;
-    } else {
-      outCounters[i] = 0;
-      // if previously in fall, keep fallTs saved (historical). But if recovered, no automatic removal of fallTs.
-    }
-
-    // Confirm fall if >= CONSECUTIVE_CONFIRM
-    let fellNow = false;
-    if(outCounters[i] >= CONSECUTIVE_CONFIRM && status[i] !== 'fall'){
-      // mark fall confirmed now
-      const fallTs = nowISO();
-      document.getElementById(`fall-${i+1}`).textContent = 'Caída detectada: ' + formatDateISO(fallTs);
-      // save in history entry
-      addHistoryEntry({ ts: fallTs, sensor: i+1, dist: newDist, t: newT, h: newH, state: 'fall' });
-      lastValues[i] = { t:newT, h:newH, dist:newDist, ts, fallTs };
-      fellNow = true;
-    }
-
-    // if not falling, but warning or normal, store reading
-    if(!fellNow){
-      // push reading to history (always store every update)
-      addHistoryEntry({ ts: ts, sensor: i+1, dist: newDist, t: newT, h: newH, state: (newDist>DIST_ALERT_MM?'fall': (newDist>30?'warn':'normal')) });
-    }
-
-    // save last values
-    lastValues[i] = lastValues[i] || {};
-    lastValues[i].t = newT; lastValues[i].h = newH; lastValues[i].dist = newDist; lastValues[i].ts = ts;
-
-    // apply visual
-    applyVisualState(i, lastValues[i]);
-  }
-
-  updateSummary();
+  t.update();
+  h.update();
 }
 
-/* ----------------------------- CLOCK (date/time per card) ----------------------------- */
-function updateClocks(){
-  for(let i=1;i<=NUM;i++){
-    const el = document.getElementById(`dt-${i}`);
-    if(el) el.textContent = new Date().toLocaleTimeString('es-CL',{hour12:false});
-  }
-}
+/**************** START *****************/
+crearCards();
+initCharts();
+window.onload=cargarEstado;
+actualizarReloj();
 
-/* ----------------------------- HISTORY UI ----------------------------- */
-function openHistory(){
-  const modal = document.getElementById('modal');
-  modal.classList.add('open');
-  populateHistory();
-}
-function closeHistory(){ document.getElementById('modal').classList.remove('open'); }
-
-function populateHistory(){
-  const arr = loadHistory().slice().reverse(); // newest first
-  const tbody = document.getElementById('historyBody');
-  tbody.innerHTML = '';
-  const filter = Number(document.getElementById('filterSensor').value || 0);
-  arr.forEach(entry=>{
-    if(filter && entry.sensor !== filter) return;
-    const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${formatDateISO(entry.ts)}</td>
-                    <td>${entry.sensor}</td>
-                    <td>${entry.dist}</td>
-                    <td>${entry.t}</td>
-                    <td>${entry.h}</td>
-                    <td>${entry.state}</td>`;
-    tbody.appendChild(tr);
-  });
-}
-
-/* ----------------------------- CSV EXPORT ----------------------------- */
-function exportCSV(){
-  const arr = loadHistory();
-  if(!arr.length){ alert('No hay historial para exportar'); return; }
-  const rows = [['ts','sensor','dist_mm','temp_C','hum_pct','state']];
-  arr.forEach(r=> rows.push([r.ts, r.sensor, r.dist, r.t, r.h, r.state]));
-  const csv = rows.map(r=> r.map(cell=> `"${String(cell).replace(/"/g,'""')}"`).join(',')).join('\n');
-  const blob = new Blob([csv],{type:'text/csv;charset=utf-8;'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = 'term_history.csv'; document.body.appendChild(a); a.click();
-  setTimeout(()=>{ URL.revokeObjectURL(url); a.remove(); },1000);
-}
-
-/* ----------------------------- INIT ----------------------------- */
-async function init(){
-  // populate history filter options
-  const filter = document.getElementById('filterSensor');
-  filter.innerHTML = '<option value="0">Todas</option>';
-  for(let i=1;i<=NUM;i++) filter.innerHTML += `<option value="${i}">Sonda ${i}</option>`;
-  filter.addEventListener('change', populateHistory);
-
-  // modal events
-  document.getElementById('openHistory').addEventListener('click', openHistory);
-  document.getElementById('closeModal').addEventListener('click', closeHistory);
-  document.getElementById('clearHistory').addEventListener('click', ()=>{
-    if(!confirm('Borrar todo el historial guardado (últimos 7 días)?')) return;
-    clearHistory(); populateHistory();
-  });
-  document.getElementById('exportCsv').addEventListener('click', exportCSV);
-  document.getElementById('modal').addEventListener('click', (e)=>{ if(e.target.id==='modal') closeHistory(); });
-
-  document.getElementById('modeToggle').addEventListener('click', ()=>{ document.body.classList.toggle('light'); });
-
-  // initial data
-  const initial = await fetchInitial();
-  for(let i=0;i<NUM;i++) createCard(i, initial[i] || {t:0,h:0,dist:0,ts:nowISO()});
-
-  // initial summary and clocks
-  updateSummary(); updateClocks();
-
-  // periodic updates
-  setInterval(periodicUpdate, UPDATE_MS);
-  setInterval(updateClocks, 1000);
-  // populate history modal on open
-  document.getElementById('openHistory').addEventListener('click', populateHistory);
-}
-
-init();
+/*************************************************
+SIMULACIÓN (BORRAR CUANDO LLEGUE ESP32)
+*************************************************/
+setInterval(()=>{
+  const fake={
+    s1:{temp:25,hum:60,dist:Math.random()*60},
+    s2:{temp:24,hum:55,dist:Math.random()*60},
+    s3:{temp:26,hum:62,dist:Math.random()*60},
+    s4:{temp:23,hum:58,dist:Math.random()*60},
+    s5:{temp:27,hum:63,dist:Math.random()*60},
+  };
+  actualizarValores(fake);
+},3000);
 </script>
+
 </body>
 </html>
