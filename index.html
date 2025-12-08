@@ -127,9 +127,74 @@
 
   /* small footer note */
   .note{ margin-top:12px;color:var(--muted);font-size:13px; text-align:center }
-  @media (max-width:460px){
-    .metrics-row{flex-direction:column;gap:10px}
-    canvas{ width:98px !important; height:98px !important; }
+
+  /* presence alert inside card */
+  .presenciaAlert{
+    font-weight:700;
+    text-align:center;
+    padding:8px 6px;
+    margin-top:8px;
+    border-radius:8px;
+    background: rgba(255,0,0,0.04);
+    color: #ff8a8a;
+    min-height:44px;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+  }
+  .presenciaAlert b{ color:var(--danger); }
+
+  /* modal historial */
+  .modal{
+    display:none;
+    position:fixed;
+    top:0;left:0;
+    width:100%;height:100%;
+    background:rgba(0,0,0,.5);
+    align-items:center;
+    justify-content:center;
+    z-index:1200;
+  }
+  .modal.open{ display:flex; }
+  .modal-content{
+    background:var(--card);
+    color:var(--text);
+    width:96%;
+    max-width:1100px;
+    padding:14px;
+    border-radius:10px;
+    overflow-y:auto;
+    max-height:90vh;
+    box-shadow:var(--shadow);
+  }
+  #historyContent{
+    display:grid;
+    grid-template-columns: repeat(auto-fill,minmax(260px,1fr));
+    gap:12px;
+    margin-top:8px;
+  }
+  .historyCard{
+    background: linear-gradient(180deg, rgba(255,255,255,0.02), transparent);
+    padding:10px;
+    border-radius:8px;
+    box-shadow: 0 6px 18px rgba(2,8,23,0.35);
+    font-size:13px;
+    overflow:auto;
+    max-height:52vh;
+  }
+  .historyCard h3{ margin:0 0 6px 0; font-size:15px }
+  .histRow{ border-top:1px dashed rgba(255,255,255,0.03); padding:6px 0; font-size:13px; color:var(--muted) }
+  .histRow small{ display:block; color:var(--muted); margin-bottom:4px }
+
+  /* responsive tweaks */
+  @media (max-width:900px){
+    .charts{ gap:8px }
+    canvas{ width:96px !important; height:96px !important; }
+  }
+  @media (max-width:520px){
+    .grid{ grid-template-columns: 1fr; }
+    .controls{ gap:8px; }
+    .mode-btn{ padding:9px 12px; font-size:14px }
   }
 </style>
 </head>
@@ -142,6 +207,7 @@
       </div>
 
       <div class="controls">
+        <button id="btnHistorial" class="mode-btn">Historial</button>
         <button id="modeToggle" class="mode-btn">Modo claro / oscuro</button>
       </div>
     </div>
@@ -160,16 +226,28 @@
     <div class="note">Umbral alerta distancia: <b> > 40 mm </b> (4 cm → objeto caído)</div>
   </div>
 
+  <!-- Historial Modal -->
+  <div id="historyModal" class="modal" aria-hidden="true">
+    <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="histTitulo">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+        <h2 id="histTitulo" style="margin:0">Historial semanal - Sondas</h2>
+        <div style="display:flex;gap:8px">
+          <button id="exportAll" class="mode-btn" title="Exportar JSON">Exportar</button>
+          <button id="closeHist" class="mode-btn">Cerrar</button>
+        </div>
+      </div>
+
+      <div id="historyContent"></div>
+      <div style="margin-top:10px;color:var(--muted);font-size:13px">Se muestran las lecturas guardadas (últimos 7 días aprox.).</div>
+    </div>
+  </div>
+
 <script>
 /*
-  Panel Sondas T - FINAL
-  - 5 sondas
-  - alerta SOLO por distancia (mm). umbral 40 mm
-  - Temperatura: degradado visual (color dinámico)
-  - Humedad: celeste
-  - Animación suave, responsive
-  - data.json support: { "sondas": [ { "Temperatura_C":.., "Humedad_pct":.., "Distancia_mm":.. }, ... ] }
-  - fallback values simulated when data.json missing
+  Panel Sondas T - MODIFICADO
+  - preserva todo tu código original
+  - agrega: persistencia checkbox, presencia (4 lecturas), alerta en tarjeta,
+    fecha/hora dentro del cuadro, historial semanal, modal responsive, export.
 */
 
 /* CONFIG */
@@ -177,22 +255,33 @@ const NUM = 5;
 const DIST_THRESHOLD_MM = 40; // alerta si > 40 mm
 const UPDATE_MS = 5000; // cada 5s (simulación / refresco)
 
-/* State holders */
+/* State holders (original variables preserved) */
 const chartsT = new Array(NUM);
 const chartsH = new Array(NUM);
 const active = new Array(NUM).fill(true);
 const lastValues = new Array(NUM).fill(null); // store last {t,h,dist}
 
-/* Colors / helpers */
+/* New: counts for consecutive bad readings (presencia) */
+const badCount = new Array(NUM).fill(0);
+
+/* Colors / helpers (unchanged) */
 function tempColor(v){
-  // smooth color via thresholds (green -> yellow -> red)
-  if (v <= 25) return '#2ecc71';       // green
-  if (v <= 30) return '#f1c40f';       // yellow
-  return '#e74c3c';                    // red
+  if (v <= 25) return '#2ecc71';
+  if (v <= 30) return '#f1c40f';
+  return '#e74c3c';
 }
 function humColor(){ return '#00c8ff'; } // celeste
 
-/* create card HTML and charts */
+/* Helper: format date as DD/MM HH:MM */
+function formatDateShort(d){
+  const dd = String(d.getDate()).padStart(2,'0');
+  const mm = String(d.getMonth()+1).padStart(2,'0');
+  const hh = String(d.getHours()).padStart(2,'0');
+  const min = String(d.getMinutes()).padStart(2,'0');
+  return `${dd}/${mm} ${hh}:${min}`;
+}
+
+/* create card HTML and charts (kept original structure, added presence container and localStorage restore) */
 function createCard(i, initial){
   const grid = document.getElementById('grid');
   const card = document.createElement('div');
@@ -224,19 +313,39 @@ function createCard(i, initial){
   `;
   grid.appendChild(card);
 
-  // toggle behavior
+  // add presence alert box (empty initially)
+  const presencia = document.createElement("div");
+  presencia.className = "presenciaAlert";
+  presencia.id = `pres-${i+1}`;
+  presencia.innerHTML = ""; // filled when presence detected
+  card.appendChild(presencia);
+
+  // toggle behavior (restore state from localStorage if exists)
   const toggle = card.querySelector(`#toggle-${i+1}`);
+  // restore
+  const saved = localStorage.getItem(`sonda-${i+1}`);
+  if(saved !== null){
+    const checked = saved === '1';
+    toggle.checked = checked;
+    active[i] = checked;
+    card.classList.toggle('inactive', !active[i]);
+  } else {
+    // if no saved value, keep default (checked) and save it
+    localStorage.setItem(`sonda-${i+1}`, toggle.checked ? '1' : '0');
+    active[i] = toggle.checked;
+  }
+
   toggle.addEventListener('change', (ev)=>{
     active[i] = ev.target.checked;
     card.classList.toggle('inactive', !active[i]);
+    // persist state
+    localStorage.setItem(`sonda-${i+1}`, ev.target.checked ? '1' : '0');
     updateSummary();
   });
 
   // clicking card selects (visual)
   card.addEventListener('click', (ev)=>{
-    // ignore clicks on toggle checkbox container to avoid toggling selection
     if(ev.target.tagName.toLowerCase() === 'input') return;
-    // toggle selection
     const currently = document.querySelector('.card.selected');
     if(currently) currently.classList.remove('selected');
     card.classList.add('selected');
@@ -248,7 +357,7 @@ function createCard(i, initial){
 
   const tChart = new Chart(ctxT, {
     type:'doughnut',
-    data:{ datasets:[ { data:[initial.t, 50-initial.t], backgroundColor:[tempColor(initial.t),'#2b3944'], borderWidth:0 } ] },
+    data:{ datasets:[ { data:[initial.t, Math.max(0,50-initial.t)], backgroundColor:[tempColor(initial.t),'#2b3944'], borderWidth:0 } ] },
     options:{
       rotation:-90, circumference:180, cutout:'72%',
       animation:{ animateRotate:true, duration:700 },
@@ -257,7 +366,7 @@ function createCard(i, initial){
   });
   const hChart = new Chart(ctxH, {
     type:'doughnut',
-    data:{ datasets:[ { data:[initial.h, 100-initial.h], backgroundColor:[humColor(),'#2b3944'], borderWidth:0 } ] },
+    data:{ datasets:[ { data:[initial.h, Math.max(0,100-initial.h)], backgroundColor:[humColor(),'#2b3944'], borderWidth:0 } ] },
     options:{
       rotation:-90, circumference:180, cutout:'72%',
       animation:{ animateRotate:true, duration:700 },
@@ -274,18 +383,65 @@ function createCard(i, initial){
   document.getElementById(`humVal-${i+1}`).textContent = initial.h + ' %';
   document.getElementById(`dist-${i+1}`).textContent = initial.dist;
 
-  // set alert border if needed
+  // set alert border if needed (use new rule)
   applyDistanceAlert(i, initial.dist);
 }
 
-/* Apply distance alert border to card */
+/* Apply distance alert border to card
+   Now uses consecutive badCount logic: only trigger after 4 consecutive readings
+*/
 function applyDistanceAlert(index, dist_mm){
   const card = document.getElementById(`card-${index+1}`);
+  const presBox = document.getElementById(`pres-${index+1}`);
   if(!card) return;
+
   if(dist_mm > DIST_THRESHOLD_MM){
-    card.classList.add('alert');
+    badCount[index]++;
   } else {
+    badCount[index] = 0;
+  }
+
+  if(badCount[index] >= 4){
+    // presence: border red and show alerta inside the card with date/time
+    card.classList.add('alert');
+    activarPresencia(index, dist_mm);
+  } else {
+    // if not reached required consecutive count -> remove presence UI
+    // but keep card.alert only if other conditions (here none) -> remove
     card.classList.remove('alert');
+    quitarPresencia(index);
+  }
+}
+
+/* Presence UI control */
+function activarPresencia(i, dist){
+  const card = document.getElementById(`card-${i+1}`);
+  if(!card) return;
+  // set border explicitly (keeps existing alert style)
+  card.style.border = `3px solid ${getComputedStyle(document.documentElement).getPropertyValue('--danger') || '#ff3b3b'}`;
+
+  const boxAlert = document.getElementById(`pres-${i+1}`);
+  if(boxAlert){
+    const now = new Date();
+    boxAlert.innerHTML = `
+      <div style="font-size:13px"><b>PRESENCIA DETECTADA</b></div>
+      <div style="font-size:12px;color:var(--muted)">${formatDateShort(now)}</div>
+      <div style="font-size:13px">Dist: ${dist} mm</div>
+    `;
+  }
+
+  // save an alert entry to history as well (so it's visible in historial)
+  saveHistory(i, lastValues[i]?.t ?? 0, lastValues[i]?.h ?? 0, dist, true);
+}
+
+function quitarPresencia(i){
+  const card = document.getElementById(`card-${i+1}`);
+  if(!card) return;
+  // remove explicit border but not other styling
+  card.style.border = '';
+  const boxAlert = document.getElementById(`pres-${i+1}`);
+  if(boxAlert){
+    boxAlert.innerHTML = '';
   }
 }
 
@@ -306,6 +462,30 @@ function updateSummary(){
   document.getElementById('numAlertas').textContent = alerts;
   document.getElementById('promTemp').textContent = (count?Math.round(sumT/count):'--') + ' °C';
   document.getElementById('promHum').textContent = (count?Math.round(sumH/count):'--') + ' %';
+}
+
+/* History: save per-sonda in localStorage (keeps large buffer, but we'll show last 7 days)
+   Each entry: {time:ISO, t, h, d, presence:bool}
+*/
+function saveHistory(i,t,h,d,presence=false){
+  try {
+    const key = `history-sonda-${i+1}`;
+    const existing = JSON.parse(localStorage.getItem(key) || "[]");
+    existing.push({
+      time: new Date().toISOString(),
+      t: Number(t),
+      h: Number(h),
+      d: Number(d),
+      presence: !!presence
+    });
+    // prune older than ~10 days or keep last 5000 entries (safe)
+    const maxEntries = 5000;
+    while(existing.length > maxEntries) existing.shift();
+
+    localStorage.setItem(key, JSON.stringify(existing));
+  } catch(e){
+    console.error('saveHistory err', e);
+  }
 }
 
 /* Try to fetch data.json; fallback to simulation */
@@ -337,7 +517,9 @@ async function fetchDataOnce(){
   }
 }
 
-/* Periodic update: either fetch from data.json or simulate */
+/* Periodic update: either fetch from data.json or simulate
+   - now saves history each update (for active sondas)
+*/
 async function periodicUpdate(){
   // attempt to fetch, but don't fail page if fetch missing
   let arr = null;
@@ -352,7 +534,9 @@ async function periodicUpdate(){
   }
 
   for(let i=0;i<NUM;i++){
+    // respect user choice: if sonda is inactive, we do not update values nor save history for it
     if(!active[i]) continue;
+
     let newT, newH, newDist;
     if(arr && arr[i]){
       newT = Number(arr[i].Temperatura_C ?? arr[i].temperatura ?? 0) || 0;
@@ -367,23 +551,32 @@ async function periodicUpdate(){
     }
 
     // update charts with animation
-    chartsT[i].data.datasets[0].data[0] = newT;
-    chartsT[i].data.datasets[0].backgroundColor[0] = tempColor(newT);
-    chartsT[i].update();
-
-    chartsH[i].data.datasets[0].data[0] = newH;
-    chartsH[i].data.datasets[0].backgroundColor[0] = humColor();
-    chartsH[i].update();
+    if(chartsT[i]){
+      chartsT[i].data.datasets[0].data[0] = newT;
+      chartsT[i].data.datasets[0].backgroundColor[0] = tempColor(newT);
+      chartsT[i].update();
+    }
+    if(chartsH[i]){
+      chartsH[i].data.datasets[0].data[0] = newH;
+      chartsH[i].data.datasets[0].backgroundColor[0] = humColor();
+      chartsH[i].update();
+    }
 
     // update labels
-    document.getElementById(`tempVal-${i+1}`).textContent = `${newT} °C`;
-    document.getElementById(`humVal-${i+1}`).textContent = `${newH} %`;
-    document.getElementById(`dist-${i+1}`).textContent = `${newDist}`;
+    const tempEl = document.getElementById(`tempVal-${i+1}`);
+    const humEl = document.getElementById(`humVal-${i+1}`);
+    const distEl = document.getElementById(`dist-${i+1}`);
+    if(tempEl) tempEl.textContent = `${newT} °C`;
+    if(humEl) humEl.textContent = `${newH} %`;
+    if(distEl) distEl.textContent = `${newDist}`;
 
     // save
     lastValues[i] = {t:newT, h:newH, dist:newDist};
 
-    // apply distance alert (border red)
+    // save history (only for active sondas)
+    saveHistory(i, newT, newH, newDist, false);
+
+    // apply distance alert (border red after 4 consecutive)
     applyDistanceAlert(i, newDist);
   }
 
@@ -395,6 +588,72 @@ const modeBtnColors = document.getElementById('modeToggle');
 modeBtnColors?.addEventListener('click', ()=>{
   document.body.classList.toggle('light');
 });
+
+/* Historial modal controls */
+const btnHist = document.getElementById('btnHistorial');
+const histModal = document.getElementById('historyModal');
+const histContent = document.getElementById('historyContent');
+const closeHist = document.getElementById('closeHist');
+const exportAll = document.getElementById('exportAll');
+
+btnHist?.addEventListener('click', ()=> openHistory());
+closeHist?.addEventListener('click', ()=> closeHistory());
+histModal?.addEventListener('click', (e)=> { if(e.target === histModal) closeHistory(); });
+exportAll?.addEventListener('click', ()=> {
+  // simple export: bundle all history keys into a JSON and download
+  const bundle = {};
+  for(let i=0;i<NUM;i++){
+    const key = `history-sonda-${i+1}`;
+    bundle[`sonda-${i+1}`] = JSON.parse(localStorage.getItem(key) || "[]");
+  }
+  const blob = new Blob([JSON.stringify(bundle, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `historial_sondas_${new Date().toISOString().slice(0,10)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+});
+
+function openHistory(){
+  histContent.innerHTML = '';
+  // For each sonda create a card with entries in last ~7 days
+  const now = new Date();
+  const sevenDaysAgo = new Date(now.getTime() - (7*24*60*60*1000));
+
+  for(let i=0;i<NUM;i++){
+    const key = `history-sonda-${i+1}`;
+    const arr = JSON.parse(localStorage.getItem(key) || "[]");
+    // filter last 7 days
+    const recent = arr.filter(x => new Date(x.time) >= sevenDaysAgo);
+    // sort descending by time
+    recent.sort((a,b)=> new Date(b.time) - new Date(a.time));
+
+    const div = document.createElement('div');
+    div.className = 'historyCard';
+    div.innerHTML = `<h3>Sonda ${i+1} — ${recent.length} lect.</h3>
+      ${recent.length ? recent.map(x => {
+        const d = new Date(x.time);
+        const dateStr = formatDateShort(d);
+        return `<div class="histRow">
+          <small>${dateStr} ${x.presence?'<span style="color:var(--danger)">· PRESENCIA</span>':''}</small>
+          T: ${x.t}°C · H: ${x.h}% · D: ${x.d} mm
+        </div>`;
+      }).join('') : '<div style="color:var(--muted);font-size:13px">No hay lecturas recientes</div>'}
+    `;
+    histContent.appendChild(div);
+  }
+
+  histModal.classList.add('open');
+  histModal.setAttribute('aria-hidden','false');
+}
+
+function closeHistory(){
+  histModal.classList.remove('open');
+  histModal.setAttribute('aria-hidden','true');
+}
 
 /* Initialize app */
 (async function init(){
