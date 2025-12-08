@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Dashboard Termitas 5 Sondas</title>
+<title>Panel Sondas T</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
 <style>
 body {
@@ -27,7 +27,7 @@ h1 { text-align:center; color:#333; margin-bottom:20px; }
 .sonda {
   background-color:#fff;
   border-radius:12px;
-  box-shadow:0 4px 12px rgba(0,0,0,0.15);
+  box-shadow:0 4px 12px rgba(0,0,0,0.25); /* Sombra reforzada */
   padding:15px;
   display:flex;
   flex-direction:column;
@@ -39,6 +39,7 @@ h1 { text-align:center; color:#333; margin-bottom:20px; }
 .sonda h2 { margin:0; font-size:1.1em; color:#555; margin-bottom:5px; text-align:center; }
 canvas { width:80px !important; height:80px !important; margin-bottom:2px; }
 .valor { font-size:0.75em; font-weight:bold; color:#333; text-align:center; margin-bottom:2px; }
+.nombreVar { font-size:0.65em; color:#666; margin-bottom:5px; }
 .alerta {
   background-color:#ff4d4d;
   color:#fff;
@@ -54,7 +55,7 @@ canvas { width:80px !important; height:80px !important; margin-bottom:2px; }
 </style>
 </head>
 <body>
-<h1>Dashboard Termitas 5 Sondas</h1>
+<h1>Panel Sondas T</h1>
 <div id="resumen">
   <div>Sondas activas: <span id="numActivas">0</span></div>
   <div>Alertas: <span id="numAlertas">0</span></div>
@@ -106,8 +107,10 @@ document.addEventListener('DOMContentLoaded', function(){
       <h2>Sonda ${i}</h2>
       <label class="toggle">Activo <input type="checkbox" id="toggle-${i}" checked></label>
       <canvas id="tempChart-${i}"></canvas>
+      <div class="nombreVar">Temperatura</div>
       <div class="valor" id="valorTemp-${i}"></div>
       <canvas id="humChart-${i}"></canvas>
+      <div class="nombreVar">Humedad</div>
       <div class="valor" id="valorHum-${i}"></div>
       <div class="valor">Distancia: <span id="dist-${i}"></span> mm</div>
       <div class="alerta" id="alerta-${i}">¡Alerta de termitas!</div>
