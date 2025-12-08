@@ -38,9 +38,8 @@ h1 { text-align:center; color:#333; margin-bottom:20px; }
 .sonda.seleccionada { border:3px solid #007bff; }
 .sonda.desactivada { opacity:0.4; }
 .sonda h2 { margin:0; font-size:1.1em; color:#555; margin-bottom:5px; text-align:center; }
-canvas { width:80px !important; height:80px !important; margin-bottom:2px; }
-.valor { font-size:0.85em; font-weight:bold; color:#333; text-align:center; margin-bottom:3px; }
-.label-chart { font-size:0.7em; color:#555; text-align:center; margin-bottom:5px; }
+canvas { width:80px !important; height:80px !important; margin-bottom:5px; }
+.valor { font-size:0.9em; font-weight:bold; color:#333; text-align:center; margin-bottom:5px; }
 .alerta {
   background-color:#ff4d4d;
   color:#fff;
@@ -52,7 +51,9 @@ canvas { width:80px !important; height:80px !important; margin-bottom:2px; }
   width:100%;
   margin-top:5px;
 }
-.toggle { margin-bottom:5px; }
+.toggle {
+  margin-bottom:5px;
+}
 @media(max-width:1200px){ .bloque{ grid-template-columns: repeat(4,1fr); } }
 @media(max-width:992px){ .bloque{ grid-template-columns: repeat(3,1fr); } }
 @media(max-width:768px){ .bloque{ grid-template-columns: repeat(2,1fr); } }
@@ -101,6 +102,7 @@ document.addEventListener('DOMContentLoaded', function(){
     document.getElementById('promHum').innerText = activas?Math.round(sumHum/activas):0;
   }
 
+  // Crear bloques
   for(let b=0; b<totalSondas/sondasPorBloque; b++){
     const bloqueDiv = document.createElement('div');
     bloqueDiv.classList.add('bloque');
@@ -115,10 +117,8 @@ document.addEventListener('DOMContentLoaded', function(){
         <h2>Sonda ${sondaIndex}</h2>
         <label class="toggle">Activo <input type="checkbox" id="toggle-${sondaIndex}" checked></label>
         <canvas id="tempChart-${sondaIndex}"></canvas>
-        <div class="label-chart">Temperatura</div>
         <div class="valor" id="valorTemp-${sondaIndex}">${valoresPrueba[sondaIndex-1].Temperatura_C}°C</div>
         <canvas id="humChart-${sondaIndex}"></canvas>
-        <div class="label-chart">Humedad</div>
         <div class="valor" id="valorHum-${sondaIndex}">${valoresPrueba[sondaIndex-1].Humedad_pct}%</div>
         <div class="valor">Distancia: <span id="dist-${sondaIndex}">${valoresPrueba[sondaIndex-1].Distancia_mm}</span> mm</div>
         <div class="alerta" id="alerta-${sondaIndex}" style="display:${valoresPrueba[sondaIndex-1].Distancia_mm>30?'block':'none'}">
@@ -126,12 +126,14 @@ document.addEventListener('DOMContentLoaded', function(){
         </div>
       `;
 
+      // Selección
       sondaDiv.addEventListener('click', ()=>{
         if(sondaSeleccionada) sondaSeleccionada.classList.remove('seleccionada');
         sondaDiv.classList.add('seleccionada');
         sondaSeleccionada = sondaDiv;
       });
 
+      // Toggle activo/desactivo
       const toggle = sondaDiv.querySelector(`#toggle-${sondaIndex}`);
       toggle.addEventListener('change', ()=>{
         sondasActivas[sondaIndex-1] = toggle.checked;
@@ -141,7 +143,12 @@ document.addEventListener('DOMContentLoaded', function(){
 
       bloqueDiv.appendChild(sondaDiv);
 
-      const ctxTemp = document.getElementById(`tempChart-${sondaIndex}`).getContext('2d');
+      // Inicializar gráficos
+      const tempCanvas = document.getElementById(`tempChart-${sondaIndex}`);
+      const humCanvas = document.getElementById(`humChart-${sondaIndex}`);
+      if(!tempCanvas || !humCanvas) continue;
+
+      const ctxTemp = tempCanvas.getContext('2d');
       const gradTemp = ctxTemp.createLinearGradient(0,0,0,80);
       gradTemp.addColorStop(0,'#00ff00');
       gradTemp.addColorStop(0.5,'#ffff00');
@@ -154,7 +161,7 @@ document.addEventListener('DOMContentLoaded', function(){
       });
       chartsTemp.push(tempChart);
 
-      const ctxHum = document.getElementById(`humChart-${sondaIndex}`).getContext('2d');
+      const ctxHum = humCanvas.getContext('2d');
       const humChart = new Chart(ctxHum,{
         type:'doughnut',
         data:{ labels:['Hum','Resto'], datasets:[{data:[valoresPrueba[sondaIndex-1].Humedad_pct,100-valoresPrueba[sondaIndex-1].Humedad_pct], backgroundColor:['#36cce7','#eee'], borderWidth:0}] },
@@ -165,6 +172,7 @@ document.addEventListener('DOMContentLoaded', function(){
     bloquesContainer.appendChild(bloqueDiv);
   }
 
+  // Actualizar datos cada 10s (simula ESP32)
   setInterval(()=>{
     for(let i=0;i<totalSondas;i++){
       if(!sondasActivas[i]) continue;
