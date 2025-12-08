@@ -2,9 +2,8 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Dashboard Termitas Mejorado</title>
+<title>Dashboard Termitas 5 Sondas</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
-<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2" defer></script>
 <style>
 body {
   background-color: #e0e0e0;
@@ -34,14 +33,12 @@ h1 { text-align:center; color:#333; margin-bottom:20px; }
   flex-direction:column;
   align-items:center;
   transition: transform 0.3s, border 0.3s, opacity 0.3s;
-  position: relative;
 }
 .sonda:hover { transform: translateY(-5px); }
-.sonda.seleccionada { border:3px solid #007bff; }
 .sonda.desactivada { opacity:0.4; }
 .sonda h2 { margin:0; font-size:1.1em; color:#555; margin-bottom:5px; text-align:center; }
-canvas { width:80px !important; height:80px !important; margin-bottom:5px; }
-.valor { font-size:0.85em; font-weight:bold; color:#333; text-align:center; margin-bottom:3px; }
+canvas { width:80px !important; height:80px !important; margin-bottom:2px; }
+.valor { font-size:0.75em; font-weight:bold; color:#333; text-align:center; margin-bottom:2px; }
 .alerta {
   background-color:#ff4d4d;
   color:#fff;
@@ -54,23 +51,10 @@ canvas { width:80px !important; height:80px !important; margin-bottom:5px; }
   margin-top:5px;
 }
 .toggle { margin-bottom:5px; }
-.tooltip {
-  position:absolute;
-  top:5px;
-  right:5px;
-  background:#333;
-  color:#fff;
-  font-size:0.75em;
-  padding:3px 6px;
-  border-radius:5px;
-  display:none;
-  pointer-events:none;
-}
-@media(max-width:480px){ .bloque{ grid-template-columns: 1fr; } }
 </style>
 </head>
 <body>
-<h1>Dashboard Termitas Mejorado</h1>
+<h1>Dashboard Termitas 5 Sondas</h1>
 <div id="resumen">
   <div>Sondas activas: <span id="numActivas">0</span></div>
   <div>Alertas: <span id="numAlertas">0</span></div>
@@ -81,188 +65,111 @@ canvas { width:80px !important; height:80px !important; margin-bottom:5px; }
 
 <script defer>
 document.addEventListener('DOMContentLoaded', function(){
-  const totalSondas = 20;
-  const sondasPorBloque = 5;
+  const totalSondas = 5;
   const bloquesContainer = document.getElementById('bloques-container');
-  let sondaSeleccionada = null;
-  
   const sondasActivas = Array(totalSondas).fill(true);
   const chartsTemp = [];
   const chartsHum = [];
-  const valorTemps = [];
-  const valorHums = [];
-  const distancias = [];
-  
-  const colores = {
-    temp: [ '#00ff00','#ffff00','#ff0000' ],
-    hum: [ '#36cce7','#00bfff','#ff0000' ]
-  };
-
   const valoresPrueba = Array.from({length: totalSondas}, () => ({
     Temperatura_C: Math.floor(Math.random()*10 + 20),
     Humedad_pct: Math.floor(Math.random()*30 + 40),
     Distancia_mm: Math.floor(Math.random()*20 + 25)
   }));
 
-  function crearSonda(index) {
-    const sondaDiv = document.createElement('div');
-    sondaDiv.classList.add('sonda');
-    sondaDiv.id = `sonda-${index}`;
-    
-    sondaDiv.innerHTML = `
-      <h2>Sonda ${index}</h2>
-      <label class="toggle">Activo <input type="checkbox" id="toggle-${index}" checked></label>
-      <canvas id="tempChart-${index}"></canvas>
-      <div class="valor" id="valorTemp-${index}"></div>
-      <canvas id="humChart-${index}"></canvas>
-      <div class="valor" id="valorHum-${index}"></div>
-      <div class="valor">Distancia: <span id="dist-${index}"></span> mm</div>
-      <div class="alerta" id="alerta-${index}">¡Alerta de termitas!</div>
-      <div class="tooltip" id="tooltip-${index}"></div>
-    `;
-    
-    // Guardar referencias
-    valorTemps[index-1] = sondaDiv.querySelector(`#valorTemp-${index}`);
-    valorHums[index-1] = sondaDiv.querySelector(`#valorHum-${index}`);
-    distancias[index-1] = sondaDiv.querySelector(`#dist-${index}`);
-
-    // Selección
-    sondaDiv.addEventListener('click', () => {
-      if(sondaSeleccionada) sondaSeleccionada.classList.remove('seleccionada');
-      sondaDiv.classList.add('seleccionada');
-      sondaSeleccionada = sondaDiv;
-    });
-
-    // Toggle activo/desactivado
-    const toggle = sondaDiv.querySelector(`#toggle-${index}`);
-    toggle.addEventListener('change', () => {
-      sondasActivas[index-1] = toggle.checked;
-      sondaDiv.classList.toggle('desactivada', !toggle.checked);
-      actualizarResumen();
-    });
-
-    // Inicializar gráficos
-    const ctxTemp = sondaDiv.querySelector(`#tempChart-${index}`).getContext('2d');
-    const ctxHum = sondaDiv.querySelector(`#humChart-${index}`).getContext('2d');
-
-    const tempChart = new Chart(ctxTemp, {
-      type:'doughnut',
-      data:{
-        labels:['Temp','Resto'],
-        datasets:[{
-          data:[valoresPrueba[index-1].Temperatura_C, 50],
-          backgroundColor:[getColorTemp(valoresPrueba[index-1].Temperatura_C),'#eee'],
-          borderWidth:0
-        }]
-      },
-      options:{
-        cutout:'70%',
-        rotation:-90,
-        circumference:180,
-        plugins:{
-          legend:{display:false},
-          datalabels:{
-            display:true,
-            formatter:()=> 'Temp',
-            color:'#333',
-            font:{size:10}
-          }
-        }
-      }
-    });
-
-    const humChart = new Chart(ctxHum, {
-      type:'doughnut',
-      data:{
-        labels:['Hum','Resto'],
-        datasets:[{
-          data:[valoresPrueba[index-1].Humedad_pct, 100-valoresPrueba[index-1].Humedad_pct],
-          backgroundColor:[getColorHum(valoresPrueba[index-1].Humedad_pct),'#eee'],
-          borderWidth:0
-        }]
-      },
-      options:{
-        cutout:'70%',
-        rotation:-90,
-        circumference:180,
-        plugins:{
-          legend:{display:false},
-          datalabels:{
-            display:true,
-            formatter:()=> 'Hum',
-            color:'#333',
-            font:{size:10}
-          }
-        }
-      }
-    });
-
-    chartsTemp.push(tempChart);
-    chartsHum.push(humChart);
-
-    return sondaDiv;
+  function getColorTemp(value){
+    return value<25 ? '#00ff00' : value<30 ? '#ffff00' : '#ff0000';
+  }
+  function getColorHum(value){
+    return value<50 ? '#36cce7' : value<60 ? '#00bfff' : '#ff0000';
   }
 
-  function getColorTemp(value) {
-    if(value < 25) return colores.temp[0];
-    if(value < 30) return colores.temp[1];
-    return colores.temp[2];
-  }
-  function getColorHum(value) {
-    if(value < 50) return colores.hum[0];
-    if(value < 60) return colores.hum[1];
-    return colores.hum[2];
-  }
-
-  function actualizarResumen() {
+  function actualizarResumen(){
     let activas=0, alertas=0, sumTemp=0, sumHum=0;
     for(let i=0;i<totalSondas;i++){
       if(!sondasActivas[i]) continue;
       activas++;
       sumTemp += chartsTemp[i].data.datasets[0].data[0];
       sumHum += chartsHum[i].data.datasets[0].data[0];
-      const dist = parseInt(distancias[i].innerText);
-      if(dist>30) alertas++;
+      if(parseInt(document.getElementById(`dist-${i+1}`).innerText)>30) alertas++;
     }
-    document.getElementById('numActivas').innerText=activas;
-    document.getElementById('numAlertas').innerText=alertas;
-    document.getElementById('promTemp').innerText=activas?Math.round(sumTemp/activas):0;
-    document.getElementById('promHum').innerText=activas?Math.round(sumHum/activas):0;
+    document.getElementById('numActivas').innerText = activas;
+    document.getElementById('numAlertas').innerText = alertas;
+    document.getElementById('promTemp').innerText = activas?Math.round(sumTemp/activas):0;
+    document.getElementById('promHum').innerText = activas?Math.round(sumHum/activas):0;
   }
 
-  // Crear bloques y sondas
-  for(let b=0; b<totalSondas/sondasPorBloque; b++){
-    const bloqueDiv = document.createElement('div');
-    bloqueDiv.classList.add('bloque');
-    for(let i=1;i<=sondasPorBloque;i++){
-      const sondaIndex = b*sondasPorBloque+i;
-      const sonda = crearSonda(sondaIndex);
-      bloqueDiv.appendChild(sonda);
-    }
-    bloquesContainer.appendChild(bloqueDiv);
+  for(let i=1;i<=totalSondas;i++){
+    const sondaDiv = document.createElement('div');
+    sondaDiv.classList.add('sonda');
+    sondaDiv.id = `sonda-${i}`;
+    sondaDiv.innerHTML = `
+      <h2>Sonda ${i}</h2>
+      <label class="toggle">Activo <input type="checkbox" id="toggle-${i}" checked></label>
+      <canvas id="tempChart-${i}"></canvas>
+      <div class="valor" id="valorTemp-${i}"></div>
+      <canvas id="humChart-${i}"></canvas>
+      <div class="valor" id="valorHum-${i}"></div>
+      <div class="valor">Distancia: <span id="dist-${i}"></span> mm</div>
+      <div class="alerta" id="alerta-${i}">¡Alerta de termitas!</div>
+    `;
+    bloquesContainer.appendChild(sondaDiv);
+
+    const toggle = sondaDiv.querySelector(`#toggle-${i}`);
+    toggle.addEventListener('change', ()=> {
+      sondasActivas[i-1] = toggle.checked;
+      sondaDiv.classList.toggle('desactivada', !toggle.checked);
+      actualizarResumen();
+    });
+
+    // Gráfico Temperatura
+    const ctxTemp = document.getElementById(`tempChart-${i}`).getContext('2d');
+    const tempChart = new Chart(ctxTemp,{
+      type:'doughnut',
+      data:{
+        labels:['Temp','Resto'],
+        datasets:[{data:[valoresPrueba[i-1].Temperatura_C,50], backgroundColor:[getColorTemp(valoresPrueba[i-1].Temperatura_C),'#eee'], borderWidth:0}]
+      },
+      options:{ cutout:'70%', rotation:-90, circumference:180, plugins:{legend:{display:false}} }
+    });
+    chartsTemp.push(tempChart);
+    document.getElementById(`valorTemp-${i}`).innerText = valoresPrueba[i-1].Temperatura_C+'°C';
+
+    // Gráfico Humedad
+    const ctxHum = document.getElementById(`humChart-${i}`).getContext('2d');
+    const humChart = new Chart(ctxHum,{
+      type:'doughnut',
+      data:{
+        labels:['Hum','Resto'],
+        datasets:[{data:[valoresPrueba[i-1].Humedad_pct,100-valoresPrueba[i-1].Humedad_pct], backgroundColor:[getColorHum(valoresPrueba[i-1].Humedad_pct),'#eee'], borderWidth:0}]
+      },
+      options:{ cutout:'70%', rotation:-90, circumference:180, plugins:{legend:{display:false}} }
+    });
+    chartsHum.push(humChart);
+    document.getElementById(`valorHum-${i}`).innerText = valoresPrueba[i-1].Humedad_pct+'%';
+
+    // Distancia inicial
+    document.getElementById(`dist-${i}`).innerText = valoresPrueba[i-1].Distancia_mm;
+    document.getElementById(`alerta-${i}`).style.display = valoresPrueba[i-1].Distancia_mm>30?'block':'none';
   }
 
-  // Actualizar datos simulando ESP32
   setInterval(()=>{
     for(let i=0;i<totalSondas;i++){
       if(!sondasActivas[i]) continue;
+      const temp = Math.floor(Math.random()*10+20);
+      const hum = Math.floor(Math.random()*30+40);
+      const dist = Math.floor(Math.random()*20+25);
 
-      const temp = Math.floor(Math.random()*10 + 20);
-      const hum = Math.floor(Math.random()*30 + 40);
-      const dist = Math.floor(Math.random()*20 + 25);
-
-      // Actualizar gráficos y valores
       chartsTemp[i].data.datasets[0].data[0] = temp;
       chartsTemp[i].data.datasets[0].backgroundColor[0] = getColorTemp(temp);
       chartsTemp[i].update();
-      valorTemps[i].innerText = temp+'°C';
+      document.getElementById(`valorTemp-${i+1}`).innerText = temp+'°C';
 
       chartsHum[i].data.datasets[0].data[0] = hum;
       chartsHum[i].data.datasets[0].backgroundColor[0] = getColorHum(hum);
       chartsHum[i].update();
-      valorHums[i].innerText = hum+'%';
+      document.getElementById(`valorHum-${i+1}`).innerText = hum+'%';
 
-      distancias[i].innerText = dist;
+      document.getElementById(`dist-${i+1}`).innerText = dist;
       document.getElementById(`alerta-${i+1}`).style.display = dist>30?'block':'none';
     }
     actualizarResumen();
