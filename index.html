@@ -5,12 +5,11 @@
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>Panel Sondas T</title>
 
-<!-- Chart.js -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
-  :root{ --bg:#0f1720; --card:#0f1725; --text:#e6eef6; --muted:#9aa9bd; --accent:#00c8ff; --danger:#ff3b3b; --shadow:0 8px 20px rgba(2,8,23,0.6);}
-  body.light{ --bg:#f3f6fb; --card:#ffffff; --text:#1b2330; --muted:#556575; --accent:#007BFF; --danger:#ff3b3b; --shadow:0 6px 18px rgba(16,24,40,0.08);}
+  :root{ --bg:#0f1720; --card:#0f1725; --text:#e6eef6; --muted:#9aa9bd; --accent:#00c8ff; --danger:#ff3b3b; --shadow:0 8px 20px rgba(2,8,23,0.6); }
+  body.light{ --bg:#f3f6fb; --card:#ffffff; --text:#1b2330; --muted:#556575; --accent:#007BFF; --danger:#ff3b3b; --shadow:0 6px 18px rgba(16,24,40,0.08); }
   html,body{margin:0;padding:0;font-family:Inter,system-ui,Arial,sans-serif;background:var(--bg);color:var(--text);height:100%;}
   .app{max-width:1200px;margin:18px auto;padding:14px;}
   .header{display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:16px;}
@@ -21,7 +20,7 @@
   .metric{background:var(--card);padding:12px 14px;border-radius:10px;box-shadow:var(--shadow);min-width:140px;text-align:center;}
   .metric small{display:block;color:var(--muted);font-size:12px;} .metric b{display:block;font-size:18px;margin-top:6px;}
   .grid{display:grid;grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));gap:16px;}
-  .card{background:var(--card);border-radius:12px;padding:14px;box-shadow:var(--shadow);position:relative;overflow:hidden;border:2px solid transparent;}
+  .card{background:var(--card);border-radius:12px;padding:14px;box-shadow:var(--shadow);position:relative;transition: box-shadow .25s ease, transform .18s ease, border-color .15s ease;border: 2px solid transparent;overflow:hidden;}
   .card.alert{border-color: var(--danger); box-shadow:0 12px 30px rgba(255,50,50,0.12);}
   .card .sonda-title{ font-weight:600; font-size:15px; margin-bottom:8px; }
   .tog{ font-size:13px; color:var(--muted); display:flex; gap:8px; align-items:center; margin-bottom:8px; }
@@ -34,9 +33,6 @@
   .note{ margin-top:12px;color:var(--muted);font-size:13px; text-align:center; }
   .presenciaAlert{ font-weight:700; text-align:center; padding:8px 6px; margin-top:8px; border-radius:8px; background: rgba(255,0,0,0.04); color: #ff8a8a; min-height:44px; display:flex; flex-direction:column; justify-content:center; }
   .presenciaAlert b{ color:var(--danger); }
-  .modal{ display:none; position:fixed; top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);align-items:center;justify-content:center;z-index:1200; }
-  .modal.open{ display:flex; }
-  .modal-content{ background:var(--card); color:var(--text); width:96%; max-width:1100px; padding:14px; border-radius:10px; overflow-y:auto; max-height:90vh; box-shadow:var(--shadow); }
 </style>
 </head>
 <body>
@@ -47,7 +43,6 @@
       <p>Monitoreo: Temperatura · Humedad · Distancia (mm)</p>
     </div>
     <div class="controls">
-      <button id="btnHistorial" class="mode-btn">Historial</button>
       <button id="modeToggle" class="mode-btn">Modo claro / oscuro</button>
     </div>
   </div>
@@ -61,18 +56,6 @@
 
   <div class="grid" id="grid"></div>
   <div class="note">Umbral alerta distancia: <b> > 40 mm </b> (4 cm → objeto caído)</div>
-</div>
-
-<div id="historyModal" class="modal" aria-hidden="true">
-  <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="histTitulo">
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
-      <h2 id="histTitulo" style="margin:0">Historial semanal - Sondas</h2>
-      <div style="display:flex;gap:8px">
-        <button id="exportAll" class="mode-btn" title="Exportar JSON">Exportar</button>
-        <button id="closeHist" class="mode-btn">Cerrar</button>
-      </div>
-    </div>
-  </div>
 </div>
 
 <!-- Firebase compat -->
@@ -146,23 +129,15 @@ firebase.initializeApp(firebaseConfig);
 const db=firebase.database();
 
 console.log("Iniciando prueba de conexión a Firebase...");
-db.ref("prueba").once("value")
-  .then(snap => {
-    console.log("Datos desde Firebase:", snap.val());
-  })
-  .catch(err => {
-    console.error("Error al leer Firebase:", err);
-  });
-
-db.ref("prueba").on("value", snap=>{
-  const data=snap.val();
-  if(!data) return;
+db.ref("prueba").on("value", snap => {
+  const data = snap.val();
+  console.log("Datos desde Firebase:", data);
   for(let i=0;i<NUM;i++){
     if(!active[i]) continue;
-    const s=data; 
-    const t=Number(s.Temperatura_C??s.temperatura??0);
-    const h=Number(s.Humedad_pct??s.humedad??0);
-    const d=Number(s.Distancia_mm??s.distancia_mm??s.distancia??0);
+    const s=data ?? {};
+    const t=Number(s.Temperatura_C ?? s.temperatura ?? 0);
+    const h=Number(s.Humedad_pct ?? s.humedad ?? 0);
+    const d=Number(s.Distancia_mm ?? s.distancia_mm ?? s.distancia ?? 0);
     lastValues[i]={t,h,dist:d};
     document.getElementById(`tempVal-${i+1}`).textContent=`${t} °C`;
     document.getElementById(`humVal-${i+1}`).textContent=`${h} %`;
@@ -174,10 +149,8 @@ db.ref("prueba").on("value", snap=>{
   updateSummary();
 });
 
-/* --- Modo claro/oscuro y historial --- */
+/* --- Modo claro/oscuro --- */
 document.getElementById('modeToggle').addEventListener('click',()=>document.body.classList.toggle('light'));
-document.getElementById('btnHistorial').addEventListener('click',()=>document.getElementById('historyModal').classList.add('open'));
-document.getElementById('closeHist').addEventListener('click',()=>document.getElementById('historyModal').classList.remove('open'));
 </script>
 </body>
 </html>
