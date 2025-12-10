@@ -665,52 +665,26 @@ function closeHistory(){
   for(let i=0;i<NUM;i++){
     createCard(i, initial[i] || {t:20,h:50,dist:30});
   }
-
-  // initial update (simulate quick update after load)
-  setTimeout(()=> periodicUpdate(), 600);
-
-  // periodic updates
-  setInterval(periodicUpdate, UPDATE_MS);
-})();
-</script>
-  <script src="https://www.gstatic.com/firebasejs/9.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.10.0/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.10.0/firebase-database.js"></script>
 
 <script>
-const firebaseConfig = {
-  databaseURL: "https://enlace-t-default-rtdb.firebaseio.com/",
-};
+  const firebaseConfig = {
+    databaseURL: "https://enlace-t-default-rtdb.firebaseio.com/",
+  };
 
-firebase.initializeApp(firebaseConfig);
+  // Inicializa Firebase
+  firebase.initializeApp(firebaseConfig);
   const db = firebase.database();
 
-db.ref("prueba").on("value", (snap)=>{
-   const data = snap.val();
+  // Escucha cambios en Firebase en tiempo real
+  db.ref("prueba").on("value", (snap) => {
+    const data = snap.val();
+    console.log(data); // Para verificar en la consola que llegan los datos
 
-   console.log(data);
-
-   document.getElementById("temp").innerText = data.Temperatura_C;
-   document.getElementById("hum").innerText = data.Humedad_pct;
-   document.getElementById("dist").innerText = data.Distancia_mm;
-});
-
-<script>
-firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
-
-// Escucha cambios en Firebase
-db.ref("prueba").on("value", (snap) => {
-  const data = snap.val();
-  console.log(data);
-
-  // Actualiza la tarjeta de la sonda 1
-  document.getElementById("tempVal-1").innerText = data.Temperatura_C + ' °C';
-  document.getElementById("humVal-1").innerText = data.Humedad_pct + ' %';
-  document.getElementById("dist-1").innerText = data.Distancia_mm;
-});
-  }
-});
+    // Actualiza los valores en tu dashboard
+    document.getElementById("temp").innerText = data.Temperatura_C + ' °C';
+    document.getElementById("hum").innerText = data.Humedad_pct + ' %';
+    document.getElementById("dist").innerText = data.Distancia_mm + ' mm';
+  });
 </script>
-<!-- HASTA AQUÍ -->
-</body>
-</html>
