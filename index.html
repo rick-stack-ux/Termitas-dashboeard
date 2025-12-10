@@ -149,20 +149,36 @@ const firebaseConfig={ databaseURL:"https://enlace-t-default-rtdb.firebaseio.com
 firebase.initializeApp(firebaseConfig);
 const db=firebase.database();
 
-db.ref("prueba").on("value", snap=>{
-  const data=snap.val(); if(!data) return;
-  for(let i=0;i<NUM;i++){
+db.ref("prueba").on("value", snap => {
+  const data = snap.val();
+  if(!data) return;
+
+  const keys = Object.keys(data);
+  for (let i=0;i<NUM;i++){
+    const key = keys[i];
+    if(!key) continue;
     if(!active[i]) continue;
-    const s=data[i]??data; 
-    const t=Number(s.Temperatura_C??s.temperatura??0);
-    const h=Number(s.Humedad_pct??s.humedad??0);
-    const d=Number(s.Distancia_mm??s.distancia_mm??s.distancia??0);
-    lastValues[i]={t,h,dist:d};
-    document.getElementById(`tempVal-${i+1}`).textContent=`${t} °C`;
-    document.getElementById(`humVal-${i+1}`).textContent=`${h} %`;
-    document.getElementById(`dist-${i+1}`).textContent=`${d}`;
-    if(chartsT[i]){ chartsT[i].data.datasets[0].data[0]=t; chartsT[i].data.datasets[0].backgroundColor[0]=tempColor(t); chartsT[i].update(); }
-    if(chartsH[i]){ chartsH[i].data.datasets[0].data[0]=h; chartsH[i].data.datasets[0].backgroundColor[0]=humColor(); chartsH[i].update(); }
+
+    const s = data[key];
+    const t = Number(s.Temperatura_C ?? s.temperatura ?? 0);
+    const h = Number(s.Humedad_pct ?? s.humedad ?? 0);
+    const d = Number(s.Distancia_mm ?? s.distancia_mm ?? s.distancia ?? 0);
+
+    lastValues[i] = { t, h, dist: d };
+    document.getElementById(`tempVal-${i+1}`).textContent = `${t} °C`;
+    document.getElementById(`humVal-${i+1}`).textContent = `${h} %`;
+    document.getElementById(`dist-${i+1}`).textContent = `${d}`;
+
+    if(chartsT[i]){
+      chartsT[i].data.datasets[0].data[0]=t;
+      chartsT[i].data.datasets[0].backgroundColor[0]=tempColor(t);
+      chartsT[i].update();
+    }
+    if(chartsH[i]){
+      chartsH[i].data.datasets[0].data[0]=h;
+      chartsH[i].data.datasets[0].backgroundColor[0]=humColor();
+      chartsH[i].update();
+    }
     applyDistanceAlert(i,d);
   }
   updateSummary();
