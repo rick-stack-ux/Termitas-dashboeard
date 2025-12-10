@@ -203,6 +203,7 @@
     <div class="header">
       <div class="title">
         <h1>Panel Sondas T</h1>
+         
         <p>Monitoreo: Temperatura · Humedad · Distancia (mm)</p>
       </div>
 
@@ -693,7 +694,22 @@ db.ref("prueba").on("value", (snap)=>{
    document.getElementById("dist").innerText = data.Distancia_mm;
 });
 
-// >>>> HASTA AQUI <<<<
+<script>
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+// Escucha cambios en Firebase
+db.ref("prueba").on("value", (snap) => {
+  const data = snap.val();
+  console.log(data);
+
+  // Actualiza la tarjeta de la sonda 1
+  document.getElementById("tempVal-1").innerText = data.Temperatura_C + ' °C';
+  document.getElementById("humVal-1").innerText = data.Humedad_pct + ' %';
+  document.getElementById("dist-1").innerText = data.Distancia_mm;
+});
+  }
+});
 </script>
 <!-- HASTA AQUÍ -->
 </body>
