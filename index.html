@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Panel Sonda 1</title>
+<title>Panel Sondas T</title>
 
 <!-- Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
@@ -16,7 +16,7 @@
   --muted:#9aa9bd;
   --accent:#00c8ff;
   --danger:#ff3b3b;
-  --shadow: 0 8px 20px rgba(2,8,23,0.6);
+  --shadow:0 8px 20px rgba(2,8,23,0.6);
 }
 body.light{
   --bg:#f3f6fb;
@@ -25,21 +25,23 @@ body.light{
   --muted:#556575;
   --accent:#007BFF;
   --danger:#ff3b3b;
-  --shadow: 0 6px 18px rgba(16,24,40,0.08);
+  --shadow:0 6px 18px rgba(16,24,40,0.08);
 }
-html,body{height:100%;margin:0;padding:0;font-family:Inter,system-ui,Arial,sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased}
-.app{max-width:600px;margin:18px auto;padding:14px;}
-.header{display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:16px;}
+html,body{height:100%;margin:0;padding:0;font-family:Inter,Arial,sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased}
+.app{max-width:1200px;margin:18px auto;padding:14px}
+.header{display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:16px}
+.title{display:flex;flex-direction:column}
 .title h1{margin:0;font-size:20px;letter-spacing:0.2px}
 .title p{margin:0;color:var(--muted);font-size:13px}
-.controls{display:flex;gap:10px;align-items:center;}
-.mode-btn{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--text);padding:8px 10px;border-radius:8px;cursor:pointer;font-size:13px;}
-.summary{display:flex;gap:12px;margin-bottom:18px;flex-wrap:wrap;}
-.metric{background:var(--card);padding:12px 14px;border-radius:10px;box-shadow:var(--shadow);min-width:140px;text-align:center;}
+.controls{display:flex;gap:10px;align-items:center}
+.mode-btn{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--text);padding:8px 10px;border-radius:8px;cursor:pointer;font-size:13px}
+.mode-btn.light { background:rgba(255,255,255,0.06) }
+.summary{display:flex;gap:12px;margin-bottom:18px;flex-wrap:wrap}
+.metric{background:var(--card);padding:12px 14px;border-radius:10px;box-shadow:var(--shadow);min-width:140px;text-align:center}
 .metric small{display:block;color:var(--muted);font-size:12px}
 .metric b{display:block;font-size:18px;margin-top:6px}
-.grid{display:grid;grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));gap:16px;}
-.card{background:var(--card);border-radius:12px;padding:14px;box-shadow:var(--shadow);position:relative;transition: box-shadow .25s ease, transform .18s ease, border-color .15s ease;border: 2px solid transparent;overflow:hidden;}
+.grid{display:grid;grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));gap:16px}
+.card{background:var(--card);border-radius:12px;padding:14px;box-shadow:var(--shadow);position:relative;transition: box-shadow .25s ease, transform .18s ease, border-color .15s ease;border: 2px solid transparent;overflow:hidden}
 .card:hover{ transform: translateY(-6px); }
 .card.alert { border-color: var(--danger); box-shadow: 0 12px 30px rgba(255,50,50,0.12);}
 .card .sonda-title{ font-weight:600; font-size:15px; margin-bottom:8px; color:var(--text) }
@@ -53,21 +55,31 @@ canvas { width:110px !important; height:110px !important; }
 .note{ margin-top:12px;color:var(--muted);font-size:13px; text-align:center }
 .presenciaAlert{ font-weight:700;text-align:center;padding:8px 6px;margin-top:8px;border-radius:8px;background: rgba(255,0,0,0.04);color: #ff8a8a;min-height:44px;display:flex;flex-direction:column;justify-content:center; }
 .presenciaAlert b{ color:var(--danger); }
+.modal{ display:none; position:fixed; top:0;left:0; width:100%;height:100%; background:rgba(0,0,0,.5); align-items:center; justify-content:center; z-index:1200; }
+.modal.open{ display:flex; }
+.modal-content{ background:var(--card); color:var(--text); width:96%; max-width:1100px; padding:14px; border-radius:10px; overflow-y:auto; max-height:90vh; box-shadow:var(--shadow);}
+#historyContent{ display:grid; grid-template-columns: repeat(auto-fill,minmax(260px,1fr)); gap:12px; margin-top:8px;}
+.historyCard{ background: linear-gradient(180deg, rgba(255,255,255,0.02), transparent); padding:10px; border-radius:8px; box-shadow: 0 6px 18px rgba(2,8,23,0.35); font-size:13px; overflow:auto; max-height:52vh;}
+.historyCard h3{ margin:0 0 6px 0; font-size:15px }
+.histRow{ border-top:1px dashed rgba(255,255,255,0.03); padding:6px 0; font-size:13px; color:var(--muted) }
+.histRow small{ display:block; color:var(--muted); margin-bottom:4px }
+@media (max-width:900px){ .charts{ gap:8px } canvas{ width:96px !important; height:96px !important; } }
+@media (max-width:520px){ .grid{ grid-template-columns: 1fr; } .controls{ gap:8px; } .mode-btn{ padding:9px 12px; font-size:14px } }
 </style>
 </head>
 <body>
 <div class="app">
   <div class="header">
     <div class="title">
-      <h1>Panel Sonda 1</h1>
+      <h1>Panel Sondas T</h1>
       <p>Monitoreo: Temperatura · Humedad · Distancia (mm)</p>
     </div>
     <div class="controls">
+      <button id="btnHistorial" class="mode-btn">Historial</button>
       <button id="modeToggle" class="mode-btn">Modo claro / oscuro</button>
     </div>
   </div>
 
-  <!-- Summary -->
   <div class="summary">
     <div class="metric"><small>Sondas activas</small><b id="numActivas">0</b></div>
     <div class="metric"><small>Alertas distancia</small><b id="numAlertas">0</b></div>
@@ -75,119 +87,173 @@ canvas { width:110px !important; height:110px !important; }
     <div class="metric"><small>Humedad promedio</small><b id="promHum">-- %</b></div>
   </div>
 
-  <!-- Grid -->
   <div class="grid" id="grid"></div>
   <div class="note">Umbral alerta distancia: <b> > 40 mm </b></div>
 </div>
 
-<!-- Firebase -->
+<div id="historyModal" class="modal" aria-hidden="true">
+  <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="histTitulo">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+      <h2 id="histTitulo" style="margin:0">Historial semanal - Sondas</h2>
+      <div style="display:flex;gap:8px">
+        <button id="exportAll" class="mode-btn" title="Exportar JSON">Exportar</button>
+        <button id="closeHist" class="mode-btn">Cerrar</button>
+      </div>
+    </div>
+    <div id="historyContent"></div>
+    <div style="margin-top:10px;color:var(--muted);font-size:13px">Se muestran las lecturas guardadas (últimos 7 días aprox.).</div>
+  </div>
+</div>
+
 <script src="https://www.gstatic.com/firebasejs/9.10.0/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.10.0/firebase-database.js"></script>
-
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 <script>
-/* CONFIG */
+// CONFIG
+const NUM = 1; // solo 1 sonda
 const DIST_THRESHOLD_MM = 40;
-const chartsT = [];
-const chartsH = [];
-const active = [false]; // Sonda 1, estado persistente
-let lastValues = [{}];
-let badCount = [0];
+const chartsT = new Array(NUM);
+const chartsH = new Array(NUM);
+const active = new Array(NUM).fill(false);
+const lastValues = new Array(NUM).fill(null);
+const badCount = new Array(NUM).fill(0);
 
-/* Colors */
-function tempColor(v){ if(v<=25) return '#2ecc71'; if(v<=30) return '#f1c40f'; return '#e74c3c'; }
+// colores
+function tempColor(v){ if(v<=25)return '#2ecc71'; if(v<=30)return '#f1c40f'; return '#e74c3c'; }
 function humColor(){ return '#00c8ff'; }
-function formatDateShort(d){ return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; }
+function formatDateShort(d){ const dd=String(d.getDate()).padStart(2,'0'); const mm=String(d.getMonth()+1).padStart(2,'0'); const hh=String(d.getHours()).padStart(2,'0'); const min=String(d.getMinutes()).padStart(2,'0'); return `${dd}/${mm} ${hh}:${min}`; }
 
-/* Create card for sonda 1 */
-function createCard(){
-  const grid = document.getElementById('grid');
-  const card = document.createElement('div');
+// Crear tarjeta
+function createCard(i, initial){
+  const grid=document.getElementById('grid');
+  const card=document.createElement('div');
   card.className='card';
-  card.id='card-1';
+  card.id=`card-${i+1}`;
   card.innerHTML=`
-    <div class="sonda-title">Sonda 1</div>
+    <div class="sonda-title">Sonda ${i+1}</div>
     <div class="tog">
-      <label><input type="checkbox" id="toggle-1"> Activar</label>
+      <label><input type="checkbox" id="toggle-${i+1}"> Activar</label>
       <div style="flex:1"></div>
-      <div style="font-size:12px;color:var(--muted)">Dist: <span id="dist-1">--</span> mm</div>
+      <div style="font-size:12px;color:var(--muted)">Dist: <span id="dist-${i+1}">--</span> mm</div>
     </div>
     <div class="charts">
-      <canvas id="t-1"></canvas>
-      <canvas id="h-1"></canvas>
+      <canvas id="t-${i+1}"></canvas>
+      <canvas id="h-${i+1}"></canvas>
     </div>
     <div class="labels">
-      <div class="lbl"><div class="muted">Temperatura</div><div class="val" id="tempVal-1">-- °C</div></div>
-      <div class="lbl"><div class="muted">Humedad</div><div class="val" id="humVal-1">-- %</div></div>
+      <div class="lbl">
+        <div class="muted">Temperatura</div>
+        <div class="val" id="tempVal-${i+1}">-- °C</div>
+      </div>
+      <div class="lbl">
+        <div class="muted">Humedad</div>
+        <div class="val" id="humVal-${i+1}">-- %</div>
+      </div>
     </div>
-    <div class="presenciaAlert" id="pres-1"></div>
   `;
   grid.appendChild(card);
 
-  const toggle = document.getElementById('toggle-1');
-  // Restaurar estado persistente
-  const saved = localStorage.getItem('sonda-1');
-  if(saved==='1'){ toggle.checked=true; active[0]=true; } 
+  const presBox=document.createElement("div");
+  presBox.className="presenciaAlert";
+  presBox.id=`pres-${i+1}`;
+  card.appendChild(presBox);
+
+  // restaurar checkbox
+  const toggle=document.getElementById(`toggle-${i+1}`);
+  const saved=localStorage.getItem(`sonda-${i+1}`);
+  if(saved==='1'){ toggle.checked=true; active[i]=true; } else { toggle.checked=false; active[i]=false; card.classList.add('inactive'); }
+
   toggle.addEventListener('change',(ev)=>{
-    active[0] = ev.target.checked;
-    card.classList.toggle('inactive',!active[0]);
-    localStorage.setItem('sonda-1', active[0]?'1':'0');
+    active[i]=ev.target.checked;
+    card.classList.toggle('inactive',!active[i]);
+    localStorage.setItem(`sonda-${i+1}`, ev.target.checked?'1':'0');
+    updateSummary();
   });
 
   // Charts
-  const ctxT = document.getElementById('t-1').getContext('2d');
-  const ctxH = document.getElementById('h-1').getContext('2d');
-  chartsT[0] = new Chart(ctxT,{type:'doughnut',data:{datasets:[{data:[0,50],backgroundColor:[tempColor(0),'#2b3944'],borderWidth:0}]} ,options:{rotation:-90,circumference:180,cutout:'72%',plugins:{legend:{display:false},tooltip:{enabled:false}}}});
-  chartsH[0] = new Chart(ctxH,{type:'doughnut',data:{datasets:[{data:[0,100],backgroundColor:[humColor(),'#2b3944'],borderWidth:0}]} ,options:{rotation:-90,circumference:180,cutout:'72%',plugins:{legend:{display:false},tooltip:{enabled:false}}}});
-}
-createCard();
+  const ctxT=card.querySelector(`#t-${i+1}`).getContext('2d');
+  const ctxH=card.querySelector(`#h-${i+1}`).getContext('2d');
+  chartsT[i]=new Chart(ctxT,{type:'doughnut',data:{datasets:[{data:[initial.t,Math.max(0,50-initial.t)],backgroundColor:[tempColor(initial.t),'#2b3944'],borderWidth:0}]},options:{rotation:-90,circumference:180,cutout:'72%',plugins:{legend:{display:false},tooltip:{enabled:false}}}});
+  chartsH[i]=new Chart(ctxH,{type:'doughnut',data:{datasets:[{data:[initial.h,Math.max(0,100-initial.h)],backgroundColor:[humColor(),'#2b3944'],borderWidth:0}]},options:{rotation:-90,circumference:180,cutout:'72%',plugins:{legend:{display:false},tooltip:{enabled:false}}}});
+  lastValues[i]=initial;
 
-/* Summary update */
-function updateSummary(){
-  const act = active[0]?1:0;
-  const v = lastValues[0]||{};
-  const alerts = (v.dist>DIST_THRESHOLD_MM && active[0])?1:0;
-  document.getElementById('numActivas').textContent=act;
-  document.getElementById('numAlertas').textContent=alerts;
-  document.getElementById('promTemp').textContent = (v.t||'--')+' °C';
-  document.getElementById('promHum').textContent = (v.h||'--')+' %';
+  document.getElementById(`tempVal-${i+1}`).textContent=initial.t+' °C';
+  document.getElementById(`humVal-${i+1}`).textContent=initial.h+' %';
+  document.getElementById(`dist-${i+1}`).textContent=initial.dist;
 }
 
-/* Distance alert */
-function applyDistanceAlert(dist){
-  const card = document.getElementById('card-1');
-  const presBox = document.getElementById('pres-1');
-  if(dist>DIST_THRESHOLD_MM){ badCount[0]++; } else { badCount[0]=0; }
-  if(badCount[0]>=4){
+// aplicar alertas
+function applyDistanceAlert(i, dist){
+  const card=document.getElementById(`card-${i+1}`);
+  const box=document.getElementById(`pres-${i+1}`);
+  if(dist>DIST_THRESHOLD_MM){ badCount[i]++; } else { badCount[i]=0; }
+  if(badCount[i]>=4){
     card.classList.add('alert');
-    presBox.innerHTML=`<div style="font-size:13px"><b>PRESENCIA DETECTADA</b></div><div style="font-size:12px;color:var(--muted)">${formatDateShort(new Date())}</div><div style="font-size:13px">Dist: ${dist} mm</div>`;
-  } else {
-    card.classList.remove('alert'); presBox.innerHTML='';
+    activarPresencia(i, dist);
+  } else { card.classList.remove('alert'); quitarPresencia(i); }
+}
+function activarPresencia(i, dist){
+  const box=document.getElementById(`pres-${i+1}`);
+  if(box){
+    const now=new Date();
+    box.innerHTML=`<div style="font-size:13px"><b>PRESENCIA DETECTADA</b></div>
+      <div style="font-size:12px;color:var(--muted)">${formatDateShort(now)}</div>
+      <div style="font-size:13px">Dist: ${dist} mm</div>`;
   }
 }
+function quitarPresencia(i){ document.getElementById(`pres-${i+1}`)?.innerHTML=''; }
 
-/* Firebase setup */
+// actualizar summary
+function updateSummary(){
+  let act=0,alerts=0,sumT=0,sumH=0,count=0;
+  for(let i=0;i<NUM;i++){
+    if(!active[i]) continue; act++;
+    const v=lastValues[i]; if(!v) continue;
+    sumT+=v.t; sumH+=v.h; count++;
+    if(v.dist>DIST_THRESHOLD_MM) alerts++;
+  }
+  document.getElementById('numActivas').textContent=act;
+  document.getElementById('numAlertas').textContent=alerts;
+  document.getElementById('promTemp').textContent=count?Math.round(sumT/count)+' °C':'-- °C';
+  document.getElementById('promHum').textContent=count?Math.round(sumH/count)+' %':'-- %';
+}
+
+// Firebase
 const firebaseConfig = { databaseURL:"https://enlace-t-default-rtdb.firebaseio.com/" };
 firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
+const db=firebase.database();
+
 db.ref("prueba").on("value",(snap)=>{
-  const data = snap.val(); if(!data) return;
-  if(!active[0]) return;
-  const t = Number(data.Temperatura_C||0);
-  const h = Number(data.Humedad_pct||0);
-  const d = Number(data.Distancia_mm||0);
-  lastValues[0] = {t,h,dist:d};
-  document.getElementById('tempVal-1').textContent=t+' °C';
-  document.getElementById('humVal-1').textContent=h+' %';
-  document.getElementById('dist-1').textContent=d+' mm';
-  chartsT[0].data.datasets[0].data[0]=t; chartsT[0].data.datasets[0].backgroundColor[0]=tempColor(t); chartsT[0].update();
-  chartsH[0].data.datasets[0].data[0]=h; chartsH[0].data.datasets[0].backgroundColor[0]=humColor(); chartsH[0].update();
-  applyDistanceAlert(d);
-  updateSummary();
+  const data=snap.val();
+  if(!data) return;
+  const t=Number(data.Temperatura_C??0);
+  const h=Number(data.Humedad_pct??0);
+  const d=Number(data.Distancia_mm??0);
+
+  if(!lastValues[0]) lastValues[0]={t,h,dist:d};
+  lastValues[0]={t,h,dist:d};
+  if(active[0]){
+    chartsT[0].data.datasets[0].data[0]=t; chartsT[0].data.datasets[0].backgroundColor[0]=tempColor(t); chartsT[0].update();
+    chartsH[0].data.datasets[0].data[0]=h; chartsH[0].data.datasets[0].backgroundColor[0]=humColor(); chartsH[0].update();
+    document.getElementById('tempVal-1').textContent=t+' °C';
+    document.getElementById('humVal-1').textContent=h+' %';
+    document.getElementById('dist-1').textContent=d;
+    applyDistanceAlert(0,d);
+    updateSummary();
+  }
 });
 
-/* Mode toggle */
-document.getElementById('modeToggle').addEventListener('click',()=>{ document.body.classList.toggle('light'); });
+// Inicializar
+createCard(0,{t:20,h:50,dist:30});
+
+// Modo oscuro/claro persistente
+const savedMode=localStorage.getItem('mode');
+if(savedMode==='light') document.body.classList.add('light');
+document.getElementById('modeToggle').addEventListener('click',()=>{
+  document.body.classList.toggle('light');
+  localStorage.setItem('mode',document.body.classList.contains('light')?'light':'dark');
+});
 </script>
 </body>
 </html>
