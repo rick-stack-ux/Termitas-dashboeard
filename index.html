@@ -8,10 +8,9 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
 
 <style>
-  /* --- estilos igual que antes --- */
   :root{ --bg:#0f1720; --card:#0f1725; --text:#e6eef6; --muted:#9aa9bd; --accent:#00c8ff; --danger:#ff3b3b; --shadow:0 8px 20px rgba(2,8,23,0.6); }
   body.light{ --bg:#f3f6fb; --card:#ffffff; --text:#1b2330; --muted:#556575; --accent:#007BFF; --danger:#ff3b3b; --shadow:0 6px 18px rgba(16,24,40,0.08); }
-  html,body{margin:0;padding:0;font-family:Inter,system-ui,Arial,sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;height:100%;}
+  html,body{margin:0;padding:0;font-family:Inter,system-ui,Arial,sans-serif;background:var(--bg);color:var(--text);height:100%;}
   .app{max-width:1200px;margin:18px auto;padding:14px;}
   .header{display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:16px;}
   .title h1{margin:0;font-size:20px;} .title p{margin:0;color:var(--muted);font-size:13px;}
@@ -150,37 +149,31 @@ firebase.initializeApp(firebaseConfig);
 const db=firebase.database();
 
 db.ref("prueba").on("value", snap => {
-  const data = snap.val();
-  if(!data) return;
+  const s = snap.val();
+  if(!s) return;
 
-  const keys = Object.keys(data);
-  for (let i=0;i<NUM;i++){
-    const key = keys[i];
-    if(!key) continue;
-    if(!active[i]) continue;
+  const t = Number(s.Temperatura_C ?? 0);
+  const h = Number(s.Humedad_pct ?? 0);
+  const d = Number(s.Distancia_mm ?? 0);
 
-    const s = data[key];
-    const t = Number(s.Temperatura_C ?? s.temperatura ?? 0);
-    const h = Number(s.Humedad_pct ?? s.humedad ?? 0);
-    const d = Number(s.Distancia_mm ?? s.distancia_mm ?? s.distancia ?? 0);
+  lastValues[0] = { t, h, dist: d };
 
-    lastValues[i] = { t, h, dist: d };
-    document.getElementById(`tempVal-${i+1}`).textContent = `${t} °C`;
-    document.getElementById(`humVal-${i+1}`).textContent = `${h} %`;
-    document.getElementById(`dist-${i+1}`).textContent = `${d}`;
+  document.getElementById(`tempVal-1`).textContent = `${t} °C`;
+  document.getElementById(`humVal-1`).textContent = `${h} %`;
+  document.getElementById(`dist-1`).textContent = `${d}`;
 
-    if(chartsT[i]){
-      chartsT[i].data.datasets[0].data[0]=t;
-      chartsT[i].data.datasets[0].backgroundColor[0]=tempColor(t);
-      chartsT[i].update();
-    }
-    if(chartsH[i]){
-      chartsH[i].data.datasets[0].data[0]=h;
-      chartsH[i].data.datasets[0].backgroundColor[0]=humColor();
-      chartsH[i].update();
-    }
-    applyDistanceAlert(i,d);
+  if(chartsT[0]){
+    chartsT[0].data.datasets[0].data[0] = t;
+    chartsT[0].data.datasets[0].backgroundColor[0] = tempColor(t);
+    chartsT[0].update();
   }
+  if(chartsH[0]){
+    chartsH[0].data.datasets[0].data[0] = h;
+    chartsH[0].data.datasets[0].backgroundColor[0] = humColor();
+    chartsH[0].update();
+  }
+
+  applyDistanceAlert(0, d);
   updateSummary();
 });
 
