@@ -672,5 +672,16 @@ function closeHistory(){
   setInterval(periodicUpdate, UPDATE_MS);
 })();
 </script>
+  <script src="https://www.gstatic.com/firebasejs/9.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.10.0/firebase-database.js"></script>
+
+<script>
+const firebaseConfig = {
+  databaseURL: "https://enlace-t-default-rtdb.firebaseio.com/",
+};
+
+firebase.initializeApp(firebaseConfig);
+</script>
+<!-- HASTA AQUÍ -->
 </body>
 </html>
