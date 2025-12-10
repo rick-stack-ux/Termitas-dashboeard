@@ -681,6 +681,19 @@ const firebaseConfig = {
 };
 
 firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+
+db.ref("prueba").on("value", (snap)=>{
+   const data = snap.val();
+
+   console.log(data);
+
+   document.getElementById("temp").innerText = data.Temperatura_C;
+   document.getElementById("hum").innerText = data.Humedad_pct;
+   document.getElementById("dist").innerText = data.Distancia_mm;
+});
+
+// >>>> HASTA AQUI <<<<
 </script>
 <!-- HASTA AQUÍ -->
 </body>
