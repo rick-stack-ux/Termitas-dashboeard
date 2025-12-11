@@ -68,12 +68,10 @@ canvas{ width:110px !important; height:110px !important; }
 const NUM = 5, DIST_THRESHOLD_MM = 40;
 const chartsT = [], chartsH = [], active = [true,false,false,false,false], lastValues = Array(NUM).fill(null), badCount = Array(NUM).fill(0);
 
-// colores
 function tempColor(v){ return v<=25?'rgba(46,204,113,0.8)':(v<=30?'rgba(241,196,15,0.8)':'rgba(231,76,60,0.8)'); }
 function humColor(){ return 'rgba(0,200,255,0.8)'; }
 function formatDateShort(d){ return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; }
 
-// crea card por sonda
 function createCard(i){
   const grid=document.getElementById('grid');
   const card=document.createElement('div'); card.className='card'; card.id=`card-${i+1}`;
@@ -83,7 +81,7 @@ function createCard(i){
     <div class="tog">
       <label><input type="checkbox" id="toggle-${i+1}" ${active[i]?'checked':''}> Activar</label>
       <div style="flex:1"></div>
-      <div style="font-size:12px;color:var(--muted)">Dist: <span id="dist-${i+1}">--</span> mm</div>
+      <div style="font-size:12px;color:var(--muted)">Dist: <span id="dist-${i+1}">--</span></div>
     </div>
     <div class="charts">
       <canvas id="t-${i+1}"></canvas>
@@ -110,7 +108,7 @@ function createCard(i){
   
   chartsT[i]=new Chart(ctxT,{
     type:'doughnut',
-    data:{datasets:[{data:[0,50],backgroundColor:[tempColor(0),'#2b3944'],borderWidth:0}]},
+    data:{datasets:[{data:[0,100],backgroundColor:[tempColor(0),'#2b3944'],borderWidth:0}]},
     options:{rotation:-90,circumference:180,cutout:'72%',plugins:{legend:{display:false},tooltip:{enabled:false}},animation:{duration:300}}
   });
   
@@ -121,7 +119,6 @@ function createCard(i){
   });
 }
 
-// resumen de valores
 function updateSummary(){
   let act=0, alerts=0, sumT=0, sumH=0, count=0;
   for(let i=0;i<NUM;i++){
@@ -138,11 +135,9 @@ function updateSummary(){
   document.getElementById('promHum').textContent=(count?Math.round(sumH/count):'--')+' %';
 }
 
-// alerta presencia
 function applyDistanceAlert(i, dist){
   const card=document.getElementById(`card-${i+1}`);
   if(dist > DIST_THRESHOLD_MM) badCount[i]++; else badCount[i]=0;
-
   if(badCount[i] >= 4) activarPresencia(i, dist);
   else quitarPresencia(i);
 }
@@ -154,7 +149,7 @@ function activarPresencia(i, dist){
   const box=document.getElementById(`pres-${i+1}`);
   if(box){
     const now=new Date();
-    const distMM = Math.round(dist); // asegura mostrar solo mm
+    const distMM = Math.round(dist);
     box.innerHTML=`<div style="font-size:13px"><b>PRESENCIA DETECTADA</b></div>
                    <div style="font-size:12px;color:var(--muted)">${formatDateShort(now)}</div>
                    <div style="font-size:13px">Dist: ${distMM} mm</div>`;
@@ -192,17 +187,18 @@ db.ref("prueba").on("value", snap => {
     document.getElementById(`tempVal-${i+1}`).textContent = `${t} °C`;
     document.getElementById(`humVal-${i+1}`).textContent = `${h} %`;
 
-    // distancia limpia en mm
     const distMM = Math.round(d);
     document.getElementById(`dist-${i+1}`).textContent = `${distMM} mm`;
 
     if(chartsT[i]){
-      chartsT[i].data.datasets[0].data[0] = t;
+      chartsT[i].data.datasets[0].data[0] = t;  // ahora reflejan valor real
+      chartsT[i].data.datasets[0].data[1] = 50-t; // resto para completar círculo
       chartsT[i].data.datasets[0].backgroundColor[0] = tempColor(t);
       chartsT[i].update();
     }
     if(chartsH[i]){
-      chartsH[i].data.datasets[0].data[0] = h;
+      chartsH[i].data.datasets[0].data[0] = h;  
+      chartsH[i].data.datasets[0].data[1] = 100-h;
       chartsH[i].data.datasets[0].backgroundColor[0] = humColor();
       chartsH[i].update();
     }
@@ -213,7 +209,7 @@ db.ref("prueba").on("value", snap => {
   updateSummary();
 });
 
-/* --- Historial semanal/mensual (ejemplo: filtrado manual) --- */
+/* --- Historial semanal/mensual --- */
 document.getElementById('histWeek').addEventListener('click',()=>{ alert('Función historial semanal activa'); });
 document.getElementById('histMonth').addEventListener('click',()=>{ alert('Función historial mensual activa'); });
 
