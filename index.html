@@ -5,44 +5,35 @@
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>Panel Sondas T</title>
 
-<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
-:root{ --bg:#0f1720; --card:#0f1725; --text:#e6eef6; --muted:#9aa9bd; --accent:#00c8ff; --danger:#ff3b3b; --shadow:0 8px 20px rgba(2,8,23,0.6); }
-body.light{ --bg:#f3f6fb; --card:#ffffff; --text:#1b2330; --muted:#556575; --accent:#007BFF; --danger:#ff3b3b; --shadow:0 6px 18px rgba(16,24,40,0.08); }
-html,body{margin:0;padding:0;font-family:Inter,system-ui,Arial,sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;height:100%;}
-.app{max-width:1200px;margin:18px auto;padding:14px;}
-.header{display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:16px;}
-.title h1{margin:0;font-size:20px;} .title p{margin:0;color:var(--muted);font-size:13px;}
-.controls{display:flex;gap:10px;align-items:center;}
-.mode-btn{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--text);padding:8px 10px;border-radius:8px;cursor:pointer;font-size:13px;}
-.summary{display:flex;gap:12px;margin-bottom:18px;flex-wrap:wrap;}
-.metric{background:var(--card);padding:12px 14px;border-radius:10px;box-shadow:var(--shadow);min-width:140px;text-align:center;}
-.metric small{display:block;color:var(--muted);font-size:12px;} .metric b{display:block;font-size:18px;margin-top:6px;}
-.grid{display:grid;grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));gap:16px;}
-.card{background:var(--card);border-radius:12px;padding:14px;box-shadow:var(--shadow);position:relative;transition: box-shadow .25s ease, transform .18s ease, border-color .15s ease;border: 2px solid transparent;overflow:hidden;}
-.card.alert{border-color: var(--danger); box-shadow:0 12px 30px rgba(255,50,50,0.12);}
-.card .sonda-title{ font-weight:600; font-size:15px; margin-bottom:8px; }
-.tog{ font-size:13px; color:var(--muted); display:flex; gap:8px; align-items:center; margin-bottom:8px; }
-.charts{ display:flex; gap:10px; align-items:center; justify-content:center; flex-wrap:wrap; padding:6px 0; }
-canvas{ width:110px !important; height:110px !important; }
-.labels{ display:flex; gap:10px; justify-content:center; margin-top:6px; flex-wrap:wrap; }
-.lbl{ font-size:12px; color:var(--muted); text-align:center; min-width:95px; }
-.val{ font-weight:700; color:var(--text); margin-top:4px; font-size:14px; }
-.card.inactive{ opacity:.35; filter:grayscale(.1); }
-.note{ margin-top:12px;color:var(--muted);font-size:13px; text-align:center; }
-.presenciaAlert{ font-weight:700; text-align:center; padding:8px 6px; margin-top:8px; border-radius:8px; background: rgba(255,0,0,0.04); color: #ff8a8a; min-height:44px; display:flex; flex-direction:column; justify-content:center; }
-.presenciaAlert b{ color:var(--danger); }
-.modal{ display:none; position:fixed; top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);align-items:center;justify-content:center;z-index:1200; }
-.modal.open{ display:flex; }
-.modal-content{ background:var(--card); color:var(--text); width:96%; max-width:1100px; padding:14px; border-radius:10px; overflow-y:auto; max-height:90vh; box-shadow:var(--shadow); }
-#historyContent{ display:grid; grid-template-columns: repeat(auto-fill,minmax(260px,1fr)); gap:12px; margin-top:8px; }
-.historyCard{ background: linear-gradient(180deg, rgba(255,255,255,0.02), transparent); padding:10px; border-radius:8px; box-shadow: 0 6px 18px rgba(2,8,23,0.35); font-size:13px; overflow:auto; max-height:52vh; }
-.historyCard h3{ margin:0 0 6px 0; font-size:15px; }
-.histRow{ border-top:1px dashed rgba(255,255,255,0.03); padding:6px 0; font-size:13px; color:var(--muted); }
-.histRow small{ display:block; color:var(--muted); margin-bottom:4px; }
+  :root{ --bg:#0f1720; --card:#0f1725; --text:#e6eef6; --muted:#9aa9bd; --accent:#00c8ff; --danger:#ff3b3b; --shadow:0 8px 20px rgba(2,8,23,0.6); }
+  body.light{ --bg:#f3f6fb; --card:#ffffff; --text:#1b2330; --muted:#556575; --accent:#007BFF; --danger:#ff3b3b; --shadow:0 6px 18px rgba(16,24,40,0.08); }
+  html,body{margin:0;padding:0;font-family:Inter,system-ui,Arial,sans-serif;background:var(--bg);color:var(--text);height:100%;}
+  .app{max-width:1200px;margin:18px auto;padding:14px;}
+  .header{display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:16px;}
+  .title h1{margin:0;font-size:20px;} .title p{margin:0;color:var(--muted);font-size:13px;}
+  .controls{display:flex;gap:10px;align-items:center;}
+  .mode-btn{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--text);padding:8px 10px;border-radius:8px;cursor:pointer;font-size:13px;}
+  .summary{display:flex;gap:12px;margin-bottom:18px;flex-wrap:wrap;}
+  .metric{background:var(--card);padding:12px 14px;border-radius:10px;box-shadow:var(--shadow);min-width:140px;text-align:center;}
+  .metric small{display:block;color:var(--muted);font-size:12px;} .metric b{display:block;font-size:18px;margin-top:6px;}
+  .grid{display:grid;grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));gap:16px;}
+  .card{background:var(--card);border-radius:12px;padding:14px;box-shadow:var(--shadow);position:relative;transition: box-shadow .25s ease, transform .18s ease, border-color .15s ease;border: 2px solid transparent;overflow:hidden;}
+  .card.alert{border-color: var(--danger); box-shadow:0 12px 30px rgba(255,50,50,0.12);}
+  .card .sonda-title{ font-weight:600; font-size:15px; margin-bottom:8px; }
+  .tog{ font-size:13px; color:var(--muted); display:flex; gap:8px; align-items:center; margin-bottom:8px; }
+  .charts{ display:flex; gap:10px; align-items:center; justify-content:center; flex-wrap:wrap; padding:6px 0; }
+  canvas{ width:110px !important; height:110px !important; }
+  .labels{ display:flex; gap:10px; justify-content:center; margin-top:6px; flex-wrap:wrap; }
+  .lbl{ font-size:12px; color:var(--muted); text-align:center; min-width:95px; }
+  .val{ font-weight:700; color:var(--text); margin-top:4px; font-size:14px; }
+  .card.inactive{ opacity:.35; filter:grayscale(.1); }
+  .note{ margin-top:12px;color:var(--muted);font-size:13px; text-align:center; }
+  .presenciaAlert{ font-weight:700; text-align:center; padding:8px 6px; margin-top:8px; border-radius:8px; background: rgba(255,0,0,0.04); color: #ff8a8a; min-height:44px; display:flex; flex-direction:column; justify-content:center; }
+  .presenciaAlert b{ color:var(--danger); }
+  .export-btn{margin-top:12px;padding:8px 10px;background:var(--accent);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;}
 </style>
 </head>
 <body>
@@ -53,7 +44,6 @@ canvas{ width:110px !important; height:110px !important; }
       <p>Monitoreo: Temperatura · Humedad · Distancia (mm)</p>
     </div>
     <div class="controls">
-      <button id="btnHistorial" class="mode-btn">Historial</button>
       <button id="modeToggle" class="mode-btn">Modo claro / oscuro</button>
     </div>
   </div>
@@ -66,41 +56,31 @@ canvas{ width:110px !important; height:110px !important; }
   </div>
 
   <div class="grid" id="grid"></div>
+  <button id="exportCSV" class="export-btn">Exportar historial CSV</button>
   <div class="note">Umbral alerta distancia: <b> > 40 mm </b> (4 cm → objeto caído)</div>
 </div>
 
-<div id="historyModal" class="modal" aria-hidden="true">
-  <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="histTitulo">
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
-      <h2 id="histTitulo" style="margin:0">Historial semanal - Sondas</h2>
-      <div style="display:flex;gap:8px">
-        <button id="exportAll" class="mode-btn" title="Exportar CSV">Exportar</button>
-        <button id="closeHist" class="mode-btn">Cerrar</button>
-      </div>
-    </div>
-    <div id="historyContent"></div>
-    <div style="margin-top:10px;color:var(--muted);font-size:13px">Se muestran las lecturas guardadas (últimos 7 días aprox.).</div>
-  </div>
-</div>
+<!-- Firebase compat -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
 <script>
-const NUM = 5;
-const DIST_THRESHOLD_MM = 40;
-const MAX_TEMP = 50; // Rango máximo temperatura para gráfico
-const chartsT = [], chartsH = [], active = [true,false,false,false,false], lastValues = Array(NUM).fill(null), badCount = Array(NUM).fill(0);
+const NUM=5, DIST_THRESHOLD_MM=40;
+const chartsT=[], chartsH=[], active=[true,false,false,false,false], lastValues=Array(NUM).fill(null), badCount=Array(NUM).fill(0);
+const historial=[];
 
-function tempColor(v){ return v<=25?'rgba(46,204,113,0.8)':(v<=30?'rgba(241,196,15,0.8)':'rgba(231,76,60,0.8)'); }
+function tempColor(v){ return `rgba(${v<=25?46: v<=30?241:231},${v<=25?204: v<=30?196: 77},${v<=25?113: v<=30?15:60},0.8)`; }
 function humColor(){ return 'rgba(0,200,255,0.6)'; }
 function formatDateShort(d){ return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; }
 
 function createCard(i){
-  const grid = document.getElementById('grid');
-  const card = document.createElement('div'); card.className='card'; card.id=`card-${i+1}`;
-  const disabled = !active[i] ? 'disabled' : '';
-  card.innerHTML = `
+  const grid=document.getElementById('grid');
+  const card=document.createElement('div'); card.className='card'; card.id=`card-${i+1}`;
+  card.classList.toggle('inactive',!active[i]);
+  card.innerHTML=`
     <div class="sonda-title">Sonda ${i+1}</div>
     <div class="tog">
-      <label><input type="checkbox" id="toggle-${i+1}" ${active[i]? 'checked':'disabled'}> Activar</label>
+      <label><input type="checkbox" id="toggle-${i+1}" ${active[i]?'checked':''}> Activar</label>
       <div style="flex:1"></div>
       <div style="font-size:12px;color:var(--muted)">Dist: <span id="dist-${i+1}">--</span> mm</div>
     </div>
@@ -115,32 +95,28 @@ function createCard(i){
   `;
   grid.appendChild(card);
 
-  const presencia = document.createElement("div"); presencia.className="presenciaAlert"; presencia.id=`pres-${i+1}`; card.appendChild(presencia);
+  const presencia=document.createElement("div"); presencia.className="presenciaAlert"; presencia.id=`pres-${i+1}`; card.appendChild(presencia);
 
-  const toggle = card.querySelector(`#toggle-${i+1}`);
+  const toggle=card.querySelector(`#toggle-${i+1}`);
   toggle.addEventListener('change',(ev)=>{
     active[i]=ev.target.checked; card.classList.toggle('inactive',!active[i]); updateSummary();
   });
 
-  const ctxT = card.querySelector(`#t-${i+1}`).getContext('2d');
-  const ctxH = card.querySelector(`#h-${i+1}`).getContext('2d');
-  chartsT[i] = new Chart(ctxT,{type:'doughnut',data:{datasets:[{data:[0,100],backgroundColor:[tempColor(0),'#2b3944'],borderWidth:0}]},options:{rotation:-90,circumference:180,cutout:'72%',plugins:{legend:{display:false},tooltip:{enabled:false}}}});
-  chartsH[i] = new Chart(ctxH,{type:'doughnut',data:{datasets:[{data:[0,100],backgroundColor:[humColor(),'#2b3944'],borderWidth:0}]},options:{rotation:-90,circumference:180,cutout:'72%',plugins:{legend:{display:false},tooltip:{enabled:false}}}});
+  const ctxT=card.querySelector(`#t-${i+1}`).getContext('2d');
+  const ctxH=card.querySelector(`#h-${i+1}`).getContext('2d');
+  chartsT[i]=new Chart(ctxT,{type:'doughnut',data:{datasets:[{data:[0,50],backgroundColor:[tempColor(0),'#2b3944'],borderWidth:0}]},options:{rotation:-90,circumference:180,cutout:'72%',plugins:{legend:{display:false},tooltip:{enabled:false}}}});
+  chartsH[i]=new Chart(ctxH,{type:'doughnut',data:{datasets:[{data:[0,100],backgroundColor:[humColor(),'#2b3944'],borderWidth:0}]},options:{rotation:-90,circumference:180,cutout:'72%',plugins:{legend:{display:false},tooltip:{enabled:false}}}});
 }
 
 function applyDistanceAlert(i, dist){
-  const card = document.getElementById(`card-${i+1}`);
+  const card=document.getElementById(`card-${i+1}`);
   if(dist>DIST_THRESHOLD_MM) badCount[i]++; else badCount[i]=0;
   if(badCount[i]>=4){ card.classList.add('alert'); activarPresencia(i, dist); } else { card.classList.remove('alert'); quitarPresencia(i); }
 }
 
 function activarPresencia(i, dist){
-  const card = document.getElementById(`card-${i+1}`); if(!card) return; card.style.border=`3px solid var(--danger)`;
-  const box = document.getElementById(`pres-${i+1}`);
-  if(box){
-    const now = new Date();
-    box.innerHTML=`<div style="font-size:13px"><b>PRESENCIA DETECTADA</b></div><div style="font-size:12px;color:var(--muted)">${formatDateShort(now)}</div><div style="font-size:13px">Dist: ${dist} mm</div>`;
-  }
+  const card=document.getElementById(`card-${i+1}`); if(!card) return; card.style.border=`3px solid var(--danger)`;
+  const box=document.getElementById(`pres-${i+1}`); if(box){ const now=new Date(); box.innerHTML=`<div style="font-size:13px"><b>PRESENCIA DETECTADA</b></div><div style="font-size:12px;color:var(--muted)">${formatDateShort(now)}</div><div style="font-size:13px">Dist: ${dist} mm</div>`; }
 }
 
 function quitarPresencia(i){ const card=document.getElementById(`card-${i+1}`); if(!card) return; card.style.border=''; const box=document.getElementById(`pres-${i+1}`); if(box) box.innerHTML=''; }
@@ -149,19 +125,17 @@ function updateSummary(){
   let act=0,alerts=0,sumT=0,sumH=0,count=0;
   for(let i=0;i<NUM;i++){
     if(!active[i]) continue;
-    act++;
-    const v = lastValues[i];
-    if(!v) continue;
-    sumT += v.t; sumH += v.h; count++;
+    act++; const v=lastValues[i]; if(!v) continue;
+    sumT+=v.t; sumH+=v.h; count++;
     if(v.dist>DIST_THRESHOLD_MM) alerts++;
   }
-  document.getElementById('numActivas').textContent = act;
-  document.getElementById('numAlertas').textContent = alerts;
-  document.getElementById('promTemp').textContent = (count?Math.round(sumT/count):'--')+' °C';
-  document.getElementById('promHum').textContent = (count?Math.round(sumH/count):'--')+' %';
+  document.getElementById('numActivas').textContent=act;
+  document.getElementById('numAlertas').textContent=alerts;
+  document.getElementById('promTemp').textContent=(count?Math.round(sumT/count):'--')+' °C';
+  document.getElementById('promHum').textContent=(count?Math.round(sumH/count):'--')+' %';
 }
 
-/* Inicializa tarjetas */
+/* --- Inicializa cards --- */
 for(let i=0;i<NUM;i++) createCard(i);
 updateSummary();
 
@@ -173,47 +147,45 @@ const db=firebase.database();
 console.log("Iniciando prueba de conexión a Firebase...");
 db.ref("prueba").on("value", snap => {
   const data = snap.val();
-  if(!data) return;
-  const s = data;
-  const t = Number(s.Temperatura_C ?? s.temperatura ?? 0);
-  const h = Number(s.Humedad_pct ?? s.humedad ?? 0);
-  const d = Number(s.Distancia_mm ?? s.distancia_mm ?? s.distancia ?? 0);
-  lastValues[0] = { t, h, dist: d };
+  console.log("Datos desde Firebase:", data);
+  const s=data ?? {};
+  const t=Number(s.Temperatura_C ?? s.temperatura ?? 0);
+  const h=Number(s.Humedad_pct ?? s.humedad ?? 0);
+  const d=Number(s.Distancia_mm ?? s.distancia_mm ?? s.distancia ?? 0);
 
-  document.getElementById('tempVal-1').textContent = `${t} °C`;
-  document.getElementById('humVal-1').textContent = `${h} %`;
-  document.getElementById('dist-1').textContent = `${d}`;
+  // Solo Sonda 1
+  if(active[0]){
+    lastValues[0]={t,h,dist:d};
+    document.getElementById('tempVal-1').textContent=`${t} °C`;
+    document.getElementById('humVal-1').textContent=`${h} %`;
+    document.getElementById('dist-1').textContent=`${d}`;
+    chartsT[0].data.datasets[0].data[0]=t;
+    chartsT[0].data.datasets[0].backgroundColor[0]=tempColor(t);
+    chartsT[0].update();
+    chartsH[0].data.datasets[0].data[0]=h;
+    chartsH[0].data.datasets[0].backgroundColor[0]=humColor();
+    chartsH[0].update();
+    applyDistanceAlert(0,d);
 
-  chartsT[0].data.datasets[0].data[0] = t/MAX_TEMP*100;
-  chartsT[0].data.datasets[0].backgroundColor[0] = tempColor(t);
-  chartsT[0].update();
-
-  chartsH[0].data.datasets[0].data[0] = h;
-  chartsH[0].data.datasets[0].backgroundColor[0] = humColor();
-  chartsH[0].update();
-
-  applyDistanceAlert(0,d);
+    // Guardar en historial
+    historial.push({fecha:new Date(),t,h,d});
+  }
   updateSummary();
 });
 
-/* Modo claro/oscuro y historial */
-document.getElementById('modeToggle').addEventListener('click',()=>document.body.classList.toggle('light'));
-document.getElementById('btnHistorial').addEventListener('click',()=>document.getElementById('historyModal').classList.add('open'));
-document.getElementById('closeHist').addEventListener('click',()=>document.getElementById('historyModal').classList.remove('open'));
-
-/* Exportar historial CSV */
-document.getElementById('exportAll').addEventListener('click', ()=>{
-  if(!lastValues[0]) return;
-  const csvContent = "data:text/csv;charset=utf-8," + "Sonda,Temperatura,Humedad,Distancia\n" +
-    `1,${lastValues[0].t},${lastValues[0].h},${lastValues[0].dist}`;
-  const encodedUri = encodeURI(csvContent);
-  const link = document.createElement("a");
-  link.setAttribute("href", encodedUri);
-  link.setAttribute("download", `historial_sonda1.csv`);
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
+/* --- Exportar CSV --- */
+document.getElementById('exportCSV').addEventListener('click',()=>{
+  if(historial.length===0) return alert("No hay datos aún");
+  let csv='Fecha;Temperatura;Humedad;Distancia\n';
+  historial.forEach(row=>{
+    csv+=`${formatDateShort(row.fecha)};${row.t};${row.h};${row.d}\n`;
+  });
+  const blob=new Blob([csv],{type:'text/csv'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='historial_sondas.csv'; a.click();
 });
+
+/* --- Modo claro/oscuro --- */
+document.getElementById('modeToggle').addEventListener('click',()=>document.body.classList.toggle('light'));
 </script>
 </body>
 </html>
