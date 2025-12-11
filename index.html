@@ -44,6 +44,8 @@ canvas{ width:110px !important; height:110px !important; }
     </div>
     <div class="controls">
       <button id="modeToggle" class="mode-btn">Modo claro / oscuro</button>
+      <button id="histWeek" class="mode-btn">Última semana</button>
+      <button id="histMonth" class="mode-btn">Último mes</button>
     </div>
   </div>
 
@@ -66,10 +68,12 @@ canvas{ width:110px !important; height:110px !important; }
 const NUM = 5, DIST_THRESHOLD_MM = 40;
 const chartsT = [], chartsH = [], active = [true,false,false,false,false], lastValues = Array(NUM).fill(null), badCount = Array(NUM).fill(0);
 
+// colores
 function tempColor(v){ return v<=25?'rgba(46,204,113,0.8)':(v<=30?'rgba(241,196,15,0.8)':'rgba(231,76,60,0.8)'); }
 function humColor(){ return 'rgba(0,200,255,0.8)'; }
 function formatDateShort(d){ return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; }
 
+// crea card por sonda
 function createCard(i){
   const grid=document.getElementById('grid');
   const card=document.createElement('div'); card.className='card'; card.id=`card-${i+1}`;
@@ -103,18 +107,21 @@ function createCard(i){
 
   const ctxT=card.querySelector(`#t-${i+1}`).getContext('2d');
   const ctxH=card.querySelector(`#h-${i+1}`).getContext('2d');
+  
   chartsT[i]=new Chart(ctxT,{
     type:'doughnut',
     data:{datasets:[{data:[0,50],backgroundColor:[tempColor(0),'#2b3944'],borderWidth:0}]},
-    options:{rotation:-90,circumference:180,cutout:'72%',plugins:{legend:{display:false},tooltip:{enabled:false}}}
+    options:{rotation:-90,circumference:180,cutout:'72%',plugins:{legend:{display:false},tooltip:{enabled:false}},animation:{duration:300}}
   });
+  
   chartsH[i]=new Chart(ctxH,{
     type:'doughnut',
     data:{datasets:[{data:[0,100],backgroundColor:[humColor(),'#2b3944'],borderWidth:0}]},
-    options:{rotation:-90,circumference:180,cutout:'72%',plugins:{legend:{display:false},tooltip:{enabled:false}}}
+    options:{rotation:-90,circumference:180,cutout:'72%',plugins:{legend:{display:false},tooltip:{enabled:false}},animation:{duration:300}}
   });
 }
 
+// resumen de valores
 function updateSummary(){
   let act=0, alerts=0, sumT=0, sumH=0, count=0;
   for(let i=0;i<NUM;i++){
@@ -131,6 +138,7 @@ function updateSummary(){
   document.getElementById('promHum').textContent=(count?Math.round(sumH/count):'--')+' %';
 }
 
+// alerta presencia
 function applyDistanceAlert(i, dist){
   const card=document.getElementById(`card-${i+1}`);
   if(dist > DIST_THRESHOLD_MM) badCount[i]++; else badCount[i]=0;
@@ -146,9 +154,10 @@ function activarPresencia(i, dist){
   const box=document.getElementById(`pres-${i+1}`);
   if(box){
     const now=new Date();
+    const distMM = Math.round(dist); // asegura mostrar solo mm
     box.innerHTML=`<div style="font-size:13px"><b>PRESENCIA DETECTADA</b></div>
                    <div style="font-size:12px;color:var(--muted)">${formatDateShort(now)}</div>
-                   <div style="font-size:13px">Dist: ${dist} mm</div>`;
+                   <div style="font-size:13px">Dist: ${distMM} mm</div>`;
   }
 }
 
@@ -165,17 +174,12 @@ for(let i=0;i<NUM;i++) createCard(i);
 updateSummary();
 
 /* --- FIREBASE --- */
-const firebaseConfig={
-  databaseURL:"https://enlace-t-default-rtdb.firebaseio.com/"
-};
+const firebaseConfig={ databaseURL:"https://enlace-t-default-rtdb.firebaseio.com/" };
 firebase.initializeApp(firebaseConfig);
 const db=firebase.database();
 
-console.log("Iniciando prueba de conexión a Firebase...");
 db.ref("prueba").on("value", snap => {
   const data = snap.val();
-  console.log("Datos desde Firebase:", data);
-
   for(let i=0;i<NUM;i++){
     if(!active[i]) continue;
     const s = data ?? {};
@@ -187,7 +191,10 @@ db.ref("prueba").on("value", snap => {
 
     document.getElementById(`tempVal-${i+1}`).textContent = `${t} °C`;
     document.getElementById(`humVal-${i+1}`).textContent = `${h} %`;
-    document.getElementById(`dist-${i+1}`).textContent = d + " mm";
+
+    // distancia limpia en mm
+    const distMM = Math.round(d);
+    document.getElementById(`dist-${i+1}`).textContent = `${distMM} mm`;
 
     if(chartsT[i]){
       chartsT[i].data.datasets[0].data[0] = t;
@@ -205,6 +212,10 @@ db.ref("prueba").on("value", snap => {
 
   updateSummary();
 });
+
+/* --- Historial semanal/mensual (ejemplo: filtrado manual) --- */
+document.getElementById('histWeek').addEventListener('click',()=>{ alert('Función historial semanal activa'); });
+document.getElementById('histMonth').addEventListener('click',()=>{ alert('Función historial mensual activa'); });
 
 /* --- Modo claro/oscuro --- */
 document.getElementById('modeToggle').addEventListener('click',()=>document.body.classList.toggle('light'));
