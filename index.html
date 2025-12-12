@@ -60,7 +60,6 @@ canvas{ width:110px !important; height:110px !important; }
   <div class="note">Umbral alerta distancia: <b> > 40 mm </b> (4 cm → objeto caído)</div>
 </div>
 
-<!-- Firebase compat -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
@@ -68,9 +67,22 @@ canvas{ width:110px !important; height:110px !important; }
 const NUM = 5, DIST_THRESHOLD_MM = 40;
 const chartsT = [], chartsH = [], active = [true,false,false,false,false], lastValues = Array(NUM).fill(null), badCount = Array(NUM).fill(0);
 
-function tempColor(v){ return v<=25?'rgba(46,204,113,0.8)':(v<=30?'rgba(241,196,15,0.8)':'rgba(231,76,60,0.8)'); }
-function humColor(){ return 'rgba(0,200,255,0.8)'; }
-function formatDateShort(d){ return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; }
+function tempColor(v){ 
+  return v<=25?'rgba(46,204,113,0.8)':(v<=30?'rgba(241,196,15,0.8)':'rgba(231,76,60,0.8)'); 
+}
+
+// Degradado de color para humedad según porcentaje
+function humColor(v){
+  if(v <= 20) return 'rgba(135,206,250,0.8)';      // azul claro
+  else if(v <= 40) return 'rgba(0,162,255,0.8)';   // azul medio
+  else if(v <= 60) return 'rgba(46,204,113,0.8)';  // verde
+  else if(v <= 80) return 'rgba(241,196,15,0.8)';  // amarillo
+  else return 'rgba(231,76,60,0.8)';               // rojo
+}
+
+function formatDateShort(d){ 
+  return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+}
 
 function createCard(i){
   const grid=document.getElementById('grid');
@@ -105,16 +117,16 @@ function createCard(i){
 
   const ctxT=card.querySelector(`#t-${i+1}`).getContext('2d');
   const ctxH=card.querySelector(`#h-${i+1}`).getContext('2d');
-  
+
   chartsT[i]=new Chart(ctxT,{
     type:'doughnut',
-    data:{datasets:[{data:[0,100],backgroundColor:[tempColor(0),'#2b3944'],borderWidth:0}]},
+    data:{datasets:[{data:[0,50],backgroundColor:[tempColor(0),'#2b3944'],borderWidth:0}]},
     options:{rotation:-90,circumference:180,cutout:'72%',plugins:{legend:{display:false},tooltip:{enabled:false}},animation:{duration:300}}
   });
-  
+
   chartsH[i]=new Chart(ctxH,{
     type:'doughnut',
-    data:{datasets:[{data:[0,100],backgroundColor:[humColor(),'#2b3944'],borderWidth:0}]},
+    data:{datasets:[{data:[0,100],backgroundColor:[humColor(0),'#2b3944'],borderWidth:0}]},
     options:{rotation:-90,circumference:180,cutout:'72%',plugins:{legend:{display:false},tooltip:{enabled:false}},animation:{duration:300}}
   });
 }
@@ -191,15 +203,15 @@ db.ref("prueba").on("value", snap => {
     document.getElementById(`dist-${i+1}`).textContent = `${distMM} mm`;
 
     if(chartsT[i]){
-      chartsT[i].data.datasets[0].data[0] = t;  // ahora reflejan valor real
-      chartsT[i].data.datasets[0].data[1] = 50-t; // resto para completar círculo
+      chartsT[i].data.datasets[0].data[0] = t;
+      chartsT[i].data.datasets[0].data[1] = 50-t;
       chartsT[i].data.datasets[0].backgroundColor[0] = tempColor(t);
       chartsT[i].update();
     }
     if(chartsH[i]){
       chartsH[i].data.datasets[0].data[0] = h;  
       chartsH[i].data.datasets[0].data[1] = 100-h;
-      chartsH[i].data.datasets[0].backgroundColor[0] = humColor();
+      chartsH[i].data.datasets[0].backgroundColor[0] = humColor(h);
       chartsH[i].update();
     }
 
