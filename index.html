@@ -25,7 +25,6 @@ html,body{margin:0;padding:0;font-family:Inter,system-ui,Arial,sans-serif;backgr
 .card .sonda-title{ font-weight:600; font-size:15px; margin-bottom:8px; }
 .tog{ font-size:13px; color:var(--muted); display:flex; gap:8px; align-items:center; margin-bottom:8px; }
 .charts{ display:flex; gap:10px; align-items:center; justify-content:center; flex-wrap:wrap; padding:6px 0; }
-canvas{ width:121px !important; height:121px !important; } /* +10% tamaño */
 .labels{ display:flex; gap:10px; justify-content:center; margin-top:6px; flex-wrap:wrap; }
 .lbl{ font-size:12px; color:var(--muted); text-align:center; min-width:95px; }
 .val{ font-weight:700; color:var(--text); margin-top:4px; font-size:14px; }
@@ -72,11 +71,11 @@ function tempColor(v){
 }
 
 function humColor(v){
-  if(v <= 20) return 'rgba(135,206,250,0.8)';      // azul claro
-  else if(v <= 40) return 'rgba(0,162,255,0.8)';   // azul medio
-  else if(v <= 60) return 'rgba(46,204,113,0.8)';  // verde
-  else if(v <= 80) return 'rgba(241,196,15,0.8)';  // amarillo
-  else return 'rgba(231,76,60,0.8)';               // rojo
+  if(v <= 20) return 'rgba(135,206,250,0.8)';
+  else if(v <= 40) return 'rgba(0,162,255,0.8)';
+  else if(v <= 60) return 'rgba(46,204,113,0.8)';
+  else if(v <= 80) return 'rgba(241,196,15,0.8)';
+  else return 'rgba(231,76,60,0.8)';
 }
 
 function formatDateShort(d){ 
@@ -114,8 +113,16 @@ function createCard(i){
     updateSummary(); 
   });
 
-  const ctxT=card.querySelector(`#t-${i+1}`).getContext('2d');
-  const ctxH=card.querySelector(`#h-${i+1}`).getContext('2d');
+  // Asegurar tamaño igual para temperatura y humedad
+  const canvasT = card.querySelector(`#t-${i+1}`);
+  canvasT.width = 121;
+  canvasT.height = 121;
+  const ctxT = canvasT.getContext('2d');
+
+  const canvasH = card.querySelector(`#h-${i+1}`);
+  canvasH.width = 121;
+  canvasH.height = 121;
+  const ctxH = canvasH.getContext('2d');
 
   chartsT[i]=new Chart(ctxT,{
     type:'doughnut',
