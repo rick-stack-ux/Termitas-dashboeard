@@ -8,10 +8,8 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
-:root{
-  --bg:#0f1720; --card:#0f1725; --text:#e6eef6; --muted:#9aa9bd; --accent:#00c8ff; --danger:#ff3b3b; --shadow:0 8px 20px rgba(2,8,23,0.6);
-}
-body.light{--bg:#f3f6fb;--card:#ffffff;--text:#1b2330;--muted:#556575;--accent:#007BFF;--danger:#ff3b3b;--shadow:0 6px 18px rgba(16,24,40,0.08);}
+:root{ --bg:#0f1720; --card:#0f1725; --text:#e6eef6; --muted:#9aa9bd; --accent:#00c8ff; --danger:#ff3b3b; --shadow:0 8px 20px rgba(2,8,23,0.6); }
+body.light{ --bg:#f3f6fb; --card:#ffffff; --text:#1b2330; --muted:#556575; --accent:#007BFF; --danger:#ff3b3b; --shadow:0 6px 18px rgba(16,24,40,0.08); }
 html,body{margin:0;padding:0;font-family:Inter,system-ui,Arial,sans-serif;background:var(--bg);color:var(--text);height:100%;}
 .app{max-width:1200px;margin:18px auto;padding:14px;}
 .header{display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:16px;}
@@ -27,7 +25,6 @@ html,body{margin:0;padding:0;font-family:Inter,system-ui,Arial,sans-serif;backgr
 .card .sonda-title{ font-weight:600; font-size:15px; margin-bottom:8px; }
 .tog{ font-size:13px; color:var(--muted); display:flex; gap:8px; align-items:center; margin-bottom:8px; }
 .charts{ display:flex; gap:10px; align-items:center; justify-content:center; flex-wrap:wrap; padding:6px 0; }
-canvas{ width:110px !important; height:110px !important; }
 .labels{ display:flex; gap:10px; justify-content:center; margin-top:6px; flex-wrap:wrap; }
 .lbl{ font-size:12px; color:var(--muted); text-align:center; min-width:95px; }
 .val{ font-weight:700; color:var(--text); margin-top:4px; font-size:14px; }
@@ -66,31 +63,30 @@ canvas{ width:110px !important; height:110px !important; }
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
 <script>
-const CONFIG={
-  NUM_SONDAS:5,
-  DIST_THRESHOLD_MM:40,
-  maxTemp:50,
-  maxHum:100,
-  chartSize:110,
-  tempColors:[
-    {max:25,color:'rgba(46,204,113,0.8)'},
-    {max:30,color:'rgba(241,196,15,0.8)'},
-    {max:Infinity,color:'rgba(231,76,60,0.8)'}
-  ],
-  humColors:[
-    {max:20,color:'rgba(135,206,250,0.8)'},
-    {max:40,color:'rgba(0,162,255,0.8)'},
-    {max:60,color:'rgba(46,204,113,0.8)'},
-    {max:80,color:'rgba(241,196,15,0.8)'},
-    {max:Infinity,color:'rgba(231,76,60,0.8)'}
-  ]
-};
+const NUM = 5;
+const DIST_THRESHOLD_MM = 40;
 
-const chartsT=[], chartsH=[], active=Array(CONFIG.NUM_SONDAS).fill(true), lastValues=Array(CONFIG.NUM_SONDAS).fill(null), badCount=Array(CONFIG.NUM_SONDAS).fill(0);
+// --- CONTROL DEL TAMAÑO DE LOS GRÁFICOS ---
+let chartWidth = 110;   // ancho en px
+let chartHeight = 110;  // alto en px
 
-function tempColor(v){ return CONFIG.tempColors.find(c=>v<=c.max).color; }
-function humColor(v){ return CONFIG.humColors.find(c=>v<=c.max).color; }
-function formatDateShort(d){return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;}
+const chartsT = [], chartsH = [], active = [true,false,false,false,false], lastValues = Array(NUM).fill(null), badCount = Array(NUM).fill(0);
+
+function tempColor(v){ 
+  return v<=25?'rgba(46,204,113,0.8)':(v<=30?'rgba(241,196,15,0.8)':'rgba(231,76,60,0.8)'); 
+}
+
+function humColor(v){
+  if(v <= 20) return 'rgba(135,206,250,0.8)';
+  else if(v <= 40) return 'rgba(0,162,255,0.8)';
+  else if(v <= 60) return 'rgba(46,204,113,0.8)';
+  else if(v <= 80) return 'rgba(241,196,15,0.8)';
+  else return 'rgba(231,76,60,0.8)';
+}
+
+function formatDateShort(d){ 
+  return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+}
 
 function createCard(i){
   const grid=document.getElementById('grid');
@@ -99,13 +95,13 @@ function createCard(i){
   card.innerHTML=`
     <div class="sonda-title">Sonda ${i+1}</div>
     <div class="tog">
-      <label><input type="checkbox" id="toggle-${i+1}" checked> Activar</label>
+      <label><input type="checkbox" id="toggle-${i+1}" ${active[i]?'checked':''}> Activar</label>
       <div style="flex:1"></div>
       <div style="font-size:12px;color:var(--muted)">Dist: <span id="dist-${i+1}">--</span></div>
     </div>
     <div class="charts">
-      <canvas id="t-${i+1}" width="${CONFIG.chartSize}" height="${CONFIG.chartSize}"></canvas>
-      <canvas id="h-${i+1}" width="${CONFIG.chartSize}" height="${CONFIG.chartSize}"></canvas>
+      <canvas id="t-${i+1}"></canvas>
+      <canvas id="h-${i+1}"></canvas>
     </div>
     <div class="labels">
       <div class="lbl"><div class="muted">Temperatura</div><div class="val" id="tempVal-${i+1}">-- °C</div></div>
@@ -114,29 +110,48 @@ function createCard(i){
   `;
   grid.appendChild(card);
 
-  const ctxT=card.querySelector(`#t-${i+1}`).getContext('2d');
-  const ctxH=card.querySelector(`#h-${i+1}`).getContext('2d');
+  const presencia=document.createElement("div"); presencia.className="presenciaAlert"; presencia.id=`pres-${i+1}`; card.appendChild(presencia);
+
+  const toggle=card.querySelector(`#toggle-${i+1}`);
+  toggle.addEventListener('change',(ev)=>{ 
+    active[i]=ev.target.checked; 
+    card.classList.toggle('inactive',!active[i]); 
+    updateSummary(); 
+  });
+
+  // --- Aplicar tamaño controlable ---
+  const canvasT = card.querySelector(`#t-${i+1}`);
+  canvasT.width = chartWidth;
+  canvasT.height = chartHeight;
+  const ctxT = canvasT.getContext('2d');
+
+  const canvasH = card.querySelector(`#h-${i+1}`);
+  canvasH.width = chartWidth;
+  canvasH.height = chartHeight;
+  const ctxH = canvasH.getContext('2d');
 
   chartsT[i]=new Chart(ctxT,{
     type:'doughnut',
-    data:{datasets:[{data:[0,CONFIG.maxTemp],backgroundColor:[tempColor(0),'#2b3944'],borderWidth:0}]},
+    data:{datasets:[{data:[0,50],backgroundColor:[tempColor(0),'#2b3944'],borderWidth:0}]},
     options:{rotation:-90,circumference:180,cutout:'72%',plugins:{legend:{display:false},tooltip:{enabled:false}},animation:{duration:300}}
   });
 
   chartsH[i]=new Chart(ctxH,{
     type:'doughnut',
-    data:{datasets:[{data:[0,CONFIG.maxHum],backgroundColor:[humColor(0),'#2b3944'],borderWidth:0}]},
+    data:{datasets:[{data:[0,100],backgroundColor:[humColor(0),'#2b3944'],borderWidth:0}]},
     options:{rotation:-90,circumference:180,cutout:'72%',plugins:{legend:{display:false},tooltip:{enabled:false}},animation:{duration:300}}
   });
 }
 
 function updateSummary(){
   let act=0, alerts=0, sumT=0, sumH=0, count=0;
-  for(let i=0;i<CONFIG.NUM_SONDAS;i++){
+  for(let i=0;i<NUM;i++){
     if(!active[i]) continue;
-    act++; const v=lastValues[i]; if(!v) continue;
+    act++;
+    const v=lastValues[i];
+    if(!v) continue;
     sumT+=v.t; sumH+=v.h; count++;
-    if(v.dist>CONFIG.DIST_THRESHOLD_MM) alerts++;
+    if(v.dist > DIST_THRESHOLD_MM) alerts++;
   }
   document.getElementById('numActivas').textContent=act;
   document.getElementById('numAlertas').textContent=alerts;
@@ -144,72 +159,109 @@ function updateSummary(){
   document.getElementById('promHum').textContent=(count?Math.round(sumH/count):'--')+' %';
 }
 
-function applyDistanceAlert(i,dist){
+function applyDistanceAlert(i, dist){
   const card=document.getElementById(`card-${i+1}`);
-  if(dist>CONFIG.DIST_THRESHOLD_MM) badCount[i]++; else badCount[i]=0;
-  if(badCount[i]>=4) activarPresencia(i,dist); else quitarPresencia(i);
+  if(dist > DIST_THRESHOLD_MM) badCount[i]++; else badCount[i]=0;
+  if(badCount[i] >= 4) activarPresencia(i, dist);
+  else quitarPresencia(i);
 }
 
-function activarPresencia(i,dist){
-  const card=document.getElementById(`card-${i+1}`); if(!card) return;
+function activarPresencia(i, dist){
+  const card=document.getElementById(`card-${i+1}`); 
+  if(!card) return; 
   card.classList.add('alert');
   const box=document.getElementById(`pres-${i+1}`);
   if(box){
-    const now=new Date(); const distMM=Math.round(dist);
+    const now=new Date();
+    const distMM = Math.round(dist);
     box.innerHTML=`<div style="font-size:13px"><b>PRESENCIA DETECTADA</b></div>
                    <div style="font-size:12px;color:var(--muted)">${formatDateShort(now)}</div>
                    <div style="font-size:13px">Dist: ${distMM} mm</div>`;
   }
 }
+
 function quitarPresencia(i){
-  const card=document.getElementById(`card-${i+1}`); if(!card) return;
+  const card=document.getElementById(`card-${i+1}`); 
+  if(!card) return; 
   card.classList.remove('alert');
-  const box=document.getElementById(`pres-${i+1}`); if(box) box.innerHTML='';
+  const box=document.getElementById(`pres-${i+1}`); 
+  if(box) box.innerHTML='';
 }
 
-/* Inicializa tarjetas */
-for(let i=0;i<CONFIG.NUM_SONDAS;i++) createCard(i);
+/* --- Inicializa cards --- */
+for(let i=0;i<NUM;i++) createCard(i);
 updateSummary();
 
-/* Firebase */
+/* --- FIREBASE --- */
 const firebaseConfig={ databaseURL:"https://enlace-t-default-rtdb.firebaseio.com/" };
 firebase.initializeApp(firebaseConfig);
 const db=firebase.database();
 
-db.ref("prueba").on("value", snap=>{
+db.ref("prueba").on("value", snap => {
   const data = snap.val();
-  for(let i=0;i<CONFIG.NUM_SONDAS;i++){
+  for(let i=0;i<NUM;i++){
     if(!active[i]) continue;
     const s = data ?? {};
     const t = Number(s.Temperatura_C ?? 0);
     const h = Number(s.Humedad_pct ?? 0);
     const d = Number(s.Distancia_mm ?? 0);
-    lastValues[i]={t,h,dist:d};
 
-    document.getElementById(`tempVal-${i+1}`).textContent=`${t} °C`;
-    document.getElementById(`humVal-${i+1}`).textContent=`${h} %`;
-    document.getElementById(`dist-${i+1}`).textContent=`${Math.round(d)} mm`;
+    lastValues[i] = {t,h,dist:d};
+
+    document.getElementById(`tempVal-${i+1}`).textContent = `${t} °C`;
+    document.getElementById(`humVal-${i+1}`).textContent = `${h} %`;
+    document.getElementById(`dist-${i+1}`).textContent = `${Math.round(d)} mm`;
 
     if(chartsT[i]){
-      chartsT[i].data.datasets[0].data[0]=t;
-      chartsT[i].data.datasets[0].data[1]=CONFIG.maxTemp-t;
-      chartsT[i].data.datasets[0].backgroundColor[0]=tempColor(t);
+      chartsT[i].data.datasets[0].data[0] = t;
+      chartsT[i].data.datasets[0].data[1] = 50-t;
+      chartsT[i].data.datasets[0].backgroundColor[0] = tempColor(t);
       chartsT[i].update();
     }
     if(chartsH[i]){
-      chartsH[i].data.datasets[0].data[0]=h;
-      chartsH[i].data.datasets[0].data[1]=CONFIG.maxHum-h;
-      chartsH[i].data.datasets[0].backgroundColor[0]=humColor(h);
+      chartsH[i].data.datasets[0].data[0] = h;  
+      chartsH[i].data.datasets[0].data[1] = 100-h;
+      chartsH[i].data.datasets[0].backgroundColor[0] = humColor(h);
       chartsH[i].update();
     }
+
     applyDistanceAlert(i,d);
   }
+
   updateSummary();
 });
 
-/* Controles */
-document.getElementById('histWeek').addEventListener('click',()=>{ alert('Historial semanal activo'); });
-document.getElementById('histMonth').addEventListener('click',()=>{ alert('Historial mensual activo'); });
+/* --- Descarga CSV historial --- */
+function downloadCSV(filename, rows) {
+  const csvContent = rows.map(e => e.join(",")).join("\n");
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.setAttribute("download", filename);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
+document.getElementById('histWeek').addEventListener('click', ()=>{
+  const rows = [["Sonda","Fecha","Temperatura °C","Humedad %","Distancia mm"]];
+  for(let i=0;i<NUM;i++){
+    const v = lastValues[i];
+    if(v) rows.push([i+1, formatDateShort(new Date()), v.t, v.h, v.dist]);
+  }
+  downloadCSV("historial_semanal.csv", rows);
+});
+
+document.getElementById('histMonth').addEventListener('click', ()=>{
+  const rows = [["Sonda","Fecha","Temperatura °C","Humedad %","Distancia mm"]];
+  for(let i=0;i<NUM;i++){
+    const v = lastValues[i];
+    if(v) rows.push([i+1, formatDateShort(new Date()), v.t, v.h, v.dist]);
+  }
+  downloadCSV("historial_mensual.csv", rows);
+});
+
+/* --- Modo claro/oscuro --- */
 document.getElementById('modeToggle').addEventListener('click',()=>document.body.classList.toggle('light'));
 </script>
 </body>
