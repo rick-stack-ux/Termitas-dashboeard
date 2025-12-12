@@ -63,7 +63,13 @@ html,body{margin:0;padding:0;font-family:Inter,system-ui,Arial,sans-serif;backgr
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
 <script>
-const NUM = 5, DIST_THRESHOLD_MM = 40;
+const NUM = 5;
+const DIST_THRESHOLD_MM = 40;
+
+// --- CONTROL DEL TAMAÑO DE LOS GRÁFICOS ---
+let chartWidth = 110;   // ancho en px
+let chartHeight = 110;  // alto en px
+
 const chartsT = [], chartsH = [], active = [true,false,false,false,false], lastValues = Array(NUM).fill(null), badCount = Array(NUM).fill(0);
 
 function tempColor(v){ 
@@ -113,15 +119,15 @@ function createCard(i){
     updateSummary(); 
   });
 
-  // Asegurar tamaño igual para temperatura y humedad
+  // --- Aplicar tamaño controlable ---
   const canvasT = card.querySelector(`#t-${i+1}`);
-  canvasT.width = 121;
-  canvasT.height = 121;
+  canvasT.width = chartWidth;
+  canvasT.height = chartHeight;
   const ctxT = canvasT.getContext('2d');
 
   const canvasH = card.querySelector(`#h-${i+1}`);
-  canvasH.width = 121;
-  canvasH.height = 121;
+  canvasH.width = chartWidth;
+  canvasH.height = chartHeight;
   const ctxH = canvasH.getContext('2d');
 
   chartsT[i]=new Chart(ctxT,{
