@@ -35,7 +35,6 @@ canvas{ width:110px !important; height:110px !important; }
 .note{ margin-top:12px;color:var(--muted);font-size:13px; text-align:center; }
 .presenciaAlert{ font-weight:700; text-align:center; padding:8px 6px; margin-top:8px; border-radius:8px; background: rgba(255,0,0,0.04); color: #ff8a8a; min-height:44px; display:flex; flex-direction:column; justify-content:center; }
 .presenciaAlert b{ color:var(--danger); }
-.controls input[type=range]{width:100px;}
 </style>
 </head>
 <body>
@@ -49,8 +48,6 @@ canvas{ width:110px !important; height:110px !important; }
       <button id="modeToggle" class="mode-btn">Modo claro / oscuro</button>
       <button id="histWeek" class="mode-btn">Última semana</button>
       <button id="histMonth" class="mode-btn">Último mes</button>
-      <label style="color:var(--muted)">Tamaño gráfico:</label>
-      <input type="range" id="chartSize" min="80" max="200" value="110">
     </div>
   </div>
 
@@ -69,13 +66,12 @@ canvas{ width:110px !important; height:110px !important; }
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
 <script>
-/* CONFIGURACIÓN GLOBAL */
-const CONFIG = {
-  NUM_SONDAS: 5,
-  DIST_THRESHOLD_MM: 40,
-  maxTemp: 50,
-  maxHum: 100,
-  chartSize: 110,
+const CONFIG={
+  NUM_SONDAS:5,
+  DIST_THRESHOLD_MM:40,
+  maxTemp:50,
+  maxHum:100,
+  chartSize:110,
   tempColors:[
     {max:25,color:'rgba(46,204,113,0.8)'},
     {max:30,color:'rgba(241,196,15,0.8)'},
@@ -96,7 +92,6 @@ function tempColor(v){ return CONFIG.tempColors.find(c=>v<=c.max).color; }
 function humColor(v){ return CONFIG.humColors.find(c=>v<=c.max).color; }
 function formatDateShort(d){return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;}
 
-/* CREAR TARJETAS */
 function createCard(i){
   const grid=document.getElementById('grid');
   const card=document.createElement('div'); card.className='card'; card.id=`card-${i+1}`;
@@ -135,7 +130,6 @@ function createCard(i){
   });
 }
 
-/* --- Resumen y alertas --- */
 function updateSummary(){
   let act=0, alerts=0, sumT=0, sumH=0, count=0;
   for(let i=0;i<CONFIG.NUM_SONDAS;i++){
@@ -173,11 +167,11 @@ function quitarPresencia(i){
   const box=document.getElementById(`pres-${i+1}`); if(box) box.innerHTML='';
 }
 
-/* --- Inicializa tarjetas --- */
+/* Inicializa tarjetas */
 for(let i=0;i<CONFIG.NUM_SONDAS;i++) createCard(i);
 updateSummary();
 
-/* --- FIREBASE --- */
+/* Firebase */
 const firebaseConfig={ databaseURL:"https://enlace-t-default-rtdb.firebaseio.com/" };
 firebase.initializeApp(firebaseConfig);
 const db=firebase.database();
@@ -213,22 +207,10 @@ db.ref("prueba").on("value", snap=>{
   updateSummary();
 });
 
-/* --- Controles --- */
+/* Controles */
 document.getElementById('histWeek').addEventListener('click',()=>{ alert('Historial semanal activo'); });
 document.getElementById('histMonth').addEventListener('click',()=>{ alert('Historial mensual activo'); });
 document.getElementById('modeToggle').addEventListener('click',()=>document.body.classList.toggle('light'));
-
-/* --- Control dinámico tamaño gráfico --- */
-document.getElementById('chartSize').addEventListener('input', e=>{
-  CONFIG.chartSize=Number(e.target.value);
-  for(let i=0;i<CONFIG.NUM_SONDAS;i++){
-    chartsT[i].canvas.width=CONFIG.chartSize;
-    chartsT[i].canvas.height=CONFIG.chartSize;
-    chartsH[i].canvas.width=CONFIG.chartSize;
-    chartsH[i].canvas.height=CONFIG.chartSize;
-    chartsT[i].resize(); chartsH[i].resize();
-  }
-});
 </script>
 </body>
 </html>
