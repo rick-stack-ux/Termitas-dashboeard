@@ -25,6 +25,7 @@ html,body{margin:0;padding:0;font-family:Inter,system-ui,Arial,sans-serif;backgr
 .card .sonda-title{ font-weight:600; font-size:15px; margin-bottom:8px; }
 .tog{ font-size:13px; color:var(--muted); display:flex; gap:8px; align-items:center; margin-bottom:8px; }
 .charts{ display:flex; gap:10px; align-items:center; justify-content:center; flex-wrap:wrap; padding:6px 0; }
+canvas{ width:110px !important; height:110px !important; }
 .labels{ display:flex; gap:10px; justify-content:center; margin-top:6px; flex-wrap:wrap; }
 .lbl{ font-size:12px; color:var(--muted); text-align:center; min-width:95px; }
 .val{ font-weight:700; color:var(--text); margin-top:4px; font-size:14px; }
@@ -63,25 +64,20 @@ html,body{margin:0;padding:0;font-family:Inter,system-ui,Arial,sans-serif;backgr
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
 <script>
-const NUM = 5;
-const DIST_THRESHOLD_MM = 40;
-
-// --- CONTROL DEL TAMAÑO DE LOS GRÁFICOS ---
-let chartWidth = 110;   // ancho en px
-let chartHeight = 110;  // alto en px
-
+const NUM = 5, DIST_THRESHOLD_MM = 40;
 const chartsT = [], chartsH = [], active = [true,false,false,false,false], lastValues = Array(NUM).fill(null), badCount = Array(NUM).fill(0);
 
 function tempColor(v){ 
   return v<=25?'rgba(46,204,113,0.8)':(v<=30?'rgba(241,196,15,0.8)':'rgba(231,76,60,0.8)'); 
 }
 
+// Degradado de color para humedad según porcentaje
 function humColor(v){
-  if(v <= 20) return 'rgba(135,206,250,0.8)';
-  else if(v <= 40) return 'rgba(0,162,255,0.8)';
-  else if(v <= 60) return 'rgba(46,204,113,0.8)';
-  else if(v <= 80) return 'rgba(241,196,15,0.8)';
-  else return 'rgba(231,76,60,0.8)';
+  if(v <= 20) return 'rgba(135,206,250,0.8)';      // azul claro
+  else if(v <= 40) return 'rgba(0,162,255,0.8)';   // azul medio
+  else if(v <= 60) return 'rgba(46,204,113,0.8)';  // verde
+  else if(v <= 80) return 'rgba(241,196,15,0.8)';  // amarillo
+  else return 'rgba(231,76,60,0.8)';               // rojo
 }
 
 function formatDateShort(d){ 
@@ -119,16 +115,8 @@ function createCard(i){
     updateSummary(); 
   });
 
-  // --- Aplicar tamaño controlable ---
-  const canvasT = card.querySelector(`#t-${i+1}`);
-  canvasT.width = chartWidth;
-  canvasT.height = chartHeight;
-  const ctxT = canvasT.getContext('2d');
-
-  const canvasH = card.querySelector(`#h-${i+1}`);
-  canvasH.width = chartWidth;
-  canvasH.height = chartHeight;
-  const ctxH = canvasH.getContext('2d');
+  const ctxT=card.querySelector(`#t-${i+1}`).getContext('2d');
+  const ctxH=card.querySelector(`#h-${i+1}`).getContext('2d');
 
   chartsT[i]=new Chart(ctxT,{
     type:'doughnut',
@@ -210,7 +198,9 @@ db.ref("prueba").on("value", snap => {
 
     document.getElementById(`tempVal-${i+1}`).textContent = `${t} °C`;
     document.getElementById(`humVal-${i+1}`).textContent = `${h} %`;
-    document.getElementById(`dist-${i+1}`).textContent = `${Math.round(d)} mm`;
+
+    const distMM = Math.round(d);
+    document.getElementById(`dist-${i+1}`).textContent = `${distMM} mm`;
 
     if(chartsT[i]){
       chartsT[i].data.datasets[0].data[0] = t;
@@ -231,38 +221,13 @@ db.ref("prueba").on("value", snap => {
   updateSummary();
 });
 
-/* --- Descarga CSV historial --- */
-function downloadCSV(filename, rows) {
-  const csvContent = rows.map(e => e.join(",")).join("\n");
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-  const link = document.createElement("a");
-  link.href = URL.createObjectURL(blob);
-  link.setAttribute("download", filename);
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-}
-
-document.getElementById('histWeek').addEventListener('click', ()=>{
-  const rows = [["Sonda","Fecha","Temperatura °C","Humedad %","Distancia mm"]];
-  for(let i=0;i<NUM;i++){
-    const v = lastValues[i];
-    if(v) rows.push([i+1, formatDateShort(new Date()), v.t, v.h, v.dist]);
-  }
-  downloadCSV("historial_semanal.csv", rows);
-});
-
-document.getElementById('histMonth').addEventListener('click', ()=>{
-  const rows = [["Sonda","Fecha","Temperatura °C","Humedad %","Distancia mm"]];
-  for(let i=0;i<NUM;i++){
-    const v = lastValues[i];
-    if(v) rows.push([i+1, formatDateShort(new Date()), v.t, v.h, v.dist]);
-  }
-  downloadCSV("historial_mensual.csv", rows);
-});
+/* --- Historial semanal/mensual --- */
+document.getElementById('histWeek').addEventListener('click',()=>{ alert('Función historial semanal activa'); });
+document.getElementById('histMonth').addEventListener('click',()=>{ alert('Función historial mensual activa'); });
 
 /* --- Modo claro/oscuro --- */
 document.getElementById('modeToggle').addEventListener('click',()=>document.body.classList.toggle('light'));
 </script>
 </body>
 </html>
+
