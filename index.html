@@ -77,7 +77,6 @@ canvas{ width:110px !important; height:110px !important; }
 
 .note{ margin-top:12px;color:var(--muted);font-size:13px; text-align:center; }
 
-/* ------- CORREGIDO: sin fondo marrón ------- */
 .presenciaAlert{
   font-weight:700;
   text-align:center;
@@ -93,7 +92,6 @@ canvas{ width:110px !important; height:110px !important; }
   transition: background 0.25s ease;
 }
 
-/* 🔴 SOLO cuando hay ALARMA: rojo suave */
 .card.alert .presenciaAlert {
   background: rgba(255, 0, 0, 0.12);
   border: 1px solid rgba(255,0,0,0.18);
@@ -214,11 +212,9 @@ function updateSummary(){
     act++;
     const v=lastValues[i];
     if(!v) continue;
-
     sumT+=v.t; 
     sumH+=v.h; 
     count++;
-
     if(v.dist > DIST_THRESHOLD_MM) alerts++;
   }
 
@@ -229,11 +225,10 @@ function updateSummary(){
 }
 
 function applyDistanceAlert(i, dist){
-  const card=document.getElementById(`card-${i+1}`);
   if(dist > DIST_THRESHOLD_MM) badCount[i]++;
   else badCount[i]=0;
 
-  if(badCount[i] >= 4) activarPresencia(i, dist);
+  if(badCount[i] >= 2) activarPresencia(i, dist);
   else quitarPresencia(i);
 }
 
@@ -245,11 +240,10 @@ function activarPresencia(i, dist){
   const box=document.getElementById(`pres-${i+1}`);
   if(box){
     const now=new Date();
-    const distMM = Math.round(dist);
     box.innerHTML=`
       <div style="font-size:13px"><b>PRESENCIA DETECTADA</b></div>
       <div style="font-size:12px;color:var(--muted)">${formatDateShort(now)}</div>
-      <div style="font-size:13px">Dist: ${distMM} mm</div>
+      <div style="font-size:13px">Dist: ${Math.round(dist)} mm</div>
     `;
   }
 }
@@ -258,7 +252,6 @@ function quitarPresencia(i){
   const card=document.getElementById(`card-${i+1}`); 
   if(!card) return; 
   card.classList.remove('alert');
-
   const box=document.getElementById(`pres-${i+1}`); 
   if(box) box.innerHTML='';
 }
@@ -284,9 +277,7 @@ db.ref("prueba").on("value", snap => {
 
     document.getElementById(`tempVal-${i+1}`).textContent = `${t} °C`;
     document.getElementById(`humVal-${i+1}`).textContent = `${h} %`;
-
-    const distMM = Math.round(d);
-    document.getElementById(`dist-${i+1}`).textContent = `${distMM} mm`;
+    document.getElementById(`dist-${i+1}`).textContent = `${Math.round(d)} mm`;
 
     if(chartsT[i]){
       chartsT[i].data.datasets[0].data[0] = t;
@@ -308,9 +299,8 @@ db.ref("prueba").on("value", snap => {
   updateSummary();
 });
 
-document.getElementById('histWeek').addEventListener('click',()=>{ alert('Función historial semanal activa'); });
-document.getElementById('histMonth').addEventListener('click',()=>{ alert('Función historial mensual activa'); });
-
+document.getElementById('histWeek').addEventListener('click',()=>alert('Función historial semanal activa'));
+document.getElementById('histMonth').addEventListener('click',()=>alert('Función historial mensual activa'));
 document.getElementById('modeToggle').addEventListener('click',()=>document.body.classList.toggle('light'));
 </script>
 
