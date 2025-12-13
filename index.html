@@ -150,7 +150,7 @@ function updateSummary(){
 function applyDistanceAlert(i, dist){
   const card=document.getElementById(`card-${i+1}`);
   if(dist > DIST_THRESHOLD_MM) badCount[i]++; else badCount[i]=0;
-  if(badCount[i] >= 4) activarPresencia(i, dist);
+  if(badCount[i] >= 2) activarPresencia(i, dist);
   else quitarPresencia(i);
 }
 
