@@ -92,217 +92,103 @@ canvas{ width:110px !important; height:110px !important; }
   transition: background 0.25s ease;
 }
 
-.card.alert .presenciaAlert {
-  background: rgba(255, 0, 0, 0.12);
-  border: 1px solid rgba(255,0,0,0.18);
+.card.alert .presenciaAlert{
+  background: rgba(255,0,0,.12);
+  border:1px solid rgba(255,0,0,.18);
   color: var(--danger);
 }
 </style>
 </head>
+
 <body>
-
 <div class="app">
-  <div class="header">
-    <div class="title">
-      <h1>Panel Sondas T</h1>
-      <p>Monitoreo: Temperatura · Humedad · Distancia (mm)</p>
-    </div>
-    <div class="controls">
-      <button id="modeToggle" class="mode-btn">Modo claro / oscuro</button>
-      <button id="histWeek" class="mode-btn">Última semana</button>
-      <button id="histMonth" class="mode-btn">Último mes</button>
-    </div>
-  </div>
-
-  <div class="summary">
-    <div class="metric"><small>Sondas activas</small><b id="numActivas">0</b></div>
-    <div class="metric"><small>Alertas distancia</small><b id="numAlertas">0</b></div>
-    <div class="metric"><small>Temp. promedio</small><b id="promTemp">-- °C</b></div>
-    <div class="metric"><small>Humedad promedio</small><b id="promHum">-- %</b></div>
-  </div>
-
-  <div class="grid" id="grid"></div>
-
-  <div class="note">
-    Umbral alerta distancia: <b> > 40 mm </b> (4 cm → objeto caído)
-  </div>
+  <h1>Panel Sondas T</h1>
+  <div id="grid"></div>
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
 <script>
-const NUM = 5, DIST_THRESHOLD_MM = 50;
-const chartsT = [], chartsH = [], active = [true,false,false,false,false], lastValues = Array(NUM).fill(null), badCount = Array(NUM).fill(0);
+/* ==========================================================
+   ⚠️ CONFIGURACIÓN LÓGICA DE ALARMA POR DISTANCIA
+   ----------------------------------------------------------
+   lecturasFueraRangoNecesarias:
+   → Cantidad de lecturas CONSECUTIVAS fuera del umbral
+   → necesarias para activar la alarma de presencia
 
-function tempColor(v){ 
-  return v<=25?'rgba(46,204,113,0.8)':(v<=30?'rgba(241,196,15,0.8)':'rgba(231,76,60,0.8)'); 
-}
+   EJEMPLOS:
+   1  = muy sensible (puede dar falsos positivos)
+   2  = recomendado ✅
+   3+ = más estricto
+   ========================================================== */
+const lecturasFueraRangoNecesarias = 2;
+/* ========================================================== */
 
-function humColor(v){
-  if(v <= 20) return 'rgba(135,206,250,0.8)';
-  else if(v <= 40) return 'rgba(0,162,255,0.8)';
-  else if(v <= 60) return 'rgba(46,204,113,0.8)';
-  else if(v <= 80) return 'rgba(241,196,15,0.8)';
-  return 'rgba(231,76,60,0.8)';
-}
+const NUM = 5;
+const DIST_THRESHOLD_MM = 50;
 
-function formatDateShort(d){ 
+const badCount = Array(NUM).fill(0);
+const active = [true,false,false,false,false];
+
+function formatDateShort(d){
   return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
 }
 
 function createCard(i){
-  const grid=document.getElementById('grid');
-  const card=document.createElement('div'); 
-  card.className='card'; 
-  card.id=`card-${i+1}`;
-  if(!active[i]) card.classList.add('inactive');
+  const card=document.createElement('div');
+  card.className='card';
+  card.id=`card-${i}`;
 
   card.innerHTML=`
-    <div class="sonda-title">Sonda ${i+1}</div>
-    <div class="tog">
-      <label><input type="checkbox" id="toggle-${i+1}" ${active[i]?'checked':''}> Activar</label>
-      <div style="flex:1"></div>
-      <div style="font-size:12px;color:var(--muted)">Dist: <span id="dist-${i+1}">--</span></div>
-    </div>
-    <div class="charts">
-      <canvas id="t-${i+1}"></canvas>
-      <canvas id="h-${i+1}"></canvas>
-    </div>
-    <div class="labels">
-      <div class="lbl"><div class="muted">Temperatura</div><div class="val" id="tempVal-${i+1}">-- °C</div></div>
-      <div class="lbl"><div class="muted">Humedad</div><div class="val" id="humVal-${i+1}">-- %</div></div>
-    </div>
+    <h3>Sonda ${i+1}</h3>
+    <div>Distancia: <span id="dist-${i}">--</span> mm</div>
+    <div class="presenciaAlert" id="pres-${i}"></div>
   `;
-
-  grid.appendChild(card);
-
-  const presencia=document.createElement("div");
-  presencia.className="presenciaAlert";
-  presencia.id=`pres-${i+1}`;
-  card.appendChild(presencia);
-
-  const toggle=card.querySelector(`#toggle-${i+1}`);
-  toggle.addEventListener('change',(ev)=>{ 
-    active[i]=ev.target.checked; 
-    card.classList.toggle('inactive',!active[i]); 
-    updateSummary(); 
-  });
-
-  const ctxT=card.querySelector(`#t-${i+1}`).getContext('2d');
-  const ctxH=card.querySelector(`#h-${i+1}`).getContext('2d');
-
-  chartsT[i]=new Chart(ctxT,{
-    type:'doughnut',
-    data:{datasets:[{data:[0,50],backgroundColor:[tempColor(0),'#2b3944'],borderWidth:0}]},
-    options:{rotation:-90,circumference:180,cutout:'72%',plugins:{legend:{display:false},tooltip:{enabled:false}},animation:{duration:300}}
-  });
-
-  chartsH[i]=new Chart(ctxH,{
-    type:'doughnut',
-    data:{datasets:[{data:[0,100],backgroundColor:[humColor(0),'#2b3944'],borderWidth:0}]},
-    options:{rotation:-90,circumference:180,cutout:'72%',plugins:{legend:{display:false},tooltip:{enabled:false}},animation:{duration:300}}
-  });
-}
-
-function updateSummary(){
-  let act=0, alerts=0, sumT=0, sumH=0, count=0;
-  for(let i=0;i<NUM;i++){
-    if(!active[i]) continue;
-    act++;
-    const v=lastValues[i];
-    if(!v) continue;
-    sumT+=v.t; 
-    sumH+=v.h; 
-    count++;
-    if(v.dist > DIST_THRESHOLD_MM) alerts++;
-  }
-
-  document.getElementById('numActivas').textContent=act;
-  document.getElementById('numAlertas').textContent=alerts;
-  document.getElementById('promTemp').textContent=(count?Math.round(sumT/count):'--')+' °C';
-  document.getElementById('promHum').textContent=(count?Math.round(sumH/count):'--')+' %';
+  document.getElementById('grid').appendChild(card);
 }
 
 function applyDistanceAlert(i, dist){
-  if(dist > DIST_THRESHOLD_MM) badCount[i]++;
-  else badCount[i]=0;
+  if(dist > DIST_THRESHOLD_MM){
+    badCount[i]++;
+  } else {
+    badCount[i] = 0;
+  }
 
-  if(badCount[i] >= 2) activarPresencia(i, dist);
-  else quitarPresencia(i);
-}
-
-function activarPresencia(i, dist){
-  const card=document.getElementById(`card-${i+1}`); 
-  if(!card) return; 
-  card.classList.add('alert');
-
-  const box=document.getElementById(`pres-${i+1}`);
-  if(box){
-    const now=new Date();
-    box.innerHTML=`
-      <div style="font-size:13px"><b>PRESENCIA DETECTADA</b></div>
-      <div style="font-size:12px;color:var(--muted)">${formatDateShort(now)}</div>
-      <div style="font-size:13px">Dist: ${Math.round(dist)} mm</div>
-    `;
+  if(badCount[i] >= lecturasFueraRangoNecesarias){
+    activarPresencia(i, dist);
+  } else {
+    quitarPresencia(i);
   }
 }
 
+function activarPresencia(i, dist){
+  const card=document.getElementById(`card-${i}`);
+  card.classList.add('alert');
+  document.getElementById(`pres-${i}`).innerHTML = `
+    PRESENCIA DETECTADA<br>
+    ${formatDateShort(new Date())}<br>
+    Dist: ${Math.round(dist)} mm
+  `;
+}
+
 function quitarPresencia(i){
-  const card=document.getElementById(`card-${i+1}`); 
-  if(!card) return; 
+  const card=document.getElementById(`card-${i}`);
   card.classList.remove('alert');
-  const box=document.getElementById(`pres-${i+1}`); 
-  if(box) box.innerHTML='';
+  document.getElementById(`pres-${i}`).innerHTML = '';
 }
 
 for(let i=0;i<NUM;i++) createCard(i);
-updateSummary();
 
 const firebaseConfig={ databaseURL:"https://enlace-t-default-rtdb.firebaseio.com/" };
 firebase.initializeApp(firebaseConfig);
 const db=firebase.database();
 
-db.ref("prueba").on("value", snap => {
-  const data = snap.val();
-  for(let i=0;i<NUM;i++){
-    if(!active[i]) continue;
-
-    const s = data ?? {};
-    const t = Number(s.Temperatura_C ?? 0);
-    const h = Number(s.Humedad_pct ?? 0);
-    const d = Number(s.Distancia_mm ?? 0);
-
-    lastValues[i] = {t,h,dist:d};
-
-    document.getElementById(`tempVal-${i+1}`).textContent = `${t} °C`;
-    document.getElementById(`humVal-${i+1}`).textContent = `${h} %`;
-    document.getElementById(`dist-${i+1}`).textContent = `${Math.round(d)} mm`;
-
-    if(chartsT[i]){
-      chartsT[i].data.datasets[0].data[0] = t;
-      chartsT[i].data.datasets[0].data[1] = 50-t;
-      chartsT[i].data.datasets[0].backgroundColor[0] = tempColor(t);
-      chartsT[i].update();
-    }
-
-    if(chartsH[i]){
-      chartsH[i].data.datasets[0].data[0] = h;  
-      chartsH[i].data.datasets[0].data[1] = 100-h;
-      chartsH[i].data.datasets[0].backgroundColor[0] = humColor(h);
-      chartsH[i].update();
-    }
-
-    applyDistanceAlert(i,d);
-  }
-
-  updateSummary();
+db.ref("prueba").on("value", snap=>{
+  const d = Number(snap.val()?.Distancia_mm ?? 0);
+  document.getElementById("dist-0").textContent = d;
+  applyDistanceAlert(0, d);
 });
-
-document.getElementById('histWeek').addEventListener('click',()=>alert('Función historial semanal activa'));
-document.getElementById('histMonth').addEventListener('click',()=>alert('Función historial mensual activa'));
-document.getElementById('modeToggle').addEventListener('click',()=>document.body.classList.toggle('light'));
 </script>
-
 </body>
 </html>
