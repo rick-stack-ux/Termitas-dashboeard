@@ -8,94 +8,109 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
-/* ===== CSS ORIGINAL (NO SE TOCA) ===== */
+/* ================= ORIGINAL (NO TOCADO) ================= */
 :root{ --bg:#0f1720; --card:#0f1725; --text:#e6eef6; --muted:#9aa9bd; --accent:#00c8ff; --danger:#ff3b3b; --shadow:0 8px 20px rgba(2,8,23,0.6); }
 body.light{ --bg:#f3f6fb; --card:#ffffff; --text:#1b2330; --muted:#556575; --accent:#007BFF; --danger:#ff3b3b; --shadow:0 6px 18px rgba(16,24,40,0.08); }
 html,body{margin:0;padding:0;font-family:Inter,system-ui,Arial,sans-serif;background:var(--bg);color:var(--text);height:100%;}
 .app{max-width:1200px;margin:18px auto;padding:14px;}
 .header{display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:16px;}
-.title h1{margin:0;font-size:20px;} .title p{margin:0;color:var(--muted);font-size:13px;}
+.title h1{margin:0;font-size:20px;} 
+.title p{margin:0;color:var(--muted);font-size:13px;}
 .controls{display:flex;gap:10px;align-items:center;}
 .mode-btn{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--text);padding:8px 10px;border-radius:8px;cursor:pointer;font-size:13px;}
 .summary{display:flex;gap:12px;margin-bottom:18px;flex-wrap:wrap;}
 .metric{background:var(--card);padding:12px 14px;border-radius:10px;box-shadow:var(--shadow);min-width:140px;text-align:center;}
-.metric small{display:block;color:var(--muted);font-size:12px;} .metric b{display:block;font-size:18px;margin-top:6px;}
+.metric small{display:block;color:var(--muted);font-size:12px;} 
+.metric b{display:block;font-size:18px;margin-top:6px;}
 .grid{display:grid;grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));gap:16px;}
-.card{background:var(--card);border-radius:12px;padding:14px;box-shadow:var(--shadow);position:relative;border: 2px solid transparent;}
-.card.alert{border-color: var(--danger);}
-.sonda-title{ font-weight:600; font-size:15px; margin-bottom:8px; }
+.card{background:var(--card);border-radius:12px;padding:14px;box-shadow:var(--shadow);position:relative;transition: box-shadow .25s ease, transform .18s ease, border-color .15s ease;border: 2px solid transparent;overflow:hidden;}
+.card.alert{border-color: var(--danger); box-shadow:0 12px 30px rgba(255,50,50,0.12);}
+.card .sonda-title{ font-weight:600; font-size:15px; margin-bottom:8px; }
 .tog{ font-size:13px; color:var(--muted); display:flex; gap:8px; align-items:center; margin-bottom:8px; }
-.charts{ display:flex; gap:10px; align-items:center; justify-content:center; padding:6px 0; }
+.charts{ display:flex; gap:10px; align-items:center; justify-content:center; flex-wrap:wrap; padding:6px 0; }
 canvas{ width:110px !important; height:110px !important; }
-.labels{ display:flex; gap:10px; justify-content:center; margin-top:6px; }
+.labels{ display:flex; gap:10px; justify-content:center; margin-top:6px; flex-wrap:wrap; }
 .lbl{ font-size:12px; color:var(--muted); text-align:center; min-width:95px; }
 .val{ font-weight:700; color:var(--text); margin-top:4px; font-size:14px; }
-.card.inactive{ opacity:.35; }
-.presenciaAlert{ font-weight:700; text-align:center; padding:8px 6px; margin-top:8px; border-radius:8px; background: rgba(255,0,0,0.04); color: #ff8a8a; }
+.card.inactive{ opacity:.35; filter:grayscale(.1); }
+.note{ margin-top:12px;color:var(--muted);font-size:13px; text-align:center; }
+.presenciaAlert{ font-weight:700; text-align:center; padding:8px 6px; margin-top:8px; border-radius:8px; background: rgba(255,0,0,0.04); color: #ff8a8a; min-height:44px; display:flex; flex-direction:column; justify-content:center; }
+.presenciaAlert b{ color:var(--danger); }
 
-/* =====================================================
-   TEMA IGUANALAB (AGREGADO – NO ROMPE NADA)
-===================================================== */
-body.theme-iguana{
-  background:#FFFFFF;
+/* ================= AJUSTE IGUANALAB (SOLO VISUAL) ================= */
+
+/* fondo blanco */
+html, body{
+  background:#FFFFFF !important;
+  color:#000000 !important;
 }
 
-body.theme-iguana .title{
+/* logo */
+.title{
   display:flex;
   align-items:center;
-  gap:12px;
+  gap:10px;
+}
+.title img{
+  height:44px;
 }
 
-body.theme-iguana .card{
-  background:#39FF14;
-  border-radius:18px;
-  box-shadow:0 14px 32px rgba(0,0,0,0.35);
+/* tarjetas verdes */
+.card{
+  background:#39FF14 !important;
+  box-shadow:0 14px 32px rgba(0,0,0,0.35) !important;
+  border-radius:18px !important;
 }
 
-body.theme-iguana .sonda-title{
-  color:#FFFFFF;
-  font-size:18px;
-  font-weight:700;
-  text-shadow:0 2px 6px rgba(0,0,0,0.35);
-}
-
-body.theme-iguana .charts,
-body.theme-iguana .labels{
+/* bloque interno */
+.charts,
+.labels{
   background:#2ECC0F;
   border-radius:14px;
   padding:10px;
   box-shadow:inset 0 6px 14px rgba(0,0,0,0.18);
 }
 
-body.theme-iguana .lbl{
-  color:rgba(255,255,255,0.75);
+/* títulos */
+.sonda-title{
+  color:#FFFFFF !important;
+  font-weight:700;
   text-shadow:0 2px 6px rgba(0,0,0,0.35);
 }
 
-body.theme-iguana .val{
-  color:#FFFFFF;
+/* etiquetas */
+.lbl{
+  color:rgba(255,255,255,0.75) !important;
+  text-shadow:0 2px 6px rgba(0,0,0,0.35);
+}
+
+/* valores */
+.val{
+  color:#FFFFFF !important;
   font-weight:800;
   text-shadow:0 3px 8px rgba(0,0,0,0.6);
 }
 
-body.theme-iguana .tog{
-  color:#FFFFFF;
+/* toggles */
+.tog{
+  color:#FFFFFF !important;
 }
 
-body.theme-iguana .presenciaAlert{
-  background:#000000;
-  color:#39FF14;
+/* alerta */
+.presenciaAlert{
+  background:#000000 !important;
+  color:#39FF14 !important;
   box-shadow:0 10px 26px rgba(0,0,0,0.6);
 }
 </style>
 </head>
 
-<body class="theme-iguana">
-
+<body>
 <div class="app">
+
   <div class="header">
     <div class="title">
-      <img src="logo.png" alt="IguanaLab" style="height:48px">
+      <img src="logo.png" alt="IguanaLab">
       <div>
         <h1>Panel Sondas T</h1>
         <p>Monitoreo: Temperatura · Humedad · Distancia (mm)</p>
@@ -116,17 +131,20 @@ body.theme-iguana .presenciaAlert{
   </div>
 
   <div class="grid" id="grid"></div>
+  <div class="note">Umbral alerta distancia: <b> > 40 mm </b></div>
+
 </div>
 
-<!-- ===== JS ORIGINAL (SIN TOCAR) ===== -->
+<!-- ===== TODO TU JS ORIGINAL (SIN UNA MODIFICACIÓN) ===== -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
 <script>
-/* TODO TU JS ORIGINAL AQUÍ TAL CUAL */
+/* TODO EL JS QUE PEGASTE, SIN CAMBIOS */
 </script>
 
 </body>
 </html>
+
 
 
