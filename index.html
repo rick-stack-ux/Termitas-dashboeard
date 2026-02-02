@@ -41,24 +41,15 @@ html,body{
   margin-bottom:16px;
 }
 
-.title{
-  display:flex;
-  align-items:center;
-  gap:10px;
-}
-
-.title img{height:36px;}
-
 .title h1{margin:0;font-size:20px;color:#000;}
-.title p{margin:0;font-size:13px;color:#000;}
+.title p{margin:0;color:#000;font-size:13px;}
 
-/* CONTROLES */
 .controls{display:flex;gap:10px;align-items:center;}
 
 .mode-btn{
-  background:#000;
+  background:#000000;
   border:none;
-  color:#fff;
+  color:#FFFFFF;
   padding:8px 10px;
   border-radius:8px;
   cursor:pointer;
@@ -76,7 +67,6 @@ html,body{
 
 .metric{
   background:#000000;
-  color:#FFFFFF;
   padding:12px 14px;
   border-radius:10px;
   min-width:140px;
@@ -84,8 +74,18 @@ html,body{
   box-shadow:0 6px 18px rgba(0,0,0,0.6);
 }
 
-.metric small{color:rgba(255,255,255,0.75);}
-.metric b{display:block;font-size:18px;margin-top:6px;}
+.metric small{
+  display:block;
+  color:rgba(255,255,255,0.75);
+  font-size:12px;
+}
+
+.metric b{
+  display:block;
+  font-size:18px;
+  margin-top:6px;
+  color:#FFFFFF;
+}
 
 /* GRID */
 .grid{
@@ -94,7 +94,7 @@ html,body{
   gap:16px;
 }
 
-/* TARJETAS */
+/* CARDS */
 .card{
   background:var(--card);
   border-radius:14px;
@@ -102,6 +102,7 @@ html,body{
   box-shadow:
     0 14px 32px rgba(0,0,0,0.35),
     inset 0 0 0 2px rgba(255,255,255,0.25);
+  position:relative;
 }
 
 .card.alert{
@@ -112,12 +113,11 @@ html,body{
 
 .sonda-title{
   font-weight:700;
-  font-size:16px;
+  font-size:15px;
   margin-bottom:8px;
   color:#FFFFFF;
 }
 
-/* TOGGLES */
 .tog{
   font-size:13px;
   color:rgba(255,255,255,0.75);
@@ -133,10 +133,8 @@ html,body{
   gap:10px;
   align-items:center;
   justify-content:center;
-  padding:8px;
-  background:#2ECC0F;
-  border-radius:12px;
-  box-shadow:inset 0 6px 14px rgba(0,0,0,0.18);
+  flex-wrap:wrap;
+  padding:6px 0;
 }
 
 canvas{
@@ -149,7 +147,8 @@ canvas{
   display:flex;
   gap:10px;
   justify-content:center;
-  margin-top:8px;
+  margin-top:6px;
+  flex-wrap:wrap;
 }
 
 .lbl{
@@ -164,6 +163,11 @@ canvas{
   color:#FFFFFF;
   margin-top:4px;
   font-size:14px;
+}
+
+.card.inactive{
+  opacity:.35;
+  filter:grayscale(.1);
 }
 
 /* ALERTA */
@@ -184,9 +188,9 @@ canvas{
 
 .note{
   margin-top:12px;
+  color:#000000;
   font-size:13px;
   text-align:center;
-  color:#000;
 }
 </style>
 </head>
@@ -196,11 +200,8 @@ canvas{
 
   <div class="header">
     <div class="title">
-      <img src="logo.png" alt="IguanaLab">
-      <div>
-        <h1>Panel Sondas T</h1>
-        <p>Monitoreo: Temperatura · Humedad · Distancia (mm)</p>
-      </div>
+      <h1>IguanaLab</h1>
+      <p>Panel Sondas T · Temperatura · Humedad · Distancia (mm)</p>
     </div>
     <div class="controls">
       <button id="histWeek" class="mode-btn">Última semana</button>
@@ -220,7 +221,13 @@ canvas{
 
 </div>
 
-<!-- TODO TU JS ORIGINAL VA AQUÍ SIN CAMBIOS -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+<script>
+/* ===== TODO TU JS ORIGINAL SIN CAMBIOS ===== */
+</script>
+
 </body>
 </html>
 
