@@ -8,27 +8,31 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
-/* ===== SOLO CAMBIO DE COLORES ===== */
+/* ========= SOLO APARIENCIA ========= */
 :root{
   --bg:#ffffff;
+
   --card:#2ecc0f;
+  --accent:#39FF14;
+
   --text:#ffffff;
   --muted:rgba(255,255,255,.75);
-  --accent:#39FF14;
+
   --danger:#ff3b3b;
-  --shadow:0 12px 28px rgba(0,0,0,.35);
+
+  --shadow:0 10px 24px rgba(0,0,0,.25);
 }
 
 body.light{
   --bg:#ffffff;
   --card:#2ecc0f;
+  --accent:#39FF14;
   --text:#ffffff;
   --muted:rgba(255,255,255,.75);
-  --accent:#39FF14;
   --danger:#ff3b3b;
-  --shadow:0 12px 28px rgba(0,0,0,.35);
+  --shadow:0 10px 24px rgba(0,0,0,.25);
 }
-/* ================================= */
+/* ================================== */
 
 html,body{
   margin:0;
@@ -40,20 +44,34 @@ html,body{
 }
 
 .app{max-width:1200px;margin:18px auto;padding:14px;}
-.header{display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:16px;}
+
+.header{
+  display:flex;
+  gap:12px;
+  align-items:center;
+  justify-content:space-between;
+  margin-bottom:16px;
+}
+
 .title h1{margin:0;font-size:20px;}
 .title p{margin:0;color:var(--muted);font-size:13px;}
+
 .controls{display:flex;gap:10px;align-items:center;}
+
 .mode-btn{
-  background:transparent;
-  border:1px solid rgba(255,255,255,.35);
-  color:var(--text);
+  background:var(--accent);
+  color:#000;
+  border:none;
   padding:8px 10px;
   border-radius:8px;
   cursor:pointer;
   font-size:13px;
+  font-weight:700;
+  box-shadow:var(--shadow);
 }
+
 .summary{display:flex;gap:12px;margin-bottom:18px;flex-wrap:wrap;}
+
 .metric{
   background:var(--card);
   padding:12px 14px;
@@ -62,9 +80,16 @@ html,body{
   min-width:140px;
   text-align:center;
 }
+
 .metric small{display:block;color:var(--muted);font-size:12px;}
 .metric b{display:block;font-size:18px;margin-top:6px;}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;}
+
+.grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+  gap:16px;
+}
+
 .card{
   background:var(--card);
   border-radius:12px;
@@ -74,16 +99,66 @@ html,body{
   border:2px solid transparent;
   overflow:hidden;
 }
+
 .card.alert{border-color:var(--danger);}
-.card .sonda-title{font-weight:600;font-size:15px;margin-bottom:8px;}
-.tog{font-size:13px;color:var(--muted);display:flex;gap:8px;align-items:center;margin-bottom:8px;}
-.charts{display:flex;gap:10px;align-items:center;justify-content:center;flex-wrap:wrap;padding:6px 0;}
+
+.card .sonda-title{
+  font-weight:600;
+  font-size:15px;
+  margin-bottom:8px;
+}
+
+.tog{
+  font-size:13px;
+  color:var(--muted);
+  display:flex;
+  gap:8px;
+  align-items:center;
+  margin-bottom:8px;
+}
+
+.charts{
+  display:flex;
+  gap:10px;
+  align-items:center;
+  justify-content:center;
+  flex-wrap:wrap;
+  padding:6px 0;
+}
+
 canvas{width:110px !important;height:110px !important;}
-.labels{display:flex;gap:10px;justify-content:center;margin-top:6px;flex-wrap:wrap;}
-.lbl{font-size:12px;color:var(--muted);text-align:center;min-width:95px;}
-.val{font-weight:700;color:var(--text);margin-top:4px;font-size:14px;}
+
+.labels{
+  display:flex;
+  gap:10px;
+  justify-content:center;
+  margin-top:6px;
+  flex-wrap:wrap;
+}
+
+.lbl{
+  font-size:12px;
+  color:var(--muted);
+  text-align:center;
+  min-width:95px;
+}
+
+.val{
+  font-weight:700;
+  color:#ffffff;
+  margin-top:4px;
+  font-size:14px;
+}
+
 .card.inactive{opacity:.35;filter:grayscale(.1);}
-.note{margin-top:12px;color:var(--muted);font-size:13px;text-align:center;}
+
+.note{
+  margin-top:12px;
+  color:var(--muted);
+  font-size:13px;
+  text-align:center;
+}
+
 .presenciaAlert{
   font-weight:700;
   text-align:center;
@@ -130,7 +205,7 @@ canvas{width:110px !important;height:110px !important;}
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
 <script>
-/* ===== JS ORIGINAL SIN CAMBIOS ===== */
+/* ===== JS ORIGINAL COMPLETO – SIN CAMBIOS ===== */
 const NUM = 5, DIST_THRESHOLD_MM = 40;
 const chartsT = [], chartsH = [], active = [true,false,false,false,false];
 const lastValues = Array(NUM).fill(null), badCount = Array(NUM).fill(0);
@@ -166,8 +241,8 @@ function createCard(i){
       <canvas id="h-${i+1}"></canvas>
     </div>
     <div class="labels">
-      <div class="lbl"><div>Temperatura</div><div class="val" id="tempVal-${i+1}">-- °C</div></div>
-      <div class="lbl"><div>Humedad</div><div class="val" id="humVal-${i+1}">-- %</div></div>
+      <div class="lbl">Temperatura<div class="val" id="tempVal-${i+1}">-- °C</div></div>
+      <div class="lbl">Humedad<div class="val" id="humVal-${i+1}">-- %</div></div>
     </div>
   `;
   grid.appendChild(card);
