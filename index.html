@@ -8,7 +8,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
-/* ===== PALETA MONSTER ===== */
+/* ===== SOLO CAMBIO DE COLORES ===== */
 :root{
   --bg:#ffffff;
   --card:#2ecc0f;
@@ -28,7 +28,7 @@ body.light{
   --danger:#ff3b3b;
   --shadow:0 12px 28px rgba(0,0,0,.35);
 }
-/* ========================= */
+/* ================================= */
 
 html,body{
   margin:0;
@@ -40,29 +40,10 @@ html,body{
 }
 
 .app{max-width:1200px;margin:18px auto;padding:14px;}
-
-/* HEADER */
-.header{
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  gap:12px;
-  margin-bottom:18px;
-}
-
-/* LOGO */
-.logo{
-  height:110px;
-  display:block;
-  pointer-events:none;
-}
-
-.title{text-align:center;}
+.header{display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:16px;}
 .title h1{margin:0;font-size:20px;}
 .title p{margin:0;color:var(--muted);font-size:13px;}
-
 .controls{display:flex;gap:10px;align-items:center;}
-
 .mode-btn{
   background:transparent;
   border:1px solid rgba(255,255,255,.35);
@@ -72,14 +53,27 @@ html,body{
   cursor:pointer;
   font-size:13px;
 }
-
 .summary{display:flex;gap:12px;margin-bottom:18px;flex-wrap:wrap;}
-.metric{background:var(--card);padding:12px 14px;border-radius:10px;box-shadow:var(--shadow);min-width:140px;text-align:center;}
+.metric{
+  background:var(--card);
+  padding:12px 14px;
+  border-radius:10px;
+  box-shadow:var(--shadow);
+  min-width:140px;
+  text-align:center;
+}
 .metric small{display:block;color:var(--muted);font-size:12px;}
 .metric b{display:block;font-size:18px;margin-top:6px;}
-
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;}
-.card{background:var(--card);border-radius:12px;padding:14px;box-shadow:var(--shadow);position:relative;border:2px solid transparent;overflow:hidden;}
+.card{
+  background:var(--card);
+  border-radius:12px;
+  padding:14px;
+  box-shadow:var(--shadow);
+  position:relative;
+  border:2px solid transparent;
+  overflow:hidden;
+}
 .card.alert{border-color:var(--danger);}
 .card .sonda-title{font-weight:600;font-size:15px;margin-bottom:8px;}
 .tog{font-size:13px;color:var(--muted);display:flex;gap:8px;align-items:center;margin-bottom:8px;}
@@ -110,13 +104,10 @@ canvas{width:110px !important;height:110px !important;}
 <body>
 <div class="app">
   <div class="header">
-    <img src="logo.png" class="logo">
-
     <div class="title">
       <h1>Panel Sondas T</h1>
       <p>Monitoreo: Temperatura · Humedad · Distancia (mm)</p>
     </div>
-
     <div class="controls">
       <button id="modeToggle" class="mode-btn">Modo claro / oscuro</button>
       <button id="histWeek" class="mode-btn">Última semana</button>
@@ -139,7 +130,7 @@ canvas{width:110px !important;height:110px !important;}
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
 <script>
-/* ===== JS ORIGINAL COMPLETO ===== */
+/* ===== JS ORIGINAL SIN CAMBIOS ===== */
 const NUM = 5, DIST_THRESHOLD_MM = 40;
 const chartsT = [], chartsH = [], active = [true,false,false,false,false];
 const lastValues = Array(NUM).fill(null), badCount = Array(NUM).fill(0);
@@ -184,12 +175,14 @@ function createCard(i){
   const ctxT=card.querySelector(`#t-${i+1}`).getContext('2d');
   const ctxH=card.querySelector(`#h-${i+1}`).getContext('2d');
 
-  chartsT[i]=new Chart(ctxT,{type:'doughnut',
+  chartsT[i]=new Chart(ctxT,{
+    type:'doughnut',
     data:{datasets:[{data:[0,50],backgroundColor:[tempColor(0),'#2b3944'],borderWidth:0}]},
     options:{rotation:-90,circumference:180,cutout:'72%',plugins:{legend:{display:false}}}
   });
 
-  chartsH[i]=new Chart(ctxH,{type:'doughnut',
+  chartsH[i]=new Chart(ctxH,{
+    type:'doughnut',
     data:{datasets:[{data:[0,100],backgroundColor:[humColor(0),'#2b3944'],borderWidth:0}]},
     options:{rotation:-90,circumference:180,cutout:'72%',plugins:{legend:{display:false}}}
   });
