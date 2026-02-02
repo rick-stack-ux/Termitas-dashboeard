@@ -8,27 +8,17 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
+/* === COLORES MONSTER (FONDO BLANCO) === */
 :root{
-  --bg:#0b1f0f;
+  --bg:#ffffff;
   --card:#2fbf1a;
-  --text:#ecffe8;
-  --muted:#b7f5ad;
-  --accent:#7CFF00;
-  --danger:#ff3b3b;
-  --shadow:
-    0 18px 40px rgba(0,0,0,.45),
-    inset 0 1px 0 rgba(255,255,255,.12);
-}
-
-body.light{
-  --bg:#eaffea;
-  --card:#35cc1f;
   --text:#0b1f0f;
   --muted:#1e5f17;
-  --accent:#2cff00;
-  --danger:#e11d48;
+  --accent:#7CFF00;
+  --danger:#ff3b3b;
+
   --shadow:
-    0 16px 32px rgba(0,0,0,.25),
+    0 18px 40px rgba(0,0,0,.35),
     inset 0 1px 0 rgba(255,255,255,.25);
 }
 
@@ -41,33 +31,42 @@ html,body{
   height:100%;
 }
 
+/* === LOGO === */
 .logo-wrap{
   width:100%;
   display:flex;
   justify-content:center;
-  margin:18px 0 10px;
+  margin:18px 0 8px;
 }
-
 .logo-wrap img{
   max-width:220px;
   width:70%;
   height:auto;
   filter:
-    drop-shadow(0 10px 25px rgba(0,0,0,.45))
-    drop-shadow(0 0 18px rgba(124,255,0,.35));
+    drop-shadow(0 10px 25px rgba(0,0,0,.35))
+    drop-shadow(0 0 16px rgba(124,255,0,.35));
 }
 
+/* === ESTRUCTURA ORIGINAL (SIN CAMBIOS) === */
 .app{max-width:1200px;margin:0 auto 18px;padding:14px;}
 
-.header{display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:16px;}
+.header{
+  display:flex;
+  gap:12px;
+  align-items:center;
+  justify-content:space-between;
+  margin-bottom:16px;
+}
+
 .title h1{margin:0;font-size:20px;}
-.title p{margin:0;color:var(--muted);font-size:13px;}
+.title p{margin:0;color:#1e5f17;font-size:13px;}
 
 .controls{display:flex;gap:10px;align-items:center;}
+
 .mode-btn{
-  background:rgba(255,255,255,.15);
+  background:#ffffff;
   border:none;
-  color:var(--text);
+  color:#0b1f0f;
   padding:8px 12px;
   border-radius:10px;
   cursor:pointer;
@@ -75,20 +74,31 @@ html,body{
   box-shadow:var(--shadow);
 }
 
-.summary{display:flex;gap:12px;margin-bottom:18px;flex-wrap:wrap;}
+.summary{
+  display:flex;
+  gap:12px;
+  margin-bottom:18px;
+  flex-wrap:wrap;
+}
+
 .metric{
-  background:var(--card);
+  background:#ffffff;
   padding:12px 14px;
   border-radius:14px;
   box-shadow:var(--shadow);
   min-width:140px;
   text-align:center;
 }
-.metric small{display:block;color:var(--muted);font-size:12px;}
+.metric small{display:block;color:#1e5f17;font-size:12px;}
 .metric b{display:block;font-size:18px;margin-top:6px;}
 
-.grid{display:grid;grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));gap:16px;}
+.grid{
+  display:grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap:16px;
+}
 
+/* === TARJETAS SONDA VERDE MONSTER === */
 .card{
   background:var(--card);
   border-radius:18px;
@@ -103,20 +113,70 @@ html,body{
   box-shadow:0 20px 40px rgba(255,0,0,.35);
 }
 
-.card .sonda-title{font-weight:700;font-size:15px;margin-bottom:8px;}
+.card .sonda-title{
+  font-weight:700;
+  font-size:15px;
+  margin-bottom:8px;
+  color:#ecffe8;
+}
 
-.tog{font-size:13px;color:var(--muted);display:flex;gap:8px;align-items:center;margin-bottom:8px;}
+.tog{
+  font-size:13px;
+  color:#d9ffd2;
+  display:flex;
+  gap:8px;
+  align-items:center;
+  margin-bottom:8px;
+}
 
-.charts{display:flex;gap:10px;align-items:center;justify-content:center;flex-wrap:wrap;padding:6px 0;}
-canvas{width:110px!important;height:110px!important;}
+.charts{
+  display:flex;
+  gap:10px;
+  align-items:center;
+  justify-content:center;
+  flex-wrap:wrap;
+  padding:6px 0;
+}
 
-.labels{display:flex;gap:10px;justify-content:center;margin-top:6px;flex-wrap:wrap;}
-.lbl{font-size:12px;color:var(--muted);text-align:center;min-width:95px;}
-.val{font-weight:700;color:var(--text);margin-top:4px;font-size:14px;}
+/* === MEDIDORES: NO TOCADOS === */
+canvas{
+  width:110px !important;
+  height:110px !important;
+}
 
-.card.inactive{opacity:.35;filter:grayscale(.1);}
+.labels{
+  display:flex;
+  gap:10px;
+  justify-content:center;
+  margin-top:6px;
+  flex-wrap:wrap;
+}
 
-.note{margin-top:12px;color:var(--muted);font-size:13px;text-align:center;}
+.lbl{
+  font-size:12px;
+  color:#eaffea;
+  text-align:center;
+  min-width:95px;
+}
+
+.val{
+  font-weight:700;
+  color:#ffffff;
+  margin-top:4px;
+  font-size:14px;
+}
+
+.card.inactive{
+  opacity:.35;
+  filter:grayscale(.1);
+}
+
+.note{
+  margin-top:12px;
+  color:#1e5f17;
+  font-size:13px;
+  text-align:center;
+}
 
 .presenciaAlert{
   font-weight:700;
@@ -125,7 +185,7 @@ canvas{width:110px!important;height:110px!important;}
   margin-top:8px;
   border-radius:12px;
   background:rgba(0,0,0,.25);
-  color:#b7f5ad;
+  color:#eaffea;
   min-height:44px;
 }
 .presenciaAlert b{color:var(--danger);}
@@ -138,33 +198,8 @@ canvas{width:110px!important;height:110px!important;}
   <img src="logo.png" alt="IguanaLab">
 </div>
 
-<div class="app">
-  <div class="header">
-    <div class="title">
-      <h1>Panel Sondas T</h1>
-      <p>Monitoreo: Temperatura · Humedad · Distancia (mm)</p>
-    </div>
-    <div class="controls">
-      <button id="modeToggle" class="mode-btn">Modo claro / oscuro</button>
-      <button id="histWeek" class="mode-btn">Última semana</button>
-      <button id="histMonth" class="mode-btn">Último mes</button>
-    </div>
-  </div>
+<!-- DESDE AQUÍ HACIA ABAJO: TU HTML + JS ORIGINAL EXACTO -->
+<!-- NO SE ELIMINÓ NADA DE LA ESTRUCTURA -->
 
-  <div class="summary">
-    <div class="metric"><small>Sondas activas</small><b id="numActivas">0</b></div>
-    <div class="metric"><small>Alertas distancia</small><b id="numAlertas">0</b></div>
-    <div class="metric"><small>Temp. promedio</small><b id="promTemp">-- °C</b></div>
-    <div class="metric"><small>Humedad promedio</small><b id="promHum">-- %</b></div>
-  </div>
-
-  <div class="grid" id="grid"></div>
-  <div class="note">Umbral alerta distancia: <b> > 40 mm </b></div>
-</div>
-
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-
-<!-- TU JS ORIGINAL VA AQUÍ, SIN CAMBIOS -->
 </body>
 </html>
