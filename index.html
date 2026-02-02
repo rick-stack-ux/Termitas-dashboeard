@@ -8,220 +8,94 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
-/* =========================
-   IDENTIDAD IGUANALAB
-========================= */
-:root{
-  --bg:#FFFFFF;
-  --card:#2ECC0F;
-  --card-soft:#39FF14;
-  --text:#FFFFFF;
-  --muted:rgba(255,255,255,0.75);
-  --muted-soft:rgba(255,255,255,0.4);
-  --accent:#39FF14;
-  --danger:#ff3b3b;
-
-  --shadow-soft:0 6px 18px rgba(0,0,0,0.18);
-  --shadow-mid:0 10px 26px rgba(0,0,0,0.35);
-  --shadow-strong:0 14px 34px rgba(0,0,0,0.6);
-  --shadow-white:0 0 0 1px rgba(255,255,255,0.25);
-}
-
-html,body{
-  margin:0;
-  padding:0;
-  font-family:Inter,system-ui,Arial,sans-serif;
-  background:var(--bg);
-  color:#000;
-  height:100%;
-}
-
+/* ===== CSS ORIGINAL (NO SE TOCA) ===== */
+:root{ --bg:#0f1720; --card:#0f1725; --text:#e6eef6; --muted:#9aa9bd; --accent:#00c8ff; --danger:#ff3b3b; --shadow:0 8px 20px rgba(2,8,23,0.6); }
+body.light{ --bg:#f3f6fb; --card:#ffffff; --text:#1b2330; --muted:#556575; --accent:#007BFF; --danger:#ff3b3b; --shadow:0 6px 18px rgba(16,24,40,0.08); }
+html,body{margin:0;padding:0;font-family:Inter,system-ui,Arial,sans-serif;background:var(--bg);color:var(--text);height:100%;}
 .app{max-width:1200px;margin:18px auto;padding:14px;}
-
-/* =========================
-   HEADER
-========================= */
-.header{
-  display:flex;
-  gap:14px;
-  align-items:center;
-  justify-content:space-between;
-  margin-bottom:18px;
-}
-
-.title{
-  display:flex;
-  gap:12px;
-  align-items:center;
-}
-
-.title img{
-  height:42px;
-  filter:drop-shadow(0 4px 10px rgba(0,0,0,0.35));
-}
-
-.title h1{margin:0;font-size:20px;color:#000;}
-.title p{margin:0;font-size:13px;color:#000;}
-
+.header{display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:16px;}
+.title h1{margin:0;font-size:20px;} .title p{margin:0;color:var(--muted);font-size:13px;}
 .controls{display:flex;gap:10px;align-items:center;}
+.mode-btn{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--text);padding:8px 10px;border-radius:8px;cursor:pointer;font-size:13px;}
+.summary{display:flex;gap:12px;margin-bottom:18px;flex-wrap:wrap;}
+.metric{background:var(--card);padding:12px 14px;border-radius:10px;box-shadow:var(--shadow);min-width:140px;text-align:center;}
+.metric small{display:block;color:var(--muted);font-size:12px;} .metric b{display:block;font-size:18px;margin-top:6px;}
+.grid{display:grid;grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));gap:16px;}
+.card{background:var(--card);border-radius:12px;padding:14px;box-shadow:var(--shadow);position:relative;border: 2px solid transparent;}
+.card.alert{border-color: var(--danger);}
+.sonda-title{ font-weight:600; font-size:15px; margin-bottom:8px; }
+.tog{ font-size:13px; color:var(--muted); display:flex; gap:8px; align-items:center; margin-bottom:8px; }
+.charts{ display:flex; gap:10px; align-items:center; justify-content:center; padding:6px 0; }
+canvas{ width:110px !important; height:110px !important; }
+.labels{ display:flex; gap:10px; justify-content:center; margin-top:6px; }
+.lbl{ font-size:12px; color:var(--muted); text-align:center; min-width:95px; }
+.val{ font-weight:700; color:var(--text); margin-top:4px; font-size:14px; }
+.card.inactive{ opacity:.35; }
+.presenciaAlert{ font-weight:700; text-align:center; padding:8px 6px; margin-top:8px; border-radius:8px; background: rgba(255,0,0,0.04); color: #ff8a8a; }
 
-.mode-btn{
-  background:#000;
-  color:#fff;
-  border:none;
-  padding:8px 12px;
-  border-radius:8px;
-  cursor:pointer;
-  font-size:13px;
-  box-shadow:var(--shadow-soft);
+/* =====================================================
+   TEMA IGUANALAB (AGREGADO – NO ROMPE NADA)
+===================================================== */
+body.theme-iguana{
+  background:#FFFFFF;
 }
 
-/* =========================
-   RESUMEN
-========================= */
-.summary{
+body.theme-iguana .title{
   display:flex;
+  align-items:center;
   gap:12px;
-  margin-bottom:18px;
-  flex-wrap:wrap;
 }
 
-.metric{
-  background:#000;
-  color:#fff;
-  padding:12px 14px;
-  border-radius:10px;
-  min-width:140px;
-  text-align:center;
-  box-shadow:var(--shadow-mid);
+body.theme-iguana .card{
+  background:#39FF14;
+  border-radius:18px;
+  box-shadow:0 14px 32px rgba(0,0,0,0.35);
 }
 
-.metric small{
-  display:block;
-  color:rgba(255,255,255,0.75);
-  font-size:12px;
-}
-
-.metric b{
-  display:block;
+body.theme-iguana .sonda-title{
+  color:#FFFFFF;
   font-size:18px;
-  margin-top:6px;
-}
-
-/* =========================
-   GRID TARJETAS
-========================= */
-.grid{
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
-  gap:16px;
-}
-
-.card{
-  background:var(--card);
-  border-radius:14px;
-  padding:14px;
-  box-shadow:var(--shadow-strong);
-  position:relative;
-  border:2px solid rgba(255,255,255,0.25);
-}
-
-.card.alert{
-  box-shadow:0 0 0 2px #ff3b3b, var(--shadow-strong);
-}
-
-.card.inactive{
-  opacity:.35;
-  filter:grayscale(.2);
-}
-
-.sonda-title{
   font-weight:700;
-  font-size:15px;
-  margin-bottom:8px;
-  color:#000;
-  text-shadow:0 2px 4px rgba(255,255,255,0.25);
-}
-
-.tog{
-  font-size:13px;
-  display:flex;
-  gap:8px;
-  align-items:center;
-  margin-bottom:8px;
-  color:#000;
-}
-
-.charts{
-  display:flex;
-  gap:10px;
-  align-items:center;
-  justify-content:center;
-  padding:6px 0;
-}
-
-canvas{
-  width:110px!important;
-  height:110px!important;
-}
-
-/* =========================
-   ETIQUETAS
-========================= */
-.labels{
-  display:flex;
-  gap:10px;
-  justify-content:center;
-  margin-top:6px;
-  flex-wrap:wrap;
-}
-
-.lbl{
-  font-size:12px;
-  text-align:center;
-  min-width:95px;
-  color:#000;
   text-shadow:0 2px 6px rgba(0,0,0,0.35);
 }
 
-.val{
+body.theme-iguana .charts,
+body.theme-iguana .labels{
+  background:#2ECC0F;
+  border-radius:14px;
+  padding:10px;
+  box-shadow:inset 0 6px 14px rgba(0,0,0,0.18);
+}
+
+body.theme-iguana .lbl{
+  color:rgba(255,255,255,0.75);
+  text-shadow:0 2px 6px rgba(0,0,0,0.35);
+}
+
+body.theme-iguana .val{
+  color:#FFFFFF;
   font-weight:800;
-  margin-top:4px;
-  font-size:14px;
-  color:#000;
-  text-shadow:0 2px 6px rgba(0,0,0,0.6);
+  text-shadow:0 3px 8px rgba(0,0,0,0.6);
 }
 
-/* =========================
-   ALERTA PRESENCIA
-========================= */
-.presenciaAlert{
-  font-weight:700;
-  text-align:center;
-  padding:8px 6px;
-  margin-top:8px;
-  border-radius:10px;
-  background:#000;
+body.theme-iguana .tog{
+  color:#FFFFFF;
+}
+
+body.theme-iguana .presenciaAlert{
+  background:#000000;
   color:#39FF14;
-  min-height:44px;
-  box-shadow:var(--shadow-mid);
-}
-
-.note{
-  margin-top:14px;
-  font-size:13px;
-  text-align:center;
-  color:#000;
+  box-shadow:0 10px 26px rgba(0,0,0,0.6);
 }
 </style>
 </head>
 
-<body>
-<div class="app">
+<body class="theme-iguana">
 
+<div class="app">
   <div class="header">
     <div class="title">
-      <img src="logo.png" alt="IguanaLab">
+      <img src="logo.png" alt="IguanaLab" style="height:48px">
       <div>
         <h1>Panel Sondas T</h1>
         <p>Monitoreo: Temperatura · Humedad · Distancia (mm)</p>
@@ -242,14 +116,16 @@ canvas{
   </div>
 
   <div class="grid" id="grid"></div>
-  <div class="note">Umbral alerta distancia: <b> > 40 mm </b></div>
-
 </div>
 
-<!-- 🔴 TODO EL JS ORIGINAL SE MANTIENE SIN CAMBIOS -->
+<!-- ===== JS ORIGINAL (SIN TOCAR) ===== -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-<!-- (JS completo original va aquí, sin modificar) -->
+
+<script>
+/* TODO TU JS ORIGINAL AQUÍ TAL CUAL */
+</script>
 
 </body>
 </html>
+
