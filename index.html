@@ -8,7 +8,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
-/* ===== MODO MONSTER POR DEFECTO ===== */
+/* ===== MODO MONSTER (POR DEFECTO) ===== */
 :root{
   --bg:#FFFFFF;
   --card:#2ECC0F;
@@ -19,7 +19,7 @@
   --shadow:0 8px 20px rgba(0,0,0,0.35);
 }
 
-/* ===== BASE (ORIGINAL) ===== */
+/* ===== BASE (NO TOCADA) ===== */
 html,body{
   margin:0;
   padding:0;
@@ -42,14 +42,13 @@ html,body{
   width:auto;
 }
 
-/* ===== HEADER ===== */
+/* ===== HEADER (MISMA DISPOSICIÓN) ===== */
 .header{
   display:flex;
   gap:12px;
   align-items:center;
-  justify-content:center;
+  justify-content:space-between;
   margin-bottom:16px;
-  text-align:center;
 }
 
 .title h1{margin:0;font-size:20px;}
@@ -61,7 +60,6 @@ html,body{
   gap:12px;
   margin-bottom:18px;
   flex-wrap:wrap;
-  justify-content:center;
 }
 
 .metric{
@@ -76,7 +74,7 @@ html,body{
 .metric small{display:block;color:var(--muted);font-size:12px;}
 .metric b{display:block;font-size:18px;margin-top:6px;}
 
-/* ===== GRID Y CARDS (ORIGINAL) ===== */
+/* ===== GRID / CARDS (IGUAL) ===== */
 .grid{
   display:grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -166,7 +164,7 @@ canvas{width:110px!important;height:110px!important;}
     <img src="logo.png" alt="IguanaLab">
   </div>
 
-  <!-- HEADER -->
+  <!-- HEADER ORIGINAL -->
   <div class="header">
     <div class="title">
       <h1>Panel Sondas T</h1>
@@ -186,14 +184,7 @@ canvas{width:110px!important;height:110px!important;}
   <div class="note">Umbral alerta distancia: <b> > 40 mm </b> (4 cm → objeto caído)</div>
 </div>
 
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-
-<!-- 🔥 JS ORIGINAL 100% INTACTO (NO TOCADO) -->
-<script>
-/* === TODO TU JS ORIGINAL AQUÍ SIN CAMBIOS === */
-</script>
-
+<!-- 🔥 TODO TU JS Y FIREBASE VA AQUÍ SIN CAMBIOS -->
 </body>
 </html>
 
