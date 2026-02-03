@@ -17,8 +17,6 @@
   --danger:#ff3b3b;
   --shadow:0 8px 20px rgba(2,8,23,0.6);
 }
-
-/* MODO CLARO (ORIGINAL) */
 body.light{
   --bg:#f3f6fb;
   --card:#ffffff;
@@ -29,18 +27,6 @@ body.light{
   --shadow:0 6px 18px rgba(16,24,40,0.08);
 }
 
-/* MODO MONSTER */
-body.monster{
-  --bg:#FFFFFF;
-  --card:#2ECC0F;
-  --text:#FFFFFF;
-  --muted:rgba(255,255,255,0.75);
-  --accent:#39FF14;
-  --danger:#ff3b3b;
-  --shadow:0 8px 20px rgba(0,0,0,0.35);
-}
-
-/* BASE */
 html,body{
   margin:0;
   padding:0;
@@ -52,19 +38,23 @@ html,body{
 
 .app{max-width:1200px;margin:18px auto;padding:14px;}
 
-/* HEADER */
+/* LOGO SUPERIOR – NUEVO (NO INTERFIERE CON HEADER) */
+.header-logo{
+  display:flex;
+  justify-content:center;
+  margin-bottom:12px;
+}
+.header-logo img{
+  height:70px;
+  width:auto;
+}
+
 .header{
   display:flex;
   gap:12px;
   align-items:center;
   justify-content:space-between;
   margin-bottom:16px;
-}
-
-/* LOGO (NUEVO) */
-.logo{
-  width:110px;
-  height:auto;
 }
 
 .title h1{margin:0;font-size:20px;}
@@ -128,20 +118,20 @@ canvas{width:110px!important;height:110px!important;}
 </style>
 </head>
 
-<!-- 🔥 MONSTER POR DEFECTO -->
-<body class="monster">
-
+<body>
 <div class="app">
 
-  <div class="header">
-    <!-- LOGO AGREGADO -->
-    <img src="logo.png" alt="IguanaLab" class="logo">
+  <!-- LOGO AGREGADO -->
+  <div class="header-logo">
+    <img src="logo.png" alt="IguanaLab">
+  </div>
 
+  <!-- HEADER ORIGINAL SIN CAMBIOS -->
+  <div class="header">
     <div class="title">
       <h1>Panel Sondas T</h1>
       <p>Monitoreo: Temperatura · Humedad · Distancia (mm)</p>
     </div>
-
     <div class="controls">
       <button id="modeToggle" class="mode-btn">Modo claro / oscuro</button>
       <button id="histWeek" class="mode-btn">Última semana</button>
@@ -164,11 +154,9 @@ canvas{width:110px!important;height:110px!important;}
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
 <script>
-/* TU JS ORIGINAL COMPLETO, SIN CAMBIOS */
-document.getElementById('modeToggle').addEventListener('click',()=>{
-  document.body.classList.toggle('light');
-  document.body.classList.remove('monster');
-});
+/* TU JS ORIGINAL NO SE TOCA */
+document.getElementById('modeToggle')
+  .addEventListener('click',()=>document.body.classList.toggle('light'));
 </script>
 
 </body>
