@@ -74,7 +74,7 @@ html,body{
   gap:16px;
 }
 
-/* CARD (no se cambia estructura) */
+/* CARD */
 .card{
   background:var(--card);
   border-radius:12px;
@@ -146,7 +146,7 @@ canvas{width:110px!important;height:110px!important;}
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
 <script>
-/* ===== LÓGICA FUNCIONAL ORIGINAL (100% INTACTA) ===== */
+/* ===== LÓGICA FUNCIONAL ORIGINAL ===== */
 const NUM = 5, DIST_THRESHOLD_MM = 40;
 const chartsT = [], chartsH = [], active = [true,false,false,false,false],
       lastValues = Array(NUM).fill(null), badCount = Array(NUM).fill(0);
@@ -154,13 +154,16 @@ const chartsT = [], chartsH = [], active = [true,false,false,false,false],
 function tempColor(v){
   return v<=25?'rgba(46,204,113,0.8)':(v<=30?'rgba(241,196,15,0.8)':'rgba(231,76,60,0.8)');
 }
+
+/* ===== HUMEDAD (EDITADO – ALTO CONTRASTE) ===== */
 function humColor(v){
-  if(v<=20)return'rgba(135,206,250,0.8)';
-  if(v<=40)return'rgba(0,162,255,0.8)';
-  if(v<=60)return'rgba(46,204,113,0.8)';
-  if(v<=80)return'rgba(241,196,15,0.8)';
-  return'rgba(231,76,60,0.8)';
+  if (v <= 20) return 'rgba(52,152,219,0.9)';   // azul
+  if (v <= 40) return 'rgba(108,92,231,0.9)';   // violeta
+  if (v <= 60) return 'rgba(243,156,18,0.9)';   // naranjo
+  if (v <= 80) return 'rgba(230,126,34,0.9)';   // naranjo intenso
+  return 'rgba(231,76,60,0.95)';                // rojo
 }
+
 function formatDateShort(d){
   return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
 }
@@ -201,12 +204,13 @@ function createCard(i){
 
   chartsT[i]=new Chart(document.getElementById(`t-${i+1}`),{
     type:'doughnut',
-    data:{datasets:[{data:[0,50],backgroundColor:[tempColor(0),'#000'],borderWidth:0}]},
+    data:{datasets:[{data:[0,50],backgroundColor:[tempColor(0),'rgba(0,0,0,0.35)'],borderWidth:0}]},
     options:{rotation:-90,circumference:180,cutout:'72%',plugins:{legend:{display:false}}}
   });
+
   chartsH[i]=new Chart(document.getElementById(`h-${i+1}`),{
     type:'doughnut',
-    data:{datasets:[{data:[0,100],backgroundColor:[humColor(0),'#000'],borderWidth:0}]},
+    data:{datasets:[{data:[0,100],backgroundColor:[humColor(0),'rgba(0,0,0,0.35)'],borderWidth:0}]},
     options:{rotation:-90,circumference:180,cutout:'72%',plugins:{legend:{display:false}}}
   });
 }
@@ -231,10 +235,11 @@ function updateSummary(){
 function applyDistanceAlert(i,dist){
   if(dist>DIST_THRESHOLD_MM) badCount[i]++; else badCount[i]=0;
   if(badCount[i]>=2){
-    card=document.getElementById(`card-${i+1}`);
-    card.classList.add('alert');
-    pres=document.getElementById(`pres-${i+1}`);
-    pres.innerHTML=`<b>PRESENCIA DETECTADA</b><div>${formatDateShort(new Date())}</div><div>Dist: ${Math.round(dist)} mm</div>`;
+    document.getElementById(`card-${i+1}`).classList.add('alert');
+    document.getElementById(`pres-${i+1}`).innerHTML=
+      `<b>PRESENCIA DETECTADA</b>
+       <div>${formatDateShort(new Date())}</div>
+       <div>Dist: ${Math.round(dist)} mm</div>`;
   }else{
     document.getElementById(`card-${i+1}`).classList.remove('alert');
     document.getElementById(`pres-${i+1}`).innerHTML='';
@@ -253,18 +258,19 @@ firebase.database().ref("prueba").on("value",s=>{
     const h=Number(d.Humedad_pct||0);
     const dist=Number(d.Distancia_mm||0);
     lastValues[i]={t,h,dist};
-    tempVal=document.getElementById(`tempVal-${i+1}`);
-    humVal=document.getElementById(`humVal-${i+1}`);
-    distEl=document.getElementById(`dist-${i+1}`);
-    tempVal.textContent=`${t} °C`;
-    humVal.textContent=`${h} %`;
-    distEl.textContent=`${Math.round(dist)} mm`;
+
+    document.getElementById(`tempVal-${i+1}`).textContent=`${t} °C`;
+    document.getElementById(`humVal-${i+1}`).textContent=`${h} %`;
+    document.getElementById(`dist-${i+1}`).textContent=`${Math.round(dist)} mm`;
+
     chartsT[i].data.datasets[0].data=[t,50-t];
     chartsT[i].data.datasets[0].backgroundColor[0]=tempColor(t);
     chartsT[i].update();
+
     chartsH[i].data.datasets[0].data=[h,100-h];
     chartsH[i].data.datasets[0].backgroundColor[0]=humColor(h);
     chartsH[i].update();
+
     applyDistanceAlert(i,dist);
   }
   updateSummary();
@@ -272,3 +278,4 @@ firebase.database().ref("prueba").on("value",s=>{
 </script>
 </body>
 </html>
+
