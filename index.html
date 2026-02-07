@@ -83,18 +83,17 @@ html,body{
 .sonda-title{font-weight:600;font-size:15px;margin-bottom:8px;}
 .tog{font-size:13px;color:var(--muted);display:flex;gap:8px;align-items:center;margin-bottom:8px;}
 
-/* ===== RECUADRO SOMBRÍO DE MEDIDORES ===== */
+/* ===== RECUADRO SOMBRÍO (NUEVO) ===== */
 .meter-box{
-  background: rgba(0,0,0,0.28);
-  border-radius: 12px;
-  padding: 10px 6px 8px 6px;
+  background:rgba(0,0,0,0.30);
+  border-radius:12px;
+  padding:8px 6px 6px 6px;
   box-shadow:
     inset 0 0 0 1px rgba(255,255,255,0.08),
     0 6px 14px rgba(0,0,0,0.45);
-  margin: 6px 0 10px 0;
+  margin:6px 0 8px 0;
 }
 
-/* CHARTS */
 .charts{
   display:flex;
   gap:10px;
@@ -102,29 +101,29 @@ html,body{
   flex-wrap:wrap;
   padding:6px 0;
 }
+
 canvas{width:110px!important;height:110px!important;}
 
-/* DATOS DENTRO DEL RECUADRO */
 .labels{
   display:flex;
   gap:10px;
   justify-content:center;
   flex-wrap:wrap;
-  margin-top:4px;
 }
+
 .lbl{
   font-size:12px;
   color:rgba(255,255,255,0.85);
   text-align:center;
   min-width:95px;
 }
+
 .val{
   font-weight:700;
   font-size:15px;
   color:#ffffff;
 }
 
-/* ALERTA */
 .presenciaAlert{
   font-weight:700;
   text-align:center;
@@ -178,7 +177,7 @@ canvas{width:110px!important;height:110px!important;}
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
 <script>
-/* ===== LÓGICA FUNCIONAL ORIGINAL ===== */
+/* ===== LÓGICA FUNCIONAL ORIGINAL (SIN TOCAR) ===== */
 const NUM = 5, DIST_THRESHOLD_MM = 40;
 const chartsT = [], chartsH = [], active = [true,false,false,false,false],
       lastValues = Array(NUM).fill(null), badCount = Array(NUM).fill(0);
@@ -222,6 +221,16 @@ function createCard(i){
   `;
   grid.appendChild(card);
 
+  const pres=document.createElement('div');
+  pres.className='presenciaAlert'; pres.id=`pres-${i+1}`;
+  card.appendChild(pres);
+
+  card.querySelector(`#toggle-${i+1}`).addEventListener('change',e=>{
+    active[i]=e.target.checked;
+    card.classList.toggle('inactive',!active[i]);
+    updateSummary();
+  });
+
   chartsT[i]=new Chart(document.getElementById(`t-${i+1}`),{
     type:'doughnut',
     data:{datasets:[{data:[0,50],backgroundColor:[tempColor(0),'rgba(0,0,0,0.35)'],borderWidth:0}]},
@@ -235,7 +244,25 @@ function createCard(i){
   });
 }
 
+function updateSummary(){
+  let act=0,alerts=0,sumT=0,sumH=0,count=0;
+  for(let i=0;i<NUM;i++){
+    if(!active[i]) continue;
+    act++;
+    if(!lastValues[i]) continue;
+    sumT+=lastValues[i].t;
+    sumH+=lastValues[i].h;
+    count++;
+    if(lastValues[i].dist>DIST_THRESHOLD_MM) alerts++;
+  }
+  numActivas.textContent=act;
+  numAlertas.textContent=alerts;
+  promTemp.textContent=(count?Math.round(sumT/count):'--')+' °C';
+  promHum.textContent=(count?Math.round(sumH/count):'--')+' %';
+}
+
 for(let i=0;i<NUM;i++) createCard(i);
+updateSummary();
 
 firebase.initializeApp({
   authDomain: "enlace-t.firebaseapp.com",
@@ -250,6 +277,7 @@ firebase.database().ref("prueba").on("value",s=>{
     const t=Number(d.Temperatura_C||0);
     const h=Number(d.Humedad_pct||0);
     const dist=Number(d.Distancia_mm||0);
+    lastValues[i]={t,h,dist};
 
     document.getElementById(`tempVal-${i+1}`).textContent=`${t} °C`;
     document.getElementById(`humVal-${i+1}`).textContent=`${h} %`;
@@ -263,7 +291,9 @@ firebase.database().ref("prueba").on("value",s=>{
     chartsH[i].data.datasets[0].backgroundColor[0]=humColor(h);
     chartsH[i].update();
   }
+  updateSummary();
 });
 </script>
 </body>
 </html>
+
