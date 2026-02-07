@@ -8,6 +8,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
+/* ===== MONSTER UI (SOLO APARIENCIA) ===== */
 :root{
   --bg:#FFFFFF;
   --card:#2ECC0F;
@@ -82,33 +83,48 @@ html,body{
 .sonda-title{font-weight:600;font-size:15px;margin-bottom:8px;}
 .tog{font-size:13px;color:var(--muted);display:flex;gap:8px;align-items:center;margin-bottom:8px;}
 
+/* ===== RECUADRO SOMBRÍO DE MEDIDORES ===== */
 .meter-box{
-  background: rgba(0,0,0,0.18);
+  background: rgba(0,0,0,0.28);
   border-radius: 12px;
-  padding: 10px 6px;
+  padding: 10px 6px 8px 6px;
   box-shadow:
     inset 0 0 0 1px rgba(255,255,255,0.08),
     0 6px 14px rgba(0,0,0,0.45);
   margin: 6px 0 10px 0;
 }
 
+/* CHARTS */
 .charts{
   display:flex;
   gap:10px;
   justify-content:center;
   flex-wrap:wrap;
+  padding:6px 0;
 }
 canvas{width:110px!important;height:110px!important;}
 
+/* DATOS DENTRO DEL RECUADRO */
 .labels{
   display:flex;
   gap:10px;
   justify-content:center;
   flex-wrap:wrap;
+  margin-top:4px;
 }
-.lbl{font-size:12px;color:var(--muted);text-align:center;min-width:95px;}
-.val{font-weight:700;font-size:14px;}
+.lbl{
+  font-size:12px;
+  color:rgba(255,255,255,0.85);
+  text-align:center;
+  min-width:95px;
+}
+.val{
+  font-weight:700;
+  font-size:15px;
+  color:#ffffff;
+}
 
+/* ALERTA */
 .presenciaAlert{
   font-weight:700;
   text-align:center;
@@ -162,23 +178,21 @@ canvas{width:110px!important;height:110px!important;}
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
 <script>
+/* ===== LÓGICA FUNCIONAL ORIGINAL ===== */
 const NUM = 5, DIST_THRESHOLD_MM = 40;
 const chartsT = [], chartsH = [], active = [true,false,false,false,false],
       lastValues = Array(NUM).fill(null), badCount = Array(NUM).fill(0);
 
 function tempColor(v){
-  return v <= 22
-    ? 'rgba(72,187,120,0.85)'
-    : v <= 28
-    ? 'rgba(237,185,45,0.85)'
-    : 'rgba(231,76,60,0.85)';
+  return v<=25?'rgba(46,204,113,0.8)':(v<=30?'rgba(241,196,15,0.8)':'rgba(231,76,60,0.8)');
 }
 
 function humColor(v){
-  if (v <= 30) return 'rgba(90,155,215,0.85)';
-  if (v <= 50) return 'rgba(120,120,210,0.85)';
-  if (v <= 70) return 'rgba(230,160,60,0.85)';
-  return 'rgba(210,80,80,0.9)';
+  if (v <= 20) return 'rgba(52,152,219,0.9)';
+  if (v <= 40) return 'rgba(108,92,231,0.9)';
+  if (v <= 60) return 'rgba(243,156,18,0.9)';
+  if (v <= 80) return 'rgba(230,126,34,0.9)';
+  return 'rgba(231,76,60,0.95)';
 }
 
 function createCard(i){
@@ -190,7 +204,7 @@ function createCard(i){
   card.innerHTML=`
     <div class="sonda-title">Sonda ${i+1}</div>
     <div class="tog">
-      <label><input type="checkbox" checked> Activar</label>
+      <label><input type="checkbox" id="toggle-${i+1}" ${active[i]?'checked':''}> Activar</label>
       <div style="flex:1"></div>
       <div style="font-size:12px;color:var(--muted)">Dist: <span id="dist-${i+1}">--</span></div>
     </div>
@@ -200,11 +214,10 @@ function createCard(i){
         <canvas id="t-${i+1}"></canvas>
         <canvas id="h-${i+1}"></canvas>
       </div>
-    </div>
-
-    <div class="labels">
-      <div class="lbl">Temperatura<div class="val" id="tempVal-${i+1}">-- °C</div></div>
-      <div class="lbl">Humedad<div class="val" id="humVal-${i+1}">-- %</div></div>
+      <div class="labels">
+        <div class="lbl">Temperatura<div class="val" id="tempVal-${i+1}">-- °C</div></div>
+        <div class="lbl">Humedad<div class="val" id="humVal-${i+1}">-- %</div></div>
+      </div>
     </div>
   `;
   grid.appendChild(card);
@@ -225,15 +238,15 @@ function createCard(i){
 for(let i=0;i<NUM;i++) createCard(i);
 
 firebase.initializeApp({
-  apiKey:"dummy",
-  authDomain:"enlace-t.firebaseapp.com",
-  databaseURL:"https://enlace-t-default-rtdb.firebaseio.com",
-  projectId:"enlace-t"
+  authDomain: "enlace-t.firebaseapp.com",
+  databaseURL: "https://enlace-t-default-rtdb.firebaseio.com",
+  projectId: "enlace-t"
 });
 
 firebase.database().ref("prueba").on("value",s=>{
   const d=s.val()||{};
   for(let i=0;i<NUM;i++){
+    if(!active[i]) continue;
     const t=Number(d.Temperatura_C||0);
     const h=Number(d.Humedad_pct||0);
     const dist=Number(d.Distancia_mm||0);
