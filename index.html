@@ -249,7 +249,7 @@ function applyDistanceAlert(i,dist){
 for(let i=0;i<NUM;i++) createCard(i);
 updateSummary();
 
-firebase.initializeApp({databaseURL:"https://enlace-t-default-rtdb.firebaseio.com/"});
+c
 firebase.database().ref("prueba").on("value",s=>{
   const d=s.val()||{};
   for(let i=0;i<NUM;i++){
