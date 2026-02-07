@@ -76,12 +76,49 @@ html,body{
   padding:14px;
   box-shadow:var(--shadow);
   border:2px solid transparent;
+  position:relative;
 }
 .card.alert{border-color:var(--danger);}
 .card.inactive{opacity:.35;filter:grayscale(.1);}
 
 .sonda-title{font-weight:600;font-size:15px;margin-bottom:8px;}
 .tog{font-size:13px;color:var(--muted);display:flex;gap:8px;align-items:center;margin-bottom:8px;}
+
+/* ===== WIFI INDICADOR (NUEVO) ===== */
+.wifi{
+  position:absolute;
+  top:12px;
+  right:12px;
+  display:flex;
+  gap:3px;
+  cursor:pointer;
+}
+.wifi span{
+  width:4px;
+  border-radius:2px;
+  background:#555;
+}
+.wifi span:nth-child(1){height:6px;}
+.wifi span:nth-child(2){height:10px;}
+.wifi span:nth-child(3){height:14px;}
+.wifi span:nth-child(4){height:18px;}
+
+.wifi.good span{background:#2ecc71;}
+.wifi.mid span{background:#f1c40f;}
+.wifi.bad span{background:#e74c3c;}
+
+.wifi-info{
+  display:none;
+  position:absolute;
+  top:26px;
+  right:0;
+  background:rgba(0,0,0,0.85);
+  padding:8px 10px;
+  border-radius:8px;
+  font-size:12px;
+  box-shadow:0 6px 14px rgba(0,0,0,0.45);
+  z-index:5;
+}
 
 /* ===== RECUADRO SOMBRÍO ===== */
 .meter-box{
@@ -177,12 +214,10 @@ canvas{width:110px!important;height:110px!important;}
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
 <script>
-/* ===== LÓGICA FUNCIONAL ORIGINAL ===== */
 const NUM = 5, DIST_THRESHOLD_MM = 40;
 const chartsT = [], chartsH = [], active = [true,false,false,false,false],
-      lastValues = Array(NUM).fill(null), badCount = Array(NUM).fill(0);
+      lastValues = Array(NUM).fill(null);
 
-/* === TEMPERATURA: VERDE → AMARILLO → ROJO === */
 function tempColor(v){
   return v <= 22
     ? 'rgba(46,204,113,0.85)'
@@ -191,7 +226,6 @@ function tempColor(v){
     : 'rgba(231,76,60,0.9)';
 }
 
-/* === HUMEDAD: CELESTE → AZUL → AZUL PROFUNDO === */
 function humColor(v){
   return v <= 30
     ? 'rgba(52,152,219,0.85)'
@@ -200,16 +234,32 @@ function humColor(v){
     : 'rgba(31,97,141,0.95)';
 }
 
+function wifiClass(r){
+  if(r >= -60) return 'good';
+  if(r >= -75) return 'mid';
+  return 'bad';
+}
+
+function wifiText(r){
+  if(r >= -60) return 'Excelente';
+  if(r >= -75) return 'Buena';
+  return 'Débil';
+}
+
 function createCard(i){
   const grid=document.getElementById('grid');
   const card=document.createElement('div');
   card.className='card'; card.id=`card-${i+1}`;
-  if(!active[i]) card.classList.add('inactive');
 
   card.innerHTML=`
+    <div class="wifi bad" id="wifi-${i}">
+      <span></span><span></span><span></span><span></span>
+      <div class="wifi-info" id="wifiInfo-${i}"></div>
+    </div>
+
     <div class="sonda-title">Sonda ${i+1}</div>
     <div class="tog">
-      <label><input type="checkbox" id="toggle-${i+1}" ${active[i]?'checked':''}> Activar</label>
+      <label><input type="checkbox" id="toggle-${i+1}" checked> Activar</label>
       <div style="flex:1"></div>
       <div style="font-size:12px;color:var(--muted)">Dist: <span id="dist-${i+1}">--</span></div>
     </div>
@@ -227,16 +277,6 @@ function createCard(i){
   `;
   grid.appendChild(card);
 
-  const pres=document.createElement('div');
-  pres.className='presenciaAlert'; pres.id=`pres-${i+1}`;
-  card.appendChild(pres);
-
-  card.querySelector(`#toggle-${i+1}`).addEventListener('change',e=>{
-    active[i]=e.target.checked;
-    card.classList.toggle('inactive',!active[i]);
-    updateSummary();
-  });
-
   chartsT[i]=new Chart(document.getElementById(`t-${i+1}`),{
     type:'doughnut',
     data:{datasets:[{data:[0,50],backgroundColor:[tempColor(0),'rgba(0,0,0,0.35)'],borderWidth:0}]},
@@ -248,46 +288,31 @@ function createCard(i){
     data:{datasets:[{data:[0,100],backgroundColor:[humColor(0),'rgba(0,0,0,0.35)'],borderWidth:0}]},
     options:{rotation:-90,circumference:180,cutout:'72%',plugins:{legend:{display:false}}}
   });
-}
 
-function updateSummary(){
-  let act=0,alerts=0,sumT=0,sumH=0,count=0;
-  for(let i=0;i<NUM;i++){
-    if(!active[i]) continue;
-    act++;
-    if(!lastValues[i]) continue;
-    sumT+=lastValues[i].t;
-    sumH+=lastValues[i].h;
-    count++;
-    if(lastValues[i].dist>DIST_THRESHOLD_MM) alerts++;
-  }
-  numActivas.textContent=act;
-  numAlertas.textContent=alerts;
-  promTemp.textContent=(count?Math.round(sumT/count):'--')+' °C';
-  promHum.textContent=(count?Math.round(sumH/count):'--')+' %';
+  card.querySelector(`#wifi-${i}`).onclick=()=>{
+    const p=document.getElementById(`wifiInfo-${i}`);
+    p.style.display = p.style.display === 'block' ? 'none' : 'block';
+  };
 }
 
 for(let i=0;i<NUM;i++) createCard(i);
-updateSummary();
 
 firebase.initializeApp({
-  authDomain: "enlace-t.firebaseapp.com",
-  databaseURL: "https://enlace-t-default-rtdb.firebaseio.com",
-  projectId: "enlace-t"
+  databaseURL: "https://enlace-t-default-rtdb.firebaseio.com"
 });
 
 firebase.database().ref("prueba").on("value",s=>{
   const d=s.val()||{};
   for(let i=0;i<NUM;i++){
-    if(!active[i]) continue;
-    const t=Number(d.Temperatura_C||0);
-    const h=Number(d.Humedad_pct||0);
-    const dist=Number(d.Distancia_mm||0);
-    lastValues[i]={t,h,dist};
+    const t=d.Temperatura_C||0;
+    const h=d.Humedad_pct||0;
+    const dist=d.Distancia_mm||0;
+    const rssi=d.WiFi_RSSI||-100;
+    const ssid=d.WiFi_SSID||'--';
 
     document.getElementById(`tempVal-${i+1}`).textContent=`${t} °C`;
     document.getElementById(`humVal-${i+1}`).textContent=`${h} %`;
-    document.getElementById(`dist-${i+1}`).textContent=`${Math.round(dist)} mm`;
+    document.getElementById(`dist-${i+1}`).textContent=Math.round(dist)+' mm';
 
     chartsT[i].data.datasets[0].data=[t,50-t];
     chartsT[i].data.datasets[0].backgroundColor[0]=tempColor(t);
@@ -296,10 +321,15 @@ firebase.database().ref("prueba").on("value",s=>{
     chartsH[i].data.datasets[0].data=[h,100-h];
     chartsH[i].data.datasets[0].backgroundColor[0]=humColor(h);
     chartsH[i].update();
+
+    const w=document.getElementById(`wifi-${i}`);
+    w.className='wifi '+wifiClass(rssi);
+    document.getElementById(`wifiInfo-${i}`).innerHTML=
+      `<b>${ssid}</b><br>${wifiText(rssi)} (${rssi} dBm)`;
   }
-  updateSummary();
 });
 </script>
 </body>
 </html>
+
 
