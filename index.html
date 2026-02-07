@@ -70,16 +70,42 @@ html,body{
   padding:14px;
   box-shadow:var(--shadow);
   border:2px solid transparent;
-  position:relative; /* NECESARIO PARA WIFI */
+  position:relative;
 }
 .card.alert{border-color:var(--danger);}
 .card.inactive{opacity:.35;filter:grayscale(.1);}
 
 .sonda-title{font-weight:600;font-size:15px;margin-bottom:8px;}
 .tog{font-size:13px;color:var(--muted);display:flex;gap:8px;align-items:center;margin-bottom:8px;}
+.charts{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;padding:6px 0;}
+canvas{width:110px!important;height:110px!important;}
+.labels{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;}
+.lbl{font-size:12px;color:var(--muted);text-align:center;min-width:95px;}
+.val{font-weight:700;font-size:14px;}
 
-/* ===== WIFI INDICADOR (NUEVO, NO TOCA NADA) ===== */
-.wifi-ind{
+.presenciaAlert{
+  font-weight:700;
+  text-align:center;
+  padding:8px 6px;
+  margin-top:8px;
+  border-radius:8px;
+  background:rgba(255,0,0,0.08);
+  color:#ff8a8a;
+  min-height:44px;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+}
+
+.note{
+  margin-top:12px;
+  color:var(--muted);
+  font-size:13px;
+  text-align:center;
+}
+
+/* ===== WIFI INDICADOR (SOLO VISUAL) ===== */
+.wifi{
   position:absolute;
   top:10px;
   right:10px;
@@ -100,9 +126,9 @@ html,body{
 .wifi-bars span:nth-child(3){height:14px;}
 .wifi-bars span:nth-child(4){height:18px;}
 
-.wifi-good span{opacity:1;}
-.wifi-mid span:nth-child(-n+3){opacity:1;}
-.wifi-bad span:nth-child(-n+2){opacity:1;}
+.wifi.good span{opacity:1;}
+.wifi.mid span:nth-child(-n+3){opacity:1;}
+.wifi.bad span:nth-child(-n+2){opacity:1;}
 
 .wifi-pop{
   display:none;
@@ -113,45 +139,8 @@ html,body{
   padding:8px 10px;
   border-radius:8px;
   font-size:12px;
-  box-shadow:0 6px 14px rgba(0,0,0,0.45);
   white-space:nowrap;
-}
-
-/* ===== RECUADRO SOMBRÍO ===== */
-.meter-box{
-  background:rgba(0,0,0,0.30);
-  border-radius:12px;
-  padding:8px 6px 6px 6px;
-  box-shadow:
-    inset 0 0 0 1px rgba(255,255,255,0.08),
-    0 6px 14px rgba(0,0,0,0.45);
-  margin:6px 0 8px 0;
-}
-
-.charts{
-  display:flex;
-  gap:10px;
-  justify-content:center;
-  flex-wrap:wrap;
-  padding:6px 0;
-}
-canvas{width:110px!important;height:110px!important;}
-
-.labels{
-  display:flex;
-  gap:10px;
-  justify-content:center;
-  flex-wrap:wrap;
-}
-
-.lbl{font-size:12px;color:rgba(255,255,255,0.85);text-align:center;min-width:95px;}
-.val{font-weight:700;font-size:15px;color:#fff;}
-
-.note{
-  margin-top:12px;
-  color:var(--muted);
-  font-size:13px;
-  text-align:center;
+  box-shadow:0 6px 14px rgba(0,0,0,0.45);
 }
 </style>
 </head>
@@ -186,68 +175,75 @@ canvas{width:110px!important;height:110px!important;}
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
 <script>
-/* ===== LÓGICA ORIGINAL (NO TOCADA) ===== */
-const NUM = 5;
-const chartsT=[], chartsH=[], active=[true,false,false,false,false], lastValues=Array(NUM).fill(null);
+const NUM=5,DIST_THRESHOLD_MM=40;
+const chartsT=[],chartsH=[],active=[true,false,false,false,false],
+      lastValues=Array(NUM).fill(null),badCount=Array(NUM).fill(0);
 
-function tempColor(v){return v<=22?'rgba(46,204,113,.85)':v<=28?'rgba(241,196,15,.85)':'rgba(231,76,60,.9)';}
-function humColor(v){return v<=30?'rgba(52,152,219,.85)':v<=60?'rgba(41,128,185,.9)':'rgba(31,97,141,.95)';}
-
-function wifiClass(r){return r>=-60?'wifi-good':r>=-75?'wifi-mid':'wifi-bad';}
+function tempColor(v){return v<=25?'rgba(46,204,113,.8)':v<=30?'rgba(241,196,15,.8)':'rgba(231,76,60,.8)';}
+function humColor(v){if(v<=20)return'rgba(52,152,219,.9)';if(v<=40)return'rgba(108,92,231,.9)';if(v<=60)return'rgba(243,156,18,.9)';if(v<=80)return'rgba(230,126,34,.9)';return'rgba(231,76,60,.95)';}
+function wifiClass(r){return r>=-60?'good':r>=-75?'mid':'bad';}
 
 function createCard(i){
-  const g=document.getElementById('grid');
-  const c=document.createElement('div');
-  c.className='card';
-  c.innerHTML=`
-    <div class="wifi-ind" id="wifi-${i}">
+  const grid=document.getElementById('grid');
+  const card=document.createElement('div');
+  card.className='card';
+  card.innerHTML=`
+    <div class="wifi" id="wifi-${i}">
       <div class="wifi-bars"><span></span><span></span><span></span><span></span></div>
       <div class="wifi-pop" id="wifiPop-${i}"></div>
     </div>
     <div class="sonda-title">Sonda ${i+1}</div>
-    <div class="tog"><label><input type="checkbox" checked> Activar</label></div>
-    <div class="meter-box">
-      <div class="charts">
-        <canvas id="t-${i}"></canvas>
-        <canvas id="h-${i}"></canvas>
-      </div>
-      <div class="labels">
-        <div class="lbl">Temp<div class="val" id="tv-${i}">--</div></div>
-        <div class="lbl">Hum<div class="val" id="hv-${i}">--</div></div>
-      </div>
+    <div class="tog">
+      <label><input type="checkbox" id="toggle-${i+1}" checked> Activar</label>
+      <div style="flex:1"></div>
+      <div style="font-size:12px;color:var(--muted)">Dist: <span id="dist-${i+1}">--</span></div>
+    </div>
+    <div class="charts">
+      <canvas id="t-${i+1}"></canvas>
+      <canvas id="h-${i+1}"></canvas>
+    </div>
+    <div class="labels">
+      <div class="lbl">Temperatura<div class="val" id="tempVal-${i+1}">-- °C</div></div>
+      <div class="lbl">Humedad<div class="val" id="humVal-${i+1}">-- %</div></div>
     </div>`;
-  g.appendChild(c);
+  grid.appendChild(card);
 
-  c.querySelector(`#wifi-${i}`).onclick=()=>{
-    const p=c.querySelector(`#wifiPop-${i}`);
+  document.getElementById(`wifi-${i}`).onclick=()=>{
+    const p=document.getElementById(`wifiPop-${i}`);
     p.style.display=p.style.display==='block'?'none':'block';
   };
 
-  chartsT[i]=new Chart(document.getElementById(`t-${i}`),{type:'doughnut',data:{datasets:[{data:[0,50],backgroundColor:[tempColor(0),'#0005'],borderWidth:0}]},options:{rotation:-90,circumference:180,cutout:'72%',plugins:{legend:{display:false}}}});
-  chartsH[i]=new Chart(document.getElementById(`h-${i}`),{type:'doughnut',data:{datasets:[{data:[0,100],backgroundColor:[humColor(0),'#0005'],borderWidth:0}]},options:{rotation:-90,circumference:180,cutout:'72%',plugins:{legend:{display:false}}}});
+  chartsT[i]=new Chart(document.getElementById(`t-${i+1}`),{type:'doughnut',data:{datasets:[{data:[0,50],backgroundColor:[tempColor(0),'rgba(0,0,0,.35)'],borderWidth:0}]},options:{rotation:-90,circumference:180,cutout:'72%',plugins:{legend:{display:false}}}});
+  chartsH[i]=new Chart(document.getElementById(`h-${i+1}`),{type:'doughnut',data:{datasets:[{data:[0,100],backgroundColor:[humColor(0),'rgba(0,0,0,.35)'],borderWidth:0}]},options:{rotation:-90,circumference:180,cutout:'72%',plugins:{legend:{display:false}}}});
 }
 
 for(let i=0;i<NUM;i++)createCard(i);
 
-firebase.initializeApp({databaseURL:"https://enlace-t-default-rtdb.firebaseio.com"});
+firebase.initializeApp({
+  authDomain:"enlace-t.firebaseapp.com",
+  databaseURL:"https://enlace-t-default-rtdb.firebaseio.com",
+  projectId:"enlace-t"
+});
 
 firebase.database().ref("prueba").on("value",s=>{
   const d=s.val()||{};
   for(let i=0;i<NUM;i++){
-    document.getElementById(`tv-${i}`).textContent=d.Temperatura_C+" °C";
-    document.getElementById(`hv-${i}`).textContent=d.Humedad_pct+" %";
+    document.getElementById(`tempVal-${i+1}`).textContent=d.Temperatura_C+" °C";
+    document.getElementById(`humVal-${i+1}`).textContent=d.Humedad_pct+" %";
+    document.getElementById(`dist-${i+1}`).textContent=Math.round(d.Distancia_mm)+" mm";
+
     chartsT[i].data.datasets[0].data=[d.Temperatura_C,50-d.Temperatura_C];
     chartsH[i].data.datasets[0].data=[d.Humedad_pct,100-d.Humedad_pct];
     chartsT[i].update();chartsH[i].update();
 
     const w=document.getElementById(`wifi-${i}`);
-    w.className='wifi-ind '+wifiClass(d.WiFi_RSSI||-100);
+    const r=d.WiFi_RSSI??-100;
+    w.className='wifi '+wifiClass(r);
     document.getElementById(`wifiPop-${i}`).innerHTML=
-      `<b>${d.WiFi_SSID||'--'}</b><br>${d.WiFi_RSSI||'--'} dBm`;
+      `<b>${d.WiFi_SSID||'--'}</b><br>${r} dBm`;
   }
 });
 </script>
 </body>
 </html>
-
 
