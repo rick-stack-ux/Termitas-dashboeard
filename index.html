@@ -179,15 +179,19 @@ const chartsT = [], chartsH = [], active = [true,false,false,false,false],
       lastValues = Array(NUM).fill(null), badCount = Array(NUM).fill(0);
 
 function tempColor(v){
-  return v <= 22 ? 'rgba(46,204,113,0.85)' :
-         v <= 28 ? 'rgba(241,196,15,0.85)' :
-         'rgba(231,76,60,0.9)';
+  return v <= 22
+    ? 'rgba(46,204,113,0.85)'
+    : v <= 28
+    ? 'rgba(241,196,15,0.85)'
+    : 'rgba(231,76,60,0.9)';
 }
 
 function humColor(v){
-  return v <= 30 ? 'rgba(52,152,219,0.85)' :
-         v <= 60 ? 'rgba(41,128,185,0.9)' :
-         'rgba(31,97,141,0.95)';
+  return v <= 30
+    ? 'rgba(52,152,219,0.85)'
+    : v <= 60
+    ? 'rgba(41,128,185,0.9)'
+    : 'rgba(31,97,141,0.95)';
 }
 
 function createCard(i){
@@ -221,16 +225,22 @@ function createCard(i){
   pres.className='presenciaAlert'; pres.id=`pres-${i+1}`;
   card.appendChild(pres);
 
+  card.querySelector(`#toggle-${i+1}`).addEventListener('change',e=>{
+    active[i]=e.target.checked;
+    card.classList.toggle('inactive',!active[i]);
+    updateSummary();
+  });
+
   chartsT[i]=new Chart(document.getElementById(`t-${i+1}`),{
     type:'doughnut',
     data:{datasets:[{data:[0,50],backgroundColor:[tempColor(0),'rgba(0,0,0,0.35)'],borderWidth:0}]},
-    options:{cutout:'72%'}
+    options:{rotation:-90,circumference:180,cutout:'72%',plugins:{legend:{display:false}}}
   });
 
   chartsH[i]=new Chart(document.getElementById(`h-${i+1}`),{
     type:'doughnut',
     data:{datasets:[{data:[0,100],backgroundColor:[humColor(0),'rgba(0,0,0,0.35)'],borderWidth:0}]},
-    options:{cutout:'72%'}
+    options:{rotation:-90,circumference:180,cutout:'72%',plugins:{legend:{display:false}}}
   });
 }
 
@@ -262,7 +272,6 @@ firebase.initializeApp({
 
 firebase.database().ref("prueba").on("value",s=>{
   const d=s.val()||{};
-
   for(let i=0;i<NUM;i++){
     if(!active[i]) continue;
 
@@ -271,7 +280,7 @@ firebase.database().ref("prueba").on("value",s=>{
     const dist=Number(d.Distancia_mm||0);
     lastValues[i]={t,h,dist};
 
-    // 🔥 AGREGADO (ÚNICO CAMBIO)
+    // 🔥 SOLO ESTO AGREGADO
     if(dist > DIST_THRESHOLD_MM){
       badCount[i]++;
     }else{
@@ -290,9 +299,11 @@ firebase.database().ref("prueba").on("value",s=>{
     document.getElementById(`dist-${i+1}`).textContent=`${Math.round(dist)} mm`;
 
     chartsT[i].data.datasets[0].data=[t,50-t];
+    chartsT[i].data.datasets[0].backgroundColor[0]=tempColor(t);
     chartsT[i].update();
 
     chartsH[i].data.datasets[0].data=[h,100-h];
+    chartsH[i].data.datasets[0].backgroundColor[0]=humColor(h);
     chartsH[i].update();
   }
 
@@ -302,3 +313,4 @@ firebase.database().ref("prueba").on("value",s=>{
 
 </body>
 </html>
+
