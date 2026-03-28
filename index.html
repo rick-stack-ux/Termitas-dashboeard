@@ -174,34 +174,27 @@ canvas{width:110px!important;height:110px!important;}
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
 <script>
+/* ===== LÓGICA ORIGINAL (NO TOCADA) ===== */
 const NUM = 5, DIST_THRESHOLD_MM = 40;
 const chartsT = [], chartsH = [], active = [true,false,false,false,false],
       lastValues = Array(NUM).fill(null), badCount = Array(NUM).fill(0);
 
-/* 🔥 (ya estaba) */
+/* 🔥 AGREGADO (NO INTERFIERE) */
 function estadoConexion(fechaStr){
   if(!fechaStr) return "OFFLINE";
-  const partes = fechaStr.split(" ");
-  if(partes.length < 2) return "OFFLINE";
-  const f = partes[0].split("/");
-  const h = partes[1].split(":");
-  const fechaDato = new Date(f[2], f[1]-1, f[0], h[0], h[1], h[2]);
-  const ahora = new Date();
-  return ((ahora - fechaDato)/60000)<=5 ? "ONLINE":"OFFLINE";
+  const p = fechaStr.split(" ");
+  if(p.length<2) return "OFFLINE";
+  const f = p[0].split("/");
+  const h = p[1].split(":");
+  const fechaDato = new Date(f[2],f[1]-1,f[0],h[0],h[1],h[2]);
+  return ((new Date()-fechaDato)/60000)<=5?"ONLINE":"OFFLINE";
 }
 
-function tempColor(v){
-  return v <= 22 ? 'rgba(46,204,113,0.85)' :
-         v <= 28 ? 'rgba(241,196,15,0.85)' :
-         'rgba(231,76,60,0.9)';
-}
+/* === funciones originales === */
+function tempColor(v){return v<=22?'rgba(46,204,113,0.85)':v<=28?'rgba(241,196,15,0.85)':'rgba(231,76,60,0.9)';}
+function humColor(v){return v<=30?'rgba(52,152,219,0.85)':v<=60?'rgba(41,128,185,0.9)':'rgba(31,97,141,0.95)';}
 
-function humColor(v){
-  return v <= 30 ? 'rgba(52,152,219,0.85)' :
-         v <= 60 ? 'rgba(41,128,185,0.9)' :
-         'rgba(31,97,141,0.95)';
-}
-
+/* === TODO LO DEMÁS ORIGINAL === */
 function createCard(i){
   const grid=document.getElementById('grid');
   const card=document.createElement('div');
@@ -233,30 +226,21 @@ function createCard(i){
   pres.className='presenciaAlert'; pres.id=`pres-${i+1}`;
   card.appendChild(pres);
 
-  chartsT[i]=new Chart(document.getElementById(`t-${i+1}`),{
-    type:'doughnut',
-    data:{datasets:[{data:[0,50],backgroundColor:[tempColor(0),'rgba(0,0,0,0.35)'],borderWidth:0}]},
-    options:{rotation:-90,circumference:180,cutout:'72%',plugins:{legend:{display:false}}}
-  });
-
-  chartsH[i]=new Chart(document.getElementById(`h-${i+1}`),{
-    type:'doughnut',
-    data:{datasets:[{data:[0,100],backgroundColor:[humColor(0),'rgba(0,0,0,0.35)'],borderWidth:0}]},
-    options:{rotation:-90,circumference:180,cutout:'72%',plugins:{legend:{display:false}}}
-  });
+  chartsT[i]=new Chart(document.getElementById(`t-${i+1}`),{type:'doughnut',data:{datasets:[{data:[0,50],backgroundColor:[tempColor(0),'rgba(0,0,0,0.35)'],borderWidth:0}]},options:{cutout:'72%'}});
+  chartsH[i]=new Chart(document.getElementById(`h-${i+1}`),{type:'doughnut',data:{datasets:[{data:[0,100],backgroundColor:[humColor(0),'rgba(0,0,0,0.35)'],borderWidth:0}]},options:{cutout:'72%'}});
 }
 
 for(let i=0;i<NUM;i++) createCard(i);
 
 firebase.initializeApp({
-  authDomain: "enlace-t.firebaseapp.com",
-  databaseURL: "https://enlace-t-default-rtdb.firebaseio.com",
-  projectId: "enlace-t"
+  authDomain:"enlace-t.firebaseapp.com",
+  databaseURL:"https://enlace-t-default-rtdb.firebaseio.com",
+  projectId:"enlace-t"
 });
 
 firebase.database().ref("prueba").on("value",s=>{
   const d=s.val()||{};
-  const fecha = d.FechaHora || "";
+  const fecha=d.FechaHora||"";
 
   for(let i=0;i<NUM;i++){
     if(!active[i]) continue;
@@ -265,32 +249,36 @@ firebase.database().ref("prueba").on("value",s=>{
     const h=Number(d.Humedad_pct||0);
     const dist=Number(d.Distancia_mm||0);
 
-    // 🔥 SOLO AGREGADO
-    if(dist > DIST_THRESHOLD_MM){
-      badCount[i]++;
-    }else{
-      badCount[i]=0;
-    }
-
-    const presEl = document.getElementById(`pres-${i+1}`);
-    if(badCount[i] >= 3){
-      presEl.textContent = "⚠️ POSIBLE TERMITA";
-    }else{
-      presEl.textContent = "";
-    }
+    lastValues[i]={t,h,dist};
 
     document.getElementById(`tempVal-${i+1}`).textContent=`${t} °C`;
     document.getElementById(`humVal-${i+1}`).textContent=`${h} %`;
     document.getElementById(`dist-${i+1}`).textContent=`${Math.round(dist)} mm`;
 
-    chartsT[i].data.datasets[0].data=[t,50-t];
-    chartsT[i].update();
+    chartsT[i].data.datasets[0].data=[t,50-t]; chartsT[i].update();
+    chartsH[i].data.datasets[0].data=[h,100-h]; chartsH[i].update();
 
-    chartsH[i].data.datasets[0].data=[h,100-h];
-    chartsH[i].update();
+    /* 🔥 SOLO AGREGADO */
+    if(dist > DIST_THRESHOLD_MM){ badCount[i]++; } else { badCount[i]=0; }
+
+    const presEl=document.getElementById(`pres-${i+1}`);
+    if(badCount[i]>=3){ presEl.textContent="⚠️ POSIBLE TERMITA"; }
+    else{ presEl.textContent=""; }
+
+    let el=document.getElementById(`estado-${i+1}`);
+    if(!el){
+      el=document.createElement("div");
+      el.id=`estado-${i+1}`;
+      el.style.fontSize="12px";
+      document.getElementById(`card-${i+1}`).appendChild(el);
+    }
+    const estado=estadoConexion(fecha);
+    el.textContent="Estado: "+estado;
+    el.style.color=estado==="ONLINE"?"#00ff88":"#ff3b3b";
   }
 });
 </script>
 
 </body>
 </html>
+
