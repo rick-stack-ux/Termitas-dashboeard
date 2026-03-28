@@ -174,12 +174,11 @@ canvas{width:110px!important;height:110px!important;}
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
 <script>
-/* ===== LÓGICA FUNCIONAL ORIGINAL ===== */
 const NUM = 5, DIST_THRESHOLD_MM = 40;
 const chartsT = [], chartsH = [], active = [true,false,false,false,false],
       lastValues = Array(NUM).fill(null), badCount = Array(NUM).fill(0);
 
-/* 🔥 AGREGADO */
+/* 🔥 (ya estaba) */
 function estadoConexion(fechaStr){
   if(!fechaStr) return "OFFLINE";
   const partes = fechaStr.split(" ");
@@ -191,14 +190,12 @@ function estadoConexion(fechaStr){
   return ((ahora - fechaDato)/60000)<=5 ? "ONLINE":"OFFLINE";
 }
 
-/* === TEMPERATURA === */
 function tempColor(v){
   return v <= 22 ? 'rgba(46,204,113,0.85)' :
          v <= 28 ? 'rgba(241,196,15,0.85)' :
          'rgba(231,76,60,0.9)';
 }
 
-/* === HUMEDAD === */
 function humColor(v){
   return v <= 30 ? 'rgba(52,152,219,0.85)' :
          v <= 60 ? 'rgba(41,128,185,0.9)' :
@@ -236,12 +233,6 @@ function createCard(i){
   pres.className='presenciaAlert'; pres.id=`pres-${i+1}`;
   card.appendChild(pres);
 
-  card.querySelector(`#toggle-${i+1}`).addEventListener('change',e=>{
-    active[i]=e.target.checked;
-    card.classList.toggle('inactive',!active[i]);
-    updateSummary();
-  });
-
   chartsT[i]=new Chart(document.getElementById(`t-${i+1}`),{
     type:'doughnut',
     data:{datasets:[{data:[0,50],backgroundColor:[tempColor(0),'rgba(0,0,0,0.35)'],borderWidth:0}]},
@@ -255,25 +246,7 @@ function createCard(i){
   });
 }
 
-function updateSummary(){
-  let act=0,alerts=0,sumT=0,sumH=0,count=0;
-  for(let i=0;i<NUM;i++){
-    if(!active[i]) continue;
-    act++;
-    if(!lastValues[i]) continue;
-    sumT+=lastValues[i].t;
-    sumH+=lastValues[i].h;
-    count++;
-    if(lastValues[i].dist>DIST_THRESHOLD_MM) alerts++;
-  }
-  numActivas.textContent=act;
-  numAlertas.textContent=alerts;
-  promTemp.textContent=(count?Math.round(sumT/count):'--')+' °C';
-  promHum.textContent=(count?Math.round(sumH/count):'--')+' %';
-}
-
 for(let i=0;i<NUM;i++) createCard(i);
-updateSummary();
 
 firebase.initializeApp({
   authDomain: "enlace-t.firebaseapp.com",
@@ -283,7 +256,7 @@ firebase.initializeApp({
 
 firebase.database().ref("prueba").on("value",s=>{
   const d=s.val()||{};
-  const fecha = d.FechaHora || ""; // 🔥 agregado
+  const fecha = d.FechaHora || "";
 
   for(let i=0;i<NUM;i++){
     if(!active[i]) continue;
@@ -291,40 +264,33 @@ firebase.database().ref("prueba").on("value",s=>{
     const t=Number(d.Temperatura_C||0);
     const h=Number(d.Humedad_pct||0);
     const dist=Number(d.Distancia_mm||0);
-    lastValues[i]={t,h,dist};
+
+    // 🔥 SOLO AGREGADO
+    if(dist > DIST_THRESHOLD_MM){
+      badCount[i]++;
+    }else{
+      badCount[i]=0;
+    }
+
+    const presEl = document.getElementById(`pres-${i+1}`);
+    if(badCount[i] >= 3){
+      presEl.textContent = "⚠️ POSIBLE TERMITA";
+    }else{
+      presEl.textContent = "";
+    }
 
     document.getElementById(`tempVal-${i+1}`).textContent=`${t} °C`;
     document.getElementById(`humVal-${i+1}`).textContent=`${h} %`;
     document.getElementById(`dist-${i+1}`).textContent=`${Math.round(dist)} mm`;
 
     chartsT[i].data.datasets[0].data=[t,50-t];
-    chartsT[i].data.datasets[0].backgroundColor[0]=tempColor(t);
     chartsT[i].update();
 
     chartsH[i].data.datasets[0].data=[h,100-h];
-    chartsH[i].data.datasets[0].backgroundColor[0]=humColor(h);
     chartsH[i].update();
-
-    // 🔥 agregado (NO rompe nada)
-    const estado = estadoConexion(fecha);
-    let el = document.getElementById(`estado-${i+1}`);
-
-    if(!el){
-      el = document.createElement("div");
-      el.id = `estado-${i+1}`;
-      el.style.fontSize = "12px";
-      el.style.marginTop = "6px";
-      document.getElementById(`card-${i+1}`).appendChild(el);
-    }
-
-    el.textContent = "Estado: " + estado;
-    el.style.color = estado==="ONLINE" ? "#00ff88" : "#ff3b3b";
   }
-
-  updateSummary();
 });
 </script>
 
 </body>
 </html>
-
