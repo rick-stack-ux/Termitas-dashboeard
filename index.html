@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html lang="es">
 <head>
 <meta charset="utf-8" />
@@ -8,7 +9,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
-/* (TODO TU CSS ORIGINAL SIN CAMBIOS) */
+/* ===== MONSTER UI (SOLO APARIENCIA) ===== */
 :root{
   --bg:#FFFFFF;
   --card:#2ECC0F;
@@ -29,20 +30,49 @@ html,body{
 }
 
 .app{max-width:1200px;margin:18px auto;padding:14px;}
-.header-logo{display:flex;justify-content:center;margin-bottom:12px;}
+
+.header-logo{
+  display:flex;
+  justify-content:center;
+  margin-bottom:12px;
+}
 .header-logo img{height:150px;}
+
 .header{text-align:center;margin-bottom:16px;}
 .title h1{margin:0;font-size:20px;}
 .title p{margin:0;color:var(--muted);font-size:13px;}
 
-.summary{display:flex;gap:12px;margin-bottom:18px;flex-wrap:wrap;justify-content:center;}
-.metric{background:var(--card);padding:12px 14px;border-radius:10px;box-shadow:var(--shadow);min-width:140px;text-align:center;}
+.summary{
+  display:flex;
+  gap:12px;
+  margin-bottom:18px;
+  flex-wrap:wrap;
+  justify-content:center;
+}
+.metric{
+  background:var(--card);
+  padding:12px 14px;
+  border-radius:10px;
+  box-shadow:var(--shadow);
+  min-width:140px;
+  text-align:center;
+}
 .metric small{display:block;color:var(--muted);font-size:12px;}
 .metric b{display:block;font-size:18px;margin-top:6px;}
 
-.grid{display:grid;grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));gap:16px;}
+.grid{
+  display:grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap:16px;
+}
 
-.card{background:var(--card);border-radius:12px;padding:14px;box-shadow:var(--shadow);border:2px solid transparent;}
+.card{
+  background:var(--card);
+  border-radius:12px;
+  padding:14px;
+  box-shadow:var(--shadow);
+  border:2px solid transparent;
+}
 .card.alert{border-color:var(--danger);}
 .card.inactive{opacity:.35;filter:grayscale(.1);}
 
@@ -59,26 +89,63 @@ html,body{
   margin:6px 0 8px 0;
 }
 
-.charts{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;padding:6px 0;}
-canvas{width:110px!important;height:110px!important;}
-
-.labels{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;}
-.lbl{font-size:12px;color:rgba(255,255,255,0.85);text-align:center;min-width:95px;}
-.val{font-weight:700;font-size:15px;color:#ffffff;}
-
-.presenciaAlert{
-  font-weight:700;text-align:center;padding:8px 6px;margin-top:8px;
-  border-radius:8px;background:rgba(255,0,0,0.08);
-  color:#ff8a8a;min-height:44px;display:flex;
-  flex-direction:column;justify-content:center;
+.charts{
+  display:flex;
+  gap:10px;
+  justify-content:center;
+  flex-wrap:wrap;
+  padding:6px 0;
 }
 
-.note{margin-top:12px;color:var(--muted);font-size:13px;text-align:center;}
+canvas{width:110px!important;height:110px!important;}
+
+.labels{
+  display:flex;
+  gap:10px;
+  justify-content:center;
+  flex-wrap:wrap;
+}
+
+.lbl{
+  font-size:12px;
+  color:rgba(255,255,255,0.85);
+  text-align:center;
+  min-width:95px;
+}
+
+.val{
+  font-weight:700;
+  font-size:15px;
+  color:#ffffff;
+}
+
+.presenciaAlert{
+  font-weight:700;
+  text-align:center;
+  padding:8px 6px;
+  margin-top:8px;
+  border-radius:8px;
+  background:rgba(255,0,0,0.08);
+  color:#ff8a8a;
+  min-height:44px;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+}
+
+.note{
+  margin-top:12px;
+  color:var(--muted);
+  font-size:13px;
+  text-align:center;
+}
 </style>
+
 </head>
 
 <body>
 <div class="app">
+
   <div class="header-logo">
     <img src="logo.png" alt="IguanaLab">
   </div>
@@ -99,25 +166,43 @@ canvas{width:110px!important;height:110px!important;}
 
   <div class="grid" id="grid"></div>
   <div class="note">Umbral alerta distancia: <b>> 40 mm</b></div>
+
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
 <script>
+/* ===== LÓGICA FUNCIONAL ORIGINAL ===== */
 const NUM = 5, DIST_THRESHOLD_MM = 40;
 const chartsT = [], chartsH = [], active = [true,false,false,false,false],
-      lastValues = Array(NUM).fill(null);
+      lastValues = Array(NUM).fill(null), badCount = Array(NUM).fill(0);
 
-/* 🔥 NUEVO */
+/* 🔥 AGREGADO */
 function estadoConexion(fechaStr){
   if(!fechaStr) return "OFFLINE";
   const partes = fechaStr.split(" ");
   if(partes.length < 2) return "OFFLINE";
   const f = partes[0].split("/");
   const h = partes[1].split(":");
-  const fechaDato = new Date(f[2],f[1]-1,f[0],h[0],h[1],h[2]);
-  return ((new Date()-fechaDato)/60000)<=5 ? "ONLINE":"OFFLINE";
+  const fechaDato = new Date(f[2], f[1]-1, f[0], h[0], h[1], h[2]);
+  const ahora = new Date();
+  return ((ahora - fechaDato)/60000)<=5 ? "ONLINE":"OFFLINE";
+}
+
+/* === TEMPERATURA === */
+function tempColor(v){
+  return v <= 22 ? 'rgba(46,204,113,0.85)' :
+         v <= 28 ? 'rgba(241,196,15,0.85)' :
+         'rgba(231,76,60,0.9)';
+}
+
+/* === HUMEDAD === */
+function humColor(v){
+  return v <= 30 ? 'rgba(52,152,219,0.85)' :
+         v <= 60 ? 'rgba(41,128,185,0.9)' :
+         'rgba(31,97,141,0.95)';
 }
 
 function createCard(i){
@@ -147,21 +232,58 @@ function createCard(i){
   `;
   grid.appendChild(card);
 
-  chartsT[i]=new Chart(document.getElementById(`t-${i+1}`),{type:'doughnut',data:{datasets:[{data:[0,50],backgroundColor:['green','black'],borderWidth:0}]},options:{cutout:'70%'}});
-  chartsH[i]=new Chart(document.getElementById(`h-${i+1}`),{type:'doughnut',data:{datasets:[{data:[0,100],backgroundColor:['blue','black'],borderWidth:0}]},options:{cutout:'70%'}});
+  const pres=document.createElement('div');
+  pres.className='presenciaAlert'; pres.id=`pres-${i+1}`;
+  card.appendChild(pres);
+
+  card.querySelector(`#toggle-${i+1}`).addEventListener('change',e=>{
+    active[i]=e.target.checked;
+    card.classList.toggle('inactive',!active[i]);
+    updateSummary();
+  });
+
+  chartsT[i]=new Chart(document.getElementById(`t-${i+1}`),{
+    type:'doughnut',
+    data:{datasets:[{data:[0,50],backgroundColor:[tempColor(0),'rgba(0,0,0,0.35)'],borderWidth:0}]},
+    options:{rotation:-90,circumference:180,cutout:'72%',plugins:{legend:{display:false}}}
+  });
+
+  chartsH[i]=new Chart(document.getElementById(`h-${i+1}`),{
+    type:'doughnut',
+    data:{datasets:[{data:[0,100],backgroundColor:[humColor(0),'rgba(0,0,0,0.35)'],borderWidth:0}]},
+    options:{rotation:-90,circumference:180,cutout:'72%',plugins:{legend:{display:false}}}
+  });
+}
+
+function updateSummary(){
+  let act=0,alerts=0,sumT=0,sumH=0,count=0;
+  for(let i=0;i<NUM;i++){
+    if(!active[i]) continue;
+    act++;
+    if(!lastValues[i]) continue;
+    sumT+=lastValues[i].t;
+    sumH+=lastValues[i].h;
+    count++;
+    if(lastValues[i].dist>DIST_THRESHOLD_MM) alerts++;
+  }
+  numActivas.textContent=act;
+  numAlertas.textContent=alerts;
+  promTemp.textContent=(count?Math.round(sumT/count):'--')+' °C';
+  promHum.textContent=(count?Math.round(sumH/count):'--')+' %';
 }
 
 for(let i=0;i<NUM;i++) createCard(i);
+updateSummary();
 
 firebase.initializeApp({
-  authDomain:"enlace-t.firebaseapp.com",
-  databaseURL:"https://enlace-t-default-rtdb.firebaseio.com",
-  projectId:"enlace-t"
+  authDomain: "enlace-t.firebaseapp.com",
+  databaseURL: "https://enlace-t-default-rtdb.firebaseio.com",
+  projectId: "enlace-t"
 });
 
 firebase.database().ref("prueba").on("value",s=>{
   const d=s.val()||{};
-  const fecha = d.FechaHora || "";
+  const fecha = d.FechaHora || ""; // 🔥 agregado
 
   for(let i=0;i<NUM;i++){
     if(!active[i]) continue;
@@ -169,33 +291,40 @@ firebase.database().ref("prueba").on("value",s=>{
     const t=Number(d.Temperatura_C||0);
     const h=Number(d.Humedad_pct||0);
     const dist=Number(d.Distancia_mm||0);
+    lastValues[i]={t,h,dist};
 
     document.getElementById(`tempVal-${i+1}`).textContent=`${t} °C`;
     document.getElementById(`humVal-${i+1}`).textContent=`${h} %`;
-    document.getElementById(`dist-${i+1}`).textContent=`${dist} mm`;
+    document.getElementById(`dist-${i+1}`).textContent=`${Math.round(dist)} mm`;
 
     chartsT[i].data.datasets[0].data=[t,50-t];
+    chartsT[i].data.datasets[0].backgroundColor[0]=tempColor(t);
     chartsT[i].update();
 
     chartsH[i].data.datasets[0].data=[h,100-h];
+    chartsH[i].data.datasets[0].backgroundColor[0]=humColor(h);
     chartsH[i].update();
 
-    /* 🔥 AGREGADO SEGURO */
+    // 🔥 agregado (NO rompe nada)
     const estado = estadoConexion(fecha);
     let el = document.getElementById(`estado-${i+1}`);
 
     if(!el){
       el = document.createElement("div");
       el.id = `estado-${i+1}`;
-      el.style.fontSize="12px";
-      el.style.marginTop="6px";
+      el.style.fontSize = "12px";
+      el.style.marginTop = "6px";
       document.getElementById(`card-${i+1}`).appendChild(el);
     }
 
     el.textContent = "Estado: " + estado;
     el.style.color = estado==="ONLINE" ? "#00ff88" : "#ff3b3b";
   }
+
+  updateSummary();
 });
 </script>
+
 </body>
 </html>
+
