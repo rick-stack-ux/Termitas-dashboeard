@@ -73,7 +73,7 @@ html,body{
   border:2px solid transparent;
 }
 
-/* 🔥 MEJORA ALERTA */
+/* 🔥 SOLO MEJORA ALERTA */
 .card.alert{
   border-color:#ff0000 !important;
   box-shadow:0 0 15px rgba(255,0,0,0.7);
@@ -124,9 +124,9 @@ canvas{width:110px!important;height:110px!important;}
   color:#ffffff;
 }
 
-/* 🔥 TEXTO ALERTA MEJORADO */
+/* 🔥 SOLO CAMBIO COLOR ALERTA */
 .presenciaAlert{
-  font-weight:900;
+  font-weight:700;
   text-align:center;
   padding:8px 6px;
   margin-top:8px;
@@ -247,6 +247,12 @@ function createCard(i){
   pres.className='presenciaAlert'; pres.id=`pres-${i+1}`;
   card.appendChild(pres);
 
+  card.querySelector(`#toggle-${i+1}`).addEventListener('change',e=>{
+    active[i]=e.target.checked;
+    card.classList.toggle('inactive',!active[i]);
+    updateSummary();
+  });
+
   chartsT[i]=new Chart(document.getElementById(`t-${i+1}`),{
     type:'doughnut',
     data:{datasets:[{data:[0,100],backgroundColor:[tempColor(0),'rgba(0,0,0,0.35)'],borderWidth:0}]},
@@ -260,7 +266,25 @@ function createCard(i){
   });
 }
 
+function updateSummary(){
+  let act=0,alerts=0,sumT=0,sumH=0,count=0;
+  for(let i=0;i<NUM;i++){
+    if(!active[i]) continue;
+    act++;
+    if(!lastValues[i]) continue;
+    sumT+=lastValues[i].t;
+    sumH+=lastValues[i].h;
+    count++;
+    if(lastValues[i].dist>DIST_THRESHOLD_MM) alerts++;
+  }
+  numActivas.textContent=act;
+  numAlertas.textContent=alerts;
+  promTemp.textContent=(count?Math.round(sumT/count):'--')+' °C';
+  promHum.textContent=(count?Math.round(sumH/count):'--')+' %';
+}
+
 for(let i=0;i<NUM;i++) createCard(i);
+updateSummary();
 
 firebase.initializeApp({
   authDomain: "enlace-t.firebaseapp.com",
@@ -278,6 +302,10 @@ firebase.database().ref("prueba").on("value",s=>{
     if(i!==0){
       document.getElementById(`estado-${i+1}`).textContent="🔴 OFFLINE";
       document.getElementById(`wifi-${i+1}`).textContent="📶 --";
+      document.getElementById(`tempVal-${i+1}`).textContent="-- °C";
+      document.getElementById(`humVal-${i+1}`).textContent="-- %";
+      document.getElementById(`dist-${i+1}`).textContent="--";
+      document.getElementById(`pres-${i+1}`).textContent="";
       continue;
     }
 
@@ -296,10 +324,10 @@ firebase.database().ref("prueba").on("value",s=>{
     const cardEl = document.getElementById(`card-${i+1}`);
 
     if(badCount[i]>=3){
-      presEl.textContent="🚨 POSIBLE TERMITA";
+      presEl.textContent = "🚨 POSIBLE TERMITA";
       cardEl.classList.add("alert");
     }else{
-      presEl.textContent="";
+      presEl.textContent = "";
       cardEl.classList.remove("alert");
     }
 
@@ -314,10 +342,18 @@ firebase.database().ref("prueba").on("value",s=>{
     const pct=Math.min((t/tempMax)*100,100);
 
     chartsT[i].data.datasets[0].data=[pct,100-pct];
+    chartsT[i].data.datasets[0].backgroundColor[0]=tempColor(t);
+    chartsT[i].update();
+
     chartsH[i].data.datasets[0].data=[h,100-h];
+    chartsH[i].data.datasets[0].backgroundColor[0]=humColor(h);
+    chartsH[i].update();
   }
+
+  updateSummary();
 });
 </script>
 
 </body>
 </html>
+
