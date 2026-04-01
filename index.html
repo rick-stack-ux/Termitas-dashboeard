@@ -38,15 +38,18 @@
 .sidebar{
   position:fixed;
   top:0;
-  right:-350px;
-  width:320px;
+  right:-320px;
+  width:300px;
   height:100%;
-  background:#ffffff;
-  color:#333;
-  box-shadow:-5px 0 25px rgba(0,0,0,0.3);
+  background:rgba(46,204,15,0.95);
+  backdrop-filter:blur(10px);
+  color:#fff;
+  box-shadow:-5px 0 20px rgba(0,0,0,0.4);
   padding:20px;
   transition:0.3s ease;
   z-index:1002;
+  border-top-left-radius:15px;
+  border-bottom-left-radius:15px;
 }
 
 .sidebar.active{ right:0; }
@@ -58,6 +61,7 @@
   width:100%;
   height:100%;
   background:rgba(0,0,0,0.4);
+  backdrop-filter:blur(3px);
   opacity:0;
   visibility:hidden;
   transition:0.3s;
@@ -69,14 +73,29 @@
   visibility:visible;
 }
 
-#chartContainer{
-  background:#fff;
+.sidebar h2{
+  margin-top:0;
+}
+
+.menu-section{
+  margin-top:20px;
+  padding:12px;
+  background:rgba(0,0,0,0.2);
   border-radius:10px;
-  padding:10px;
+}
+
+.menu-section h3{
+  margin:0 0 8px 0;
+  font-size:14px;
+}
+
+.menu-section p{
+  margin:0;
+  font-size:13px;
+  color:var(--muted);
 }
 /* ===== FIN MENU ===== */
 
-/* ===== TU CSS ORIGINAL ===== */
 html,body{
   margin:0;
   padding:0;
@@ -207,25 +226,40 @@ canvas{width:110px!important;height:110px!important;}
 
 <body>
 
-<!-- MENU -->
+<!-- BOTON MENU -->
 
 <button class="menu-btn" onclick="toggleMenu()">☰</button>
 
+<!-- OVERLAY -->
+
 <div class="overlay" id="overlay" onclick="toggleMenu()"></div>
 
+<!-- SIDEBAR -->
+
 <div class="sidebar" id="sidebar">
-  <h2>📊 Comportamiento</h2>
-  <div id="chartContainer">
-    <canvas id="graficoMes"></canvas>
+  <h2>Menú</h2>
+
+  <div class="menu-section">
+    <h3>📊 Historial</h3>
+    <p>Datos semanales de cada sonda (próximamente).</p>
   </div>
 
-  <h3 style="margin-top:20px;">📧 Soporte</h3>
-  <p>soporte@tudominio.cl</p>
+  <div class="menu-section">
+    <h3>❓ Ayuda</h3>
+    <p>
+      🌡 Temperatura: mide el calor ambiente.<br>
+      💧 Humedad: porcentaje de humedad.<br>
+      📏 Distancia: detección en milímetros.
+    </p>
+  </div>
+
+  <div class="menu-section">
+    <h3>📧 Soporte</h3>
+    <p id="correoSoporte">soporte@tudominio.cl</p>
+  </div>
 </div>
 
 <div class="app">
-
-  <!-- TODO TU HTML ORIGINAL SIGUE IGUAL -->
 
   <div class="header-logo">
     <img src="logo.png" alt="IguanaLab">
@@ -252,8 +286,8 @@ canvas{width:110px!important;height:110px!important;}
 
 <script>
 function toggleMenu(){
-  sidebar.classList.toggle("active");
-  overlay.classList.toggle("active");
+  document.getElementById("sidebar").classList.toggle("active");
+  document.getElementById("overlay").classList.toggle("active");
 }
 </script>
 
@@ -262,8 +296,6 @@ function toggleMenu(){
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
 <script>
-
-/* ===== TU CODIGO ORIGINAL (NO TOCADO) ===== */
 
 function estadoConexion(fechaStr){
   if(!fechaStr) return "OFFLINE";
@@ -277,74 +309,165 @@ function estadoConexion(fechaStr){
   return diffMin <= 1.5 ? "ONLINE" : "OFFLINE";
 }
 
-/* TODO TODO TU CODIGO ORIGINAL COMPLETO AQUI (sin cambios) */
+const NUM = 5, DIST_THRESHOLD_MM = 40;
+const chartsT = [], chartsH = [], active = [true,false,false,false,false],
+      lastValues = Array(NUM).fill(null), badCount = Array(NUM).fill(0);
 
-/* ===== HISTORIAL NIVEL INGENIERO ===== */
-
-const datosPorDia = {};
-const LIMITE = 40;
-
-function procesar(d){
-  if(!d || !d.FechaHora) return;
-
-  const dia = parseInt(d.FechaHora.split(" ")[0].split("/")[0]);
-
-  if(!datosPorDia[dia]){
-    datosPorDia[dia]={t:[],h:[],dist:[]};
-  }
-
-  datosPorDia[dia].t.push(Number(d.Temperatura_C||0));
-  datosPorDia[dia].h.push(Number(d.Humedad_pct||0));
-  datosPorDia[dia].dist.push(Number(d.Distancia_mm||0));
+function tempColor(v){
+  return v <= 22 ? 'rgba(46,204,113,0.85)' :
+         v <= 28 ? 'rgba(241,196,15,0.85)' :
+         'rgba(231,76,60,0.9)';
 }
 
-function prom(arr){
-  return Math.round(arr.reduce((a,b)=>a+b,0)/arr.length);
+function humColor(v){
+  return v <= 30 ? 'rgba(52,152,219,0.85)' :
+         v <= 60 ? 'rgba(41,128,185,0.9)' :
+         'rgba(31,97,141,0.95)';
 }
 
-function generar(){
-  let dias=[],t=[],h=[],d=[];
-  for(let i=1;i<=31;i++){
-    dias.push(i);
-    if(datosPorDia[i]){
-      t.push(prom(datosPorDia[i].t));
-      h.push(prom(datosPorDia[i].h));
-      d.push(prom(datosPorDia[i].dist));
-    }else{
-      t.push(null);h.push(null);d.push(null);
-    }
-  }
-  return {dias,t,h,d};
+function createCard(i){
+  const grid=document.getElementById('grid');
+  const card=document.createElement('div');
+  card.className='card'; card.id=`card-${i+1}`;
+  if(!active[i]) card.classList.add('inactive');
+
+  card.innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+      <div class="sonda-title">Sonda ${i+1}</div>
+      <div style="text-align:right;font-size:12px;">
+        <div id="estado-${i+1}">🔴 OFFLINE</div>
+        <div id="wifi-${i+1}">📶 --</div>
+      </div>
+    </div>
+
+    <div class="tog">
+      <label><input type="checkbox" id="toggle-${i+1}" ${active[i]?'checked':''}> Activar</label>
+      <div style="flex:1"></div>
+      <div style="font-size:12px;color:var(--muted)">Dist: <span id="dist-${i+1}">--</span></div>
+    </div>
+
+    <div class="meter-box">
+      <div class="charts">
+        <canvas id="t-${i+1}"></canvas>
+        <canvas id="h-${i+1}"></canvas>
+      </div>
+      <div class="labels">
+        <div class="lbl">Temperatura<div class="val" id="tempVal-${i+1}">-- °C</div></div>
+        <div class="lbl">Humedad<div class="val" id="humVal-${i+1}">-- %</div></div>
+      </div>
+    </div>
+  `;
+  grid.appendChild(card);
+
+  const pres=document.createElement('div');
+  pres.className='presenciaAlert'; pres.id=`pres-${i+1}`;
+  card.appendChild(pres);
+
+  card.querySelector(`#toggle-${i+1}`).addEventListener('change',e=>{
+    active[i]=e.target.checked;
+    card.classList.toggle('inactive',!active[i]);
+    updateSummary();
+  });
+
+  chartsT[i]=new Chart(document.getElementById(`t-${i+1}`),{
+    type:'doughnut',
+    data:{datasets:[{data:[0,100],backgroundColor:[tempColor(0),'rgba(0,0,0,0.35)'],borderWidth:0}]},
+    options:{rotation:-90,circumference:180,cutout:'72%',plugins:{legend:{display:false}}}
+  });
+
+  chartsH[i]=new Chart(document.getElementById(`h-${i+1}`),{
+    type:'doughnut',
+    data:{datasets:[{data:[0,100],backgroundColor:[humColor(0),'rgba(0,0,0,0.35)'],borderWidth:0}]},
+    options:{rotation:-90,circumference:180,cutout:'72%',plugins:{legend:{display:false}}}
+  });
 }
 
-const chart = new Chart(document.getElementById("graficoMes"),{
-  type:"line",
-  data:{
-    labels:[],
-    datasets:[
-      {label:"📏 Distancia",data:[],borderWidth:3},
-      {label:"🌡 Temp",data:[],borderWidth:1},
-      {label:"💧 Hum",data:[],borderWidth:1},
-      {label:"🚨 Límite",data:Array(31).fill(LIMITE),borderDash:[5,5]}
-    ]
+function updateSummary(){
+  let act=0,alerts=0,sumT=0,sumH=0,count=0;
+  for(let i=0;i<NUM;i++){
+    if(!active[i]) continue;
+    act++;
+    if(!lastValues[i]) continue;
+    sumT+=lastValues[i].t;
+    sumH+=lastValues[i].h;
+    count++;
+    if(lastValues[i].dist>DIST_THRESHOLD_MM) alerts++;
   }
+  numActivas.textContent=act;
+  numAlertas.textContent=alerts;
+  promTemp.textContent=(count?Math.round(sumT/count):'--')+' °C';
+  promHum.textContent=(count?Math.round(sumH/count):'--')+' %';
+}
+
+for(let i=0;i<NUM;i++) createCard(i);
+updateSummary();
+
+firebase.initializeApp({
+  authDomain: "enlace-t.firebaseapp.com",
+  databaseURL: "https://enlace-t-default-rtdb.firebaseio.com",
+  projectId: "enlace-t"
 });
 
 firebase.database().ref("prueba").on("value",s=>{
-  const d=s.val();
+  const d=s.val()||{};
+  const estado = estadoConexion(d.FechaHora);
 
-  procesar(d);
+  for(let i=0;i<NUM;i++){
+    if(!active[i]) continue;
 
-  const r=generar();
+    if(i!==0){
+      document.getElementById(`estado-${i+1}`).textContent="🔴 OFFLINE";
+      document.getElementById(`wifi-${i+1}`).textContent="📶 --";
+      document.getElementById(`tempVal-${i+1}`).textContent="-- °C";
+      document.getElementById(`humVal-${i+1}`).textContent="-- %";
+      document.getElementById(`dist-${i+1}`).textContent="--";
+      document.getElementById(`pres-${i+1}`).textContent="";
+      continue;
+    }
 
-  chart.data.labels=r.dias;
-  chart.data.datasets[0].data=r.d;
-  chart.data.datasets[1].data=r.t;
-  chart.data.datasets[2].data=r.h;
+    const t=Number(d.Temperatura_C||0);
+    const h=Number(d.Humedad_pct||0);
+    const dist=Number(d.Distancia_mm||0);
+    lastValues[i]={t,h,dist};
 
-  chart.update();
+    if(dist > DIST_THRESHOLD_MM){
+      badCount[i]++;
+    }else{
+      badCount[i]=0;
+    }
+
+    const presEl = document.getElementById(`pres-${i+1}`);
+    const cardEl = document.getElementById(`card-${i+1}`);
+
+    if(badCount[i]>=3){
+      presEl.textContent = "🚨 POSIBLE TERMITA";
+      cardEl.classList.add("alert");
+    }else{
+      presEl.textContent = "";
+      cardEl.classList.remove("alert");
+    }
+
+    document.getElementById(`tempVal-${i+1}`).textContent=`${t} °C`;
+    document.getElementById(`humVal-${i+1}`).textContent=`${h} %`;
+    document.getElementById(`dist-${i+1}`).textContent=`${Math.round(dist)} mm`;
+
+    document.getElementById(`estado-${i+1}`).textContent = estado==="ONLINE"?"🟢 ONLINE":"🔴 OFFLINE";
+    document.getElementById(`wifi-${i+1}`).textContent = estado==="ONLINE"?"📶 Conectado":"📶 Sin señal";
+
+    const tempMax=50;
+    const pct=Math.min((t/tempMax)*100,100);
+
+    chartsT[i].data.datasets[0].data=[pct,100-pct];
+    chartsT[i].data.datasets[0].backgroundColor[0]=tempColor(t);
+    chartsT[i].update();
+
+    chartsH[i].data.datasets[0].data=[h,100-h];
+    chartsH[i].data.datasets[0].backgroundColor[0]=humColor(h);
+    chartsH[i].update();
+  }
+
+  updateSummary();
 });
-
 </script>
 
 </body>
