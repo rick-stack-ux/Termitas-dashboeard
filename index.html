@@ -354,46 +354,74 @@ firebase.database().ref("prueba").on("value",s=>{
 });
 </script>
 
-<!-- ===== 🔥 SOLO AGREGADO (NO TOCA NADA ARRIBA) ===== -->
+<!-- ===== 🔥 SOLO AGREGADO (MENU PRO + ZOOM) ===== -->
+
+<style>
+.menu-pro{
+  position:fixed; top:60px; right:15px; width:240px;
+  background:rgba(46,204,15,0.95);
+  backdrop-filter:blur(10px);
+  border-radius:14px;
+  box-shadow:0 10px 25px rgba(0,0,0,0.4);
+  padding:10px;
+  display:none;
+  transform:scale(0.9);
+  opacity:0;
+  transition:all 0.25s ease;
+}
+.menu-pro.active{ display:block; transform:scale(1); opacity:1; }
+.menu-item{ padding:10px; border-radius:10px; cursor:pointer; }
+.menu-item:hover{ background:rgba(0,0,0,0.2); }
+
+.panel-pro{
+  position:fixed; top:100px; right:15px; width:340px;
+  background:rgba(46,204,15,0.95);
+  backdrop-filter:blur(10px);
+  border-radius:16px;
+  box-shadow:0 15px 30px rgba(0,0,0,0.5);
+  padding:15px;
+  display:none;
+  transform:scale(0.9);
+  opacity:0;
+  transition:all 0.25s ease;
+}
+.panel-pro.active{ display:block; transform:scale(1); opacity:1; }
+</style>
 
 <button id="btnMenu" style="position:fixed;top:15px;right:15px;">☰</button>
 
-<div id="menuBox" style="position:fixed;top:60px;right:15px;background:var(--card);padding:10px;border-radius:10px;display:none;">
-  <div onclick="abrirSeccion('historial')">📊 Historial sonda</div>
-  <div onclick="abrirSeccion('ayuda')">❓ Ayuda</div>
-  <div onclick="abrirSeccion('soporte')">📧 Soporte</div>
+<div id="menuPro" class="menu-pro">
+  <div class="menu-item" onclick="abrirSeccion('historial')">📊 Historial</div>
+  <div class="menu-item" onclick="abrirSeccion('ayuda')">❓ Ayuda</div>
+  <div class="menu-item" onclick="abrirSeccion('soporte')">📧 Soporte</div>
 </div>
 
-<div id="panelMenu" style="position:fixed;top:100px;right:15px;background:var(--card);padding:10px;border-radius:10px;display:none;"></div>
+<div id="panelPro" class="panel-pro"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
 
 <script>
-
 document.getElementById("btnMenu").onclick = ()=>{
-  const m = document.getElementById("menuBox");
-  m.style.display = m.style.display==="block"?"none":"block";
+  document.getElementById("menuPro").classList.toggle("active");
 };
 
-document.addEventListener("click", function(e){
-  const m = document.getElementById("menuBox");
-  const p = document.getElementById("panelMenu");
-  const b = document.getElementById("btnMenu");
-
-  if(!m.contains(e.target) && !b.contains(e.target) && !p.contains(e.target)){
-    m.style.display="none";
-    p.style.display="none";
+document.addEventListener("click",(e)=>{
+  const m=document.getElementById("menuPro");
+  const p=document.getElementById("panelPro");
+  const b=document.getElementById("btnMenu");
+  if(!m.contains(e.target)&&!b.contains(e.target)&&!p.contains(e.target)){
+    m.classList.remove("active");
+    p.classList.remove("active");
   }
 });
 
 function abrirSeccion(tipo){
-
-  const p = document.getElementById("panelMenu");
-  p.style.display="block";
+  const p=document.getElementById("panelPro");
+  p.classList.add("active");
 
   if(tipo==="historial"){
     p.innerHTML='<canvas id="g"></canvas>';
-
     const labels=[],data=[];
-
     firebase.database().ref("historial").once("value",snap=>{
       snap.forEach(c=>{
         const d=c.val();
@@ -401,16 +429,23 @@ function abrirSeccion(tipo){
         labels.push(d.FechaHora.split(" ")[1]);
         data.push(Number(d.Distancia_mm||0));
       });
-
       new Chart(document.getElementById("g"),{
         type:"bar",
-        data:{labels:labels,datasets:[{label:"Distancia (mm)",data:data}]}
+        data:{labels:labels,datasets:[{label:"Distancia (mm)",data:data}]},
+        options:{
+          plugins:{
+            zoom:{
+              zoom:{wheel:{enabled:true},pinch:{enabled:true},mode:"x"},
+              pan:{enabled:true,mode:"x"}
+            }
+          }
+        }
       });
     });
   }
 
   if(tipo==="ayuda"){
-    p.innerHTML='Sonda monitorea el subsuelo para detectar termitas mediante cambios en distancia (VLX), humedad y temperatura.';
+    p.innerHTML='Distancia (VLX): mm del subsuelo.<br>Temperatura y humedad: condiciones.<br>Objetivo: detectar termitas.';
   }
 
   if(tipo==="soporte"){
@@ -423,8 +458,8 @@ function guardar(){
   localStorage.setItem("correo",document.getElementById("c").value);
   alert("Guardado");
 }
-
 </script>
 
 </body>
 </html>
+
