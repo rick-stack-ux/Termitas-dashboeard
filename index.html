@@ -19,6 +19,83 @@
   --shadow:0 8px 20px rgba(0,0,0,0.35);
 }
 
+/* ===== MENU NUEVO ===== */
+.menu-btn{
+  position:fixed;
+  top:15px;
+  right:15px;
+  font-size:22px;
+  background:var(--card);
+  color:#fff;
+  border:none;
+  border-radius:8px;
+  padding:8px 12px;
+  cursor:pointer;
+  z-index:1001;
+  box-shadow:var(--shadow);
+}
+
+.sidebar{
+  position:fixed;
+  top:0;
+  right:-320px;
+  width:300px;
+  height:100%;
+  background:rgba(46,204,15,0.95);
+  backdrop-filter:blur(10px);
+  color:#fff;
+  box-shadow:-5px 0 20px rgba(0,0,0,0.4);
+  padding:20px;
+  transition:0.3s ease;
+  z-index:1002;
+  border-top-left-radius:15px;
+  border-bottom-left-radius:15px;
+}
+
+.sidebar.active{ right:0; }
+
+.overlay{
+  position:fixed;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+  background:rgba(0,0,0,0.4);
+  backdrop-filter:blur(3px);
+  opacity:0;
+  visibility:hidden;
+  transition:0.3s;
+  z-index:1000;
+}
+
+.overlay.active{
+  opacity:1;
+  visibility:visible;
+}
+
+.sidebar h2{
+  margin-top:0;
+}
+
+.menu-section{
+  margin-top:20px;
+  padding:12px;
+  background:rgba(0,0,0,0.2);
+  border-radius:10px;
+}
+
+.menu-section h3{
+  margin:0 0 8px 0;
+  font-size:14px;
+}
+
+.menu-section p{
+  margin:0;
+  font-size:13px;
+  color:var(--muted);
+}
+/* ===== FIN MENU ===== */
+
 html,body{
   margin:0;
   padding:0;
@@ -148,6 +225,40 @@ canvas{width:110px!important;height:110px!important;}
 </head>
 
 <body>
+
+<!-- BOTON MENU -->
+
+<button class="menu-btn" onclick="toggleMenu()">☰</button>
+
+<!-- OVERLAY -->
+
+<div class="overlay" id="overlay" onclick="toggleMenu()"></div>
+
+<!-- SIDEBAR -->
+
+<div class="sidebar" id="sidebar">
+  <h2>Menú</h2>
+
+  <div class="menu-section">
+    <h3>📊 Historial</h3>
+    <p>Datos semanales de cada sonda (próximamente).</p>
+  </div>
+
+  <div class="menu-section">
+    <h3>❓ Ayuda</h3>
+    <p>
+      🌡 Temperatura: mide el calor ambiente.<br>
+      💧 Humedad: porcentaje de humedad.<br>
+      📏 Distancia: detección en milímetros.
+    </p>
+  </div>
+
+  <div class="menu-section">
+    <h3>📧 Soporte</h3>
+    <p id="correoSoporte">soporte@tudominio.cl</p>
+  </div>
+</div>
+
 <div class="app">
 
   <div class="header-logo">
@@ -173,7 +284,15 @@ canvas{width:110px!important;height:110px!important;}
 
 </div>
 
+<script>
+function toggleMenu(){
+  document.getElementById("sidebar").classList.toggle("active");
+  document.getElementById("overlay").classList.toggle("active");
+}
+</script>
+
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
 <script>
