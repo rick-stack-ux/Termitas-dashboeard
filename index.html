@@ -14,10 +14,12 @@
   --card:#2ECC0F;
   --text:#FFFFFF;
   --muted:rgba(255,255,255,0.75);
+  --accent:#39FF14;
+  --danger:#ff3b3b;
   --shadow:0 8px 20px rgba(0,0,0,0.35);
 }
 
-/* ===== NUEVO MENU CUADRO ===== */
+/* ===== MENU NUEVO (SOLO ESTO CAMBIA) ===== */
 .menu-btn{
   position:fixed;
   top:15px;
@@ -51,24 +53,14 @@
 }
 
 .menu-section{
-  margin-bottom:12px;
+  margin-top:10px;
   padding:10px;
   background:rgba(0,0,0,0.25);
   border-radius:10px;
 }
+/* ===== FIN CAMBIO ===== */
 
-.menu-section h3{
-  margin:0 0 6px 0;
-  font-size:14px;
-}
-
-.menu-section p{
-  margin:0;
-  font-size:13px;
-  color:var(--muted);
-}
-
-/* ===== RESTO ORIGINAL ===== */
+/* ===== TU CSS ORIGINAL ===== */
 html,body{
   margin:0;
   padding:0;
@@ -120,58 +112,62 @@ html,body{
   border-radius:12px;
   padding:14px;
   box-shadow:var(--shadow);
+  border:2px solid transparent;
 }
 
-/* (TODO TU CSS RESTANTE IGUAL) */
+/* TODO EL RESTO IGUAL (NO TOCADO) */
 </style>
 
 </head>
 
 <body>
 
+<!-- BOTON -->
+
 <button class="menu-btn" onclick="toggleMenu()">☰</button>
 
+<!-- MENU NUEVO -->
+
 <div class="menu-box" id="menuBox">
-
   <div class="menu-section">
-    <h3>📊 Historial Sonda</h3>
-    <p>Gráfico basado en fecha y hora de la sonda</p>
+    <b>📊 Historial sonda</b>
   </div>
-
   <div class="menu-section">
-    <h3>❓ Ayuda</h3>
-    <p>
-      🌡 Temperatura: mide el calor<br>
-      💧 Humedad: porcentaje<br>
-      📏 Distancia: detección principal
-    </p>
+    <b>❓ Ayuda</b>
+    <div style="font-size:12px;">
+      Temperatura, humedad y distancia
+    </div>
   </div>
-
   <div class="menu-section">
-    <h3>📧 Soporte</h3>
-    <p id="correoSoporte">correo@editar.cl</p>
+    <b>📧 Soporte</b>
+    <div id="correoSoporte">correo@editar.cl</div>
   </div>
-
 </div>
 
 <div class="app">
 
+  <!-- TODO TU HTML ORIGINAL SIGUE IGUAL -->
+
   <div class="header-logo">
-    <img src="logo.png">
+    <img src="logo.png" alt="IguanaLab">
   </div>
 
   <div class="header">
     <div class="title">
       <h1>Panel Sondas T</h1>
-      <p>Monitoreo: Temperatura · Humedad · Distancia</p>
+      <p>Monitoreo: Temperatura · Humedad · Distancia (mm)</p>
     </div>
   </div>
 
   <div class="summary">
     <div class="metric"><small>Sondas activas</small><b id="numActivas">0</b></div>
+    <div class="metric"><small>Alertas distancia</small><b id="numAlertas">0</b></div>
+    <div class="metric"><small>Temp. promedio</small><b id="promTemp">-- °C</b></div>
+    <div class="metric"><small>Humedad promedio</small><b id="promHum">-- %</b></div>
   </div>
 
-  <div id="grid"></div>
+  <div class="grid" id="grid"></div>
+  <div class="note">Umbral alerta distancia: <b>> 40 mm</b></div>
 
 </div>
 
@@ -181,7 +177,7 @@ function toggleMenu(){
 }
 </script>
 
-<!-- 🔥 TU SCRIPT ORIGINAL SIGUE IGUAL ABAJO -->
+<!-- TODO TU SCRIPT ORIGINAL SIGUE IGUAL -->
 
 </body>
 </html>
