@@ -19,48 +19,6 @@
   --shadow:0 8px 20px rgba(0,0,0,0.35);
 }
 
-/* ===== 🔥 MENU AGREGADO (NO TOCA NADA EXISTENTE) ===== */
-.menu-btn{
-  position:fixed;
-  top:15px;
-  right:15px;
-  font-size:22px;
-  background:var(--card);
-  color:#fff;
-  border:none;
-  border-radius:8px;
-  padding:8px 12px;
-  cursor:pointer;
-  z-index:1001;
-  box-shadow:var(--shadow);
-}
-
-.menu-box{
-  position:fixed;
-  top:60px;
-  right:15px;
-  width:260px;
-  background:var(--card);
-  border-radius:12px;
-  box-shadow:var(--shadow);
-  padding:12px;
-  display:none;
-  z-index:1002;
-}
-
-.menu-box.active{
-  display:block;
-}
-
-.menu-section{
-  margin-bottom:10px;
-  padding:10px;
-  background:rgba(0,0,0,0.25);
-  border-radius:10px;
-  font-size:13px;
-}
-/* ===== FIN MENU ===== */
-
 html,body{
   margin:0;
   padding:0;
@@ -115,6 +73,7 @@ html,body{
   border:2px solid transparent;
 }
 
+/* 🔥 SOLO MEJORA ALERTA */
 .card.alert{
   border-color:#ff0000 !important;
   box-shadow:0 0 15px rgba(255,0,0,0.7);
@@ -165,6 +124,7 @@ canvas{width:110px!important;height:110px!important;}
   color:#ffffff;
 }
 
+/* 🔥 SOLO CAMBIO COLOR ALERTA */
 .presenciaAlert{
   font-weight:700;
   text-align:center;
@@ -190,22 +150,7 @@ canvas{width:110px!important;height:110px!important;}
 </head>
 
 <body>
-
-<!-- 🔥 BOTON -->
-
-<button class="menu-btn" onclick="toggleMenu()">☰</button>
-
-<!-- 🔥 MENU -->
-
-<div class="menu-box" id="menuBox">
-  <div class="menu-section">📊 Historial sonda</div>
-  <div class="menu-section">❓ Ayuda</div>
-  <div class="menu-section">📧 Soporte: correo@editar.cl</div>
-</div>
-
 <div class="app">
-
-  <!-- TODO TU CODIGO ORIGINAL SIGUE IGUAL DESDE AQUI -->
 
   <div class="header-logo">
     <img src="logo.png" alt="IguanaLab">
@@ -230,20 +175,183 @@ canvas{width:110px!important;height:110px!important;}
 
 </div>
 
-<script>
-function toggleMenu(){
-  document.getElementById("menuBox").classList.toggle("active");
-}
-</script>
-
-<!-- 🔥 TODO TU SCRIPT ORIGINAL SIGUE IGUAL ABAJO -->
-
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
 <script>
-/* TODO TU CODIGO ORIGINAL SIN CAMBIOS */
+
+function estadoConexion(fechaStr){
+  if(!fechaStr) return "OFFLINE";
+  const p = fechaStr.split(" ");
+  if(p.length < 2) return "OFFLINE";
+  const f = p[0].split("/");
+  const h = p[1].split(":");
+  const fechaDato = new Date(f[2], f[1]-1, f[0], h[0], h[1], h[2]);
+  const ahora = new Date();
+  const diffMin = (ahora - fechaDato)/60000;
+  return diffMin <= 5 ? "ONLINE" : "OFFLINE";
+}
+
+const NUM = 5, DIST_THRESHOLD_MM = 40;
+const chartsT = [], chartsH = [], active = [true,false,false,false,false],
+      lastValues = Array(NUM).fill(null), badCount = Array(NUM).fill(0);
+
+function tempColor(v){
+  return v <= 22 ? 'rgba(46,204,113,0.85)' :
+         v <= 28 ? 'rgba(241,196,15,0.85)' :
+         'rgba(231,76,60,0.9)';
+}
+
+function humColor(v){
+  return v <= 30 ? 'rgba(52,152,219,0.85)' :
+         v <= 60 ? 'rgba(41,128,185,0.9)' :
+         'rgba(31,97,141,0.95)';
+}
+
+function createCard(i){
+  const grid=document.getElementById('grid');
+  const card=document.createElement('div');
+  card.className='card'; card.id=`card-${i+1}`;
+  if(!active[i]) card.classList.add('inactive');
+
+  card.innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+      <div class="sonda-title">Sonda ${i+1}</div>
+      <div style="text-align:right;font-size:12px;">
+        <div id="estado-${i+1}">🔴 OFFLINE</div>
+        <div id="wifi-${i+1}">📶 --</div>
+      </div>
+    </div>
+
+    <div class="tog">
+      <label><input type="checkbox" id="toggle-${i+1}" ${active[i]?'checked':''}> Activar</label>
+      <div style="flex:1"></div>
+      <div style="font-size:12px;color:var(--muted)">Dist: <span id="dist-${i+1}">--</span></div>
+    </div>
+
+    <div class="meter-box">
+      <div class="charts">
+        <canvas id="t-${i+1}"></canvas>
+        <canvas id="h-${i+1}"></canvas>
+      </div>
+      <div class="labels">
+        <div class="lbl">Temperatura<div class="val" id="tempVal-${i+1}">-- °C</div></div>
+        <div class="lbl">Humedad<div class="val" id="humVal-${i+1}">-- %</div></div>
+      </div>
+    </div>
+  `;
+  grid.appendChild(card);
+
+  const pres=document.createElement('div');
+  pres.className='presenciaAlert'; pres.id=`pres-${i+1}`;
+  card.appendChild(pres);
+
+  card.querySelector(`#toggle-${i+1}`).addEventListener('change',e=>{
+    active[i]=e.target.checked;
+    card.classList.toggle('inactive',!active[i]);
+    updateSummary();
+  });
+
+  chartsT[i]=new Chart(document.getElementById(`t-${i+1}`),{
+    type:'doughnut',
+    data:{datasets:[{data:[0,100],backgroundColor:[tempColor(0),'rgba(0,0,0,0.35)'],borderWidth:0}]},
+    options:{rotation:-90,circumference:180,cutout:'72%',plugins:{legend:{display:false}}}
+  });
+
+  chartsH[i]=new Chart(document.getElementById(`h-${i+1}`),{
+    type:'doughnut',
+    data:{datasets:[{data:[0,100],backgroundColor:[humColor(0),'rgba(0,0,0,0.35)'],borderWidth:0}]},
+    options:{rotation:-90,circumference:180,cutout:'72%',plugins:{legend:{display:false}}}
+  });
+}
+
+function updateSummary(){
+  let act=0,alerts=0,sumT=0,sumH=0,count=0;
+  for(let i=0;i<NUM;i++){
+    if(!active[i]) continue;
+    act++;
+    if(!lastValues[i]) continue;
+    sumT+=lastValues[i].t;
+    sumH+=lastValues[i].h;
+    count++;
+    if(lastValues[i].dist>DIST_THRESHOLD_MM) alerts++;
+  }
+  numActivas.textContent=act;
+  numAlertas.textContent=alerts;
+  promTemp.textContent=(count?Math.round(sumT/count):'--')+' °C';
+  promHum.textContent=(count?Math.round(sumH/count):'--')+' %';
+}
+
+for(let i=0;i<NUM;i++) createCard(i);
+updateSummary();
+
+firebase.initializeApp({
+  authDomain: "enlace-t.firebaseapp.com",
+  databaseURL: "https://enlace-t-default-rtdb.firebaseio.com",
+  projectId: "enlace-t"
+});
+
+firebase.database().ref("prueba").on("value",s=>{
+  const d=s.val()||{};
+  const estado = estadoConexion(d.FechaHora);
+
+  for(let i=0;i<NUM;i++){
+    if(!active[i]) continue;
+
+    if(i!==0){
+      document.getElementById(`estado-${i+1}`).textContent="🔴 OFFLINE";
+      document.getElementById(`wifi-${i+1}`).textContent="📶 --";
+      document.getElementById(`tempVal-${i+1}`).textContent="-- °C";
+      document.getElementById(`humVal-${i+1}`).textContent="-- %";
+      document.getElementById(`dist-${i+1}`).textContent="--";
+      document.getElementById(`pres-${i+1}`).textContent="";
+      continue;
+    }
+
+    const t=Number(d.Temperatura_C||0);
+    const h=Number(d.Humedad_pct||0);
+    const dist=Number(d.Distancia_mm||0);
+    lastValues[i]={t,h,dist};
+
+    if(dist > DIST_THRESHOLD_MM){
+      badCount[i]++;
+    }else{
+      badCount[i]=0;
+    }
+
+    const presEl = document.getElementById(`pres-${i+1}`);
+    const cardEl = document.getElementById(`card-${i+1}`);
+
+    if(badCount[i]>=3){
+      presEl.textContent = "🚨 POSIBLE TERMITA";
+      cardEl.classList.add("alert");
+    }else{
+      presEl.textContent = "";
+      cardEl.classList.remove("alert");
+    }
+
+    document.getElementById(`tempVal-${i+1}`).textContent=`${t} °C`;
+    document.getElementById(`humVal-${i+1}`).textContent=`${h} %`;
+    document.getElementById(`dist-${i+1}`).textContent=`${Math.round(dist)} mm`;
+
+    document.getElementById(`estado-${i+1}`).textContent = estado==="ONLINE"?"🟢 ONLINE":"🔴 OFFLINE";
+    document.getElementById(`wifi-${i+1}`).textContent = estado==="ONLINE"?"📶 Conectado":"📶 Sin señal";
+
+    const tempMax=50;
+    const pct=Math.min((t/tempMax)*100,100);
+
+    chartsT[i].data.datasets[0].data=[pct,100-pct];
+    chartsT[i].data.datasets[0].backgroundColor[0]=tempColor(t);
+    chartsT[i].update();
+
+    chartsH[i].data.datasets[0].data=[h,100-h];
+    chartsH[i].data.datasets[0].backgroundColor[0]=humColor(h);
+    chartsH[i].update();
+  }
+
+  updateSummary();
+});
 </script>
 
 </body>
