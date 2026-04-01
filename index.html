@@ -412,5 +412,87 @@ firebase.database().ref("prueba").on("value",s=>{
 });
 </script>
 
+<!-- 🔥 ===== SOLO AGREGADO NUEVO ===== -->
+
+<div id="panelMenu" style="
+position:fixed;
+top:100px;
+right:15px;
+width:320px;
+background:var(--card);
+border-radius:12px;
+box-shadow:var(--shadow);
+padding:15px;
+display:none;
+z-index:1003;
+max-height:80vh;
+overflow:auto;
+">
+  <div id="contenidoMenu"></div>
+</div>
+
+<script>
+
+document.querySelectorAll(".menu-section")[0].onclick = ()=>abrirSeccion("historial");
+document.querySelectorAll(".menu-section")[1].onclick = ()=>abrirSeccion("ayuda");
+document.querySelectorAll(".menu-section")[2].onclick = ()=>abrirSeccion("soporte");
+
+function abrirSeccion(tipo){
+
+  const panel = document.getElementById("panelMenu");
+  const contenido = document.getElementById("contenidoMenu");
+
+  panel.style.display = "block";
+
+  if(tipo==="historial"){
+    contenido.innerHTML = `<h3>📊 Historial VLX</h3><canvas id="graficoHistorial"></canvas>`;
+
+    const datos = [];
+
+    firebase.database().ref("historial").once("value",snap=>{
+      snap.forEach(child=>{
+        const d = child.val();
+        if(!d.FechaHora) return;
+
+        datos.push({
+          x: d.FechaHora,
+          y: Number(d.Distancia_mm || 0)
+        });
+      });
+
+      new Chart(document.getElementById("graficoHistorial"),{
+        type:"line",
+        data:{datasets:[{label:"Distancia (mm)",data:datos,borderWidth:3}]},
+        options:{ parsing:false }
+      });
+    });
+  }
+
+  if(tipo==="ayuda"){
+    contenido.innerHTML = `
+      <h3>❓ Funcionamiento</h3>
+      La sonda monitorea el subsuelo para detectar termitas mediante variaciones de distancia, humedad y temperatura.
+    `;
+  }
+
+  if(tipo==="soporte"){
+    const correo = localStorage.getItem("correoSoporte") || "correo@editar.cl";
+
+    contenido.innerHTML = `
+      <input id="inputCorreo" value="${correo}">
+      <button onclick="guardarCorreo()">Guardar</button>
+    `;
+  }
+}
+
+function guardarCorreo(){
+  const val = document.getElementById("inputCorreo").value;
+  localStorage.setItem("correoSoporte", val);
+  alert("Correo guardado");
+}
+
+</script>
+
 </body>
 </html>
+
