@@ -354,46 +354,26 @@ firebase.database().ref("prueba").on("value",s=>{
 });
 </script>
 
-<!-- ===== 🔥 SOLO AGREGADO (MENU PRO + ZOOM) ===== -->
+<!-- ===== SOLO AGREGADO ===== -->
 
 <style>
-.menu-pro{
-  position:fixed; top:60px; right:15px; width:240px;
-  background:rgba(46,204,15,0.95);
-  backdrop-filter:blur(10px);
-  border-radius:14px;
-  box-shadow:0 10px 25px rgba(0,0,0,0.4);
-  padding:10px;
-  display:none;
-  transform:scale(0.9);
-  opacity:0;
-  transition:all 0.25s ease;
-}
-.menu-pro.active{ display:block; transform:scale(1); opacity:1; }
-.menu-item{ padding:10px; border-radius:10px; cursor:pointer; }
-.menu-item:hover{ background:rgba(0,0,0,0.2); }
-
-.panel-pro{
-  position:fixed; top:100px; right:15px; width:340px;
-  background:rgba(46,204,15,0.95);
-  backdrop-filter:blur(10px);
-  border-radius:16px;
-  box-shadow:0 15px 30px rgba(0,0,0,0.5);
-  padding:15px;
-  display:none;
-  transform:scale(0.9);
-  opacity:0;
-  transition:all 0.25s ease;
-}
-.panel-pro.active{ display:block; transform:scale(1); opacity:1; }
+.btn-pro{position:fixed;top:15px;right:15px;background:#39FF14;border:none;border-radius:10px;padding:8px;cursor:pointer;z-index:9999;}
+.btn-pro span{display:block;width:22px;height:3px;background:#000;margin:4px 0;}
+.menu-pro{position:fixed;top:60px;right:15px;width:260px;background:rgba(46,204,15,0.95);border-radius:14px;padding:12px;display:none;z-index:9999;}
+.menu-pro.active{display:block;}
+.panel-pro{position:fixed;top:100px;right:15px;width:360px;background:rgba(46,204,15,0.95);border-radius:16px;padding:15px;display:none;z-index:9999;}
+.panel-pro.active{display:block;}
 </style>
 
-<button id="btnMenu" style="position:fixed;top:15px;right:15px;">☰</button>
+<button class="btn-pro" id="btnMenuPro">
+<span></span><span></span><span></span>
+</button>
 
 <div id="menuPro" class="menu-pro">
-  <div class="menu-item" onclick="abrirSeccion('historial')">📊 Historial</div>
-  <div class="menu-item" onclick="abrirSeccion('ayuda')">❓ Ayuda</div>
-  <div class="menu-item" onclick="abrirSeccion('soporte')">📧 Soporte</div>
+<div onclick="abrirMenuPro('historial')">📊 Historial</div>
+<div onclick="descargarCSV()">⬇ Descargar CSV</div>
+<div onclick="abrirMenuPro('ayuda')">❓ Ayuda</div>
+<div>📧 soporte@empresa.cl</div>
 </div>
 
 <div id="panelPro" class="panel-pro"></div>
@@ -401,65 +381,52 @@ firebase.database().ref("prueba").on("value",s=>{
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
 
 <script>
-document.getElementById("btnMenu").onclick = ()=>{
-  document.getElementById("menuPro").classList.toggle("active");
-};
+btnMenuPro.onclick=()=>menuPro.classList.toggle("active");
 
 document.addEventListener("click",(e)=>{
-  const m=document.getElementById("menuPro");
-  const p=document.getElementById("panelPro");
-  const b=document.getElementById("btnMenu");
-  if(!m.contains(e.target)&&!b.contains(e.target)&&!p.contains(e.target)){
-    m.classList.remove("active");
-    p.classList.remove("active");
-  }
+if(!menuPro.contains(e.target)&&!btnMenuPro.contains(e.target)&&!panelPro.contains(e.target)){
+menuPro.classList.remove("active");
+panelPro.classList.remove("active");
+}});
+
+function abrirMenuPro(tipo){
+panelPro.classList.add("active");
+
+if(tipo==="historial"){
+panelPro.innerHTML='<canvas id="g"></canvas>';
+const labels=[],data=[];
+firebase.database().ref("historial").once("value",snap=>{
+snap.forEach(c=>{
+const d=c.val();
+if(!d.FechaHora)return;
+labels.push(d.FechaHora);
+data.push(Number(d.Distancia_mm||0));
 });
-
-function abrirSeccion(tipo){
-  const p=document.getElementById("panelPro");
-  p.classList.add("active");
-
-  if(tipo==="historial"){
-    p.innerHTML='<canvas id="g"></canvas>';
-    const labels=[],data=[];
-    firebase.database().ref("historial").once("value",snap=>{
-      snap.forEach(c=>{
-        const d=c.val();
-        if(!d.FechaHora) return;
-        labels.push(d.FechaHora.split(" ")[1]);
-        data.push(Number(d.Distancia_mm||0));
-      });
-      new Chart(document.getElementById("g"),{
-        type:"bar",
-        data:{labels:labels,datasets:[{label:"Distancia (mm)",data:data}]},
-        options:{
-          plugins:{
-            zoom:{
-              zoom:{wheel:{enabled:true},pinch:{enabled:true},mode:"x"},
-              pan:{enabled:true,mode:"x"}
-            }
-          }
-        }
-      });
-    });
-  }
-
-  if(tipo==="ayuda"){
-    p.innerHTML='Distancia (VLX): mm del subsuelo.<br>Temperatura y humedad: condiciones.<br>Objetivo: detectar termitas.';
-  }
-
-  if(tipo==="soporte"){
-    const c=localStorage.getItem("correo")||"correo@editar.cl";
-    p.innerHTML='<input id="c" value="'+c+'"><button onclick="guardar()">Guardar</button>';
-  }
+new Chart(g,{type:"bar",data:{labels:labels,datasets:[{label:"mm",data:data}]},
+options:{plugins:{zoom:{zoom:{wheel:{enabled:true},mode:"x"},pan:{enabled:true,mode:"x"}}}}});
+});
 }
 
-function guardar(){
-  localStorage.setItem("correo",document.getElementById("c").value);
-  alert("Guardado");
+if(tipo==="ayuda"){
+panelPro.innerHTML='Sistema para detectar termitas mediante variaciones en distancia, humedad y temperatura.';
+}
+}
+
+function descargarCSV(){
+firebase.database().ref("historial").once("value",snap=>{
+let csv="FechaHora,Distancia_mm\n";
+snap.forEach(c=>{
+const d=c.val();
+csv+=`${d.FechaHora},${d.Distancia_mm}\n`;
+});
+const blob=new Blob([csv]);
+const a=document.createElement("a");
+a.href=URL.createObjectURL(blob);
+a.download="historial.csv";
+a.click();
+});
 }
 </script>
 
 </body>
 </html>
-
