@@ -150,7 +150,6 @@ canvas{width:110px!important;height:110px!important;}
 </head>
 
 <body>
-
 <div class="app">
 
   <div class="header-logo">
@@ -182,8 +181,6 @@ canvas{width:110px!important;height:110px!important;}
 
 <script>
 
-/* ===== TU CODIGO ORIGINAL (INTACTO) ===== */
-
 function estadoConexion(fechaStr){
   if(!fechaStr) return "OFFLINE";
   const p = fechaStr.split(" ");
@@ -212,11 +209,152 @@ function humColor(v){
          'rgba(31,97,141,0.95)';
 }
 
-/* TODO TU CODIGO SIGUE IGUAL (NO TOCADO) */
+function createCard(i){
+  const grid=document.getElementById('grid');
+  const card=document.createElement('div');
+  card.className='card'; card.id=`card-${i+1}`;
+  if(!active[i]) card.classList.add('inactive');
 
+  card.innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+      <div class="sonda-title">Sonda ${i+1}</div>
+      <div style="text-align:right;font-size:12px;">
+        <div id="estado-${i+1}">🔴 OFFLINE</div>
+        <div id="wifi-${i+1}">📶 --</div>
+      </div>
+    </div>
+
+    <div class="tog">
+      <label><input type="checkbox" id="toggle-${i+1}" ${active[i]?'checked':''}> Activar</label>
+      <div style="flex:1"></div>
+      <div style="font-size:12px;color:var(--muted)">Dist: <span id="dist-${i+1}">--</span></div>
+    </div>
+
+    <div class="meter-box">
+      <div class="charts">
+        <canvas id="t-${i+1}"></canvas>
+        <canvas id="h-${i+1}"></canvas>
+      </div>
+      <div class="labels">
+        <div class="lbl">Temperatura<div class="val" id="tempVal-${i+1}">-- °C</div></div>
+        <div class="lbl">Humedad<div class="val" id="humVal-${i+1}">-- %</div></div>
+      </div>
+    </div>
+  `;
+  grid.appendChild(card);
+
+  const pres=document.createElement('div');
+  pres.className='presenciaAlert'; pres.id=`pres-${i+1}`;
+  card.appendChild(pres);
+
+  card.querySelector(`#toggle-${i+1}`).addEventListener('change',e=>{
+    active[i]=e.target.checked;
+    card.classList.toggle('inactive',!active[i]);
+    updateSummary();
+  });
+
+  chartsT[i]=new Chart(document.getElementById(`t-${i+1}`),{
+    type:'doughnut',
+    data:{datasets:[{data:[0,100],backgroundColor:[tempColor(0),'rgba(0,0,0,0.35)'],borderWidth:0}]},
+    options:{rotation:-90,circumference:180,cutout:'72%',plugins:{legend:{display:false}}}
+  });
+
+  chartsH[i]=new Chart(document.getElementById(`h-${i+1}`),{
+    type:'doughnut',
+    data:{datasets:[{data:[0,100],backgroundColor:[humColor(0),'rgba(0,0,0,0.35)'],borderWidth:0}]},
+    options:{rotation:-90,circumference:180,cutout:'72%',plugins:{legend:{display:false}}}
+  });
+}
+
+function updateSummary(){
+  let act=0,alerts=0,sumT=0,sumH=0,count=0;
+  for(let i=0;i<NUM;i++){
+    if(!active[i]) continue;
+    act++;
+    if(!lastValues[i]) continue;
+    sumT+=lastValues[i].t;
+    sumH+=lastValues[i].h;
+    count++;
+    if(lastValues[i].dist>DIST_THRESHOLD_MM) alerts++;
+  }
+  numActivas.textContent=act;
+  numAlertas.textContent=alerts;
+  promTemp.textContent=(count?Math.round(sumT/count):'--')+' °C';
+  promHum.textContent=(count?Math.round(sumH/count):'--')+' %';
+}
+
+for(let i=0;i<NUM;i++) createCard(i);
+updateSummary();
+
+firebase.initializeApp({
+  authDomain: "enlace-t.firebaseapp.com",
+  databaseURL: "https://enlace-t-default-rtdb.firebaseio.com",
+  projectId: "enlace-t"
+});
+
+firebase.database().ref("prueba").on("value",s=>{
+  const d=s.val()||{};
+  const estado = estadoConexion(d.FechaHora);
+
+  for(let i=0;i<NUM;i++){
+    if(!active[i]) continue;
+
+    if(i!==0){
+      document.getElementById(`estado-${i+1}`).textContent="🔴 OFFLINE";
+      document.getElementById(`wifi-${i+1}`).textContent="📶 --";
+      document.getElementById(`tempVal-${i+1}`).textContent="-- °C";
+      document.getElementById(`humVal-${i+1}`).textContent="-- %";
+      document.getElementById(`dist-${i+1}`).textContent="--";
+      document.getElementById(`pres-${i+1}`).textContent="";
+      continue;
+    }
+
+    const t=Number(d.Temperatura_C||0);
+    const h=Number(d.Humedad_pct||0);
+    const dist=Number(d.Distancia_mm||0);
+    lastValues[i]={t,h,dist};
+
+    if(dist > DIST_THRESHOLD_MM){
+      badCount[i]++;
+    }else{
+      badCount[i]=0;
+    }
+
+    const presEl = document.getElementById(`pres-${i+1}`);
+    const cardEl = document.getElementById(`card-${i+1}`);
+
+    if(badCount[i]>=3){
+      presEl.textContent = "🚨 POSIBLE TERMITA";
+      cardEl.classList.add("alert");
+    }else{
+      presEl.textContent = "";
+      cardEl.classList.remove("alert");
+    }
+
+    document.getElementById(`tempVal-${i+1}`).textContent=`${t} °C`;
+    document.getElementById(`humVal-${i+1}`).textContent=`${h} %`;
+    document.getElementById(`dist-${i+1}`).textContent=`${Math.round(dist)} mm`;
+
+    document.getElementById(`estado-${i+1}`).textContent = estado==="ONLINE"?"🟢 ONLINE":"🔴 OFFLINE";
+    document.getElementById(`wifi-${i+1}`).textContent = estado==="ONLINE"?"📶 Conectado":"📶 Sin señal";
+
+    const tempMax=50;
+    const pct=Math.min((t/tempMax)*100,100);
+
+    chartsT[i].data.datasets[0].data=[pct,100-pct];
+    chartsT[i].data.datasets[0].backgroundColor[0]=tempColor(t);
+    chartsT[i].update();
+
+    chartsH[i].data.datasets[0].data=[h,100-h];
+    chartsH[i].data.datasets[0].backgroundColor[0]=humColor(h);
+    chartsH[i].update();
+  }
+
+  updateSummary();
+});
 </script>
 
-<!-- ===== 🔥 AGREGADO MENU FUNCIONAL ===== -->
+<!-- ===== 🔥 SOLO AGREGADO (NO TOCA NADA ARRIBA) ===== -->
 
 <button id="btnMenu" style="position:fixed;top:15px;right:15px;">☰</button>
 
@@ -259,19 +397,20 @@ function abrirSeccion(tipo){
     firebase.database().ref("historial").once("value",snap=>{
       snap.forEach(c=>{
         const d=c.val();
+        if(!d.FechaHora) return;
         labels.push(d.FechaHora.split(" ")[1]);
         data.push(Number(d.Distancia_mm||0));
       });
 
       new Chart(document.getElementById("g"),{
         type:"bar",
-        data:{labels:labels,datasets:[{label:"mm",data:data}]}
+        data:{labels:labels,datasets:[{label:"Distancia (mm)",data:data}]}
       });
     });
   }
 
   if(tipo==="ayuda"){
-    p.innerHTML='Sonda monitorea subsuelo para detectar termitas mediante cambios en distancia (VLX), humedad y temperatura.';
+    p.innerHTML='Sonda monitorea el subsuelo para detectar termitas mediante cambios en distancia (VLX), humedad y temperatura.';
   }
 
   if(tipo==="soporte"){
@@ -289,4 +428,3 @@ function guardar(){
 
 </body>
 </html>
-
