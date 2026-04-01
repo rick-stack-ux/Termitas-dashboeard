@@ -145,11 +145,63 @@ canvas{width:110px!important;height:110px!important;}
   font-size:13px;
   text-align:center;
 }
+
+/* ===== MENU AGREGADO (SIN TOCAR LO DEMÁS) ===== */
+.menu-btn{
+  position:fixed;
+  top:15px;
+  right:15px;
+  font-size:22px;
+  background:var(--card);
+  color:#fff;
+  border:none;
+  border-radius:8px;
+  padding:8px 12px;
+  cursor:pointer;
+  z-index:1001;
+  box-shadow:var(--shadow);
+}
+
+.menu-box{
+  position:fixed;
+  top:60px;
+  right:15px;
+  width:260px;
+  background:var(--card);
+  border-radius:12px;
+  box-shadow:var(--shadow);
+  padding:12px;
+  display:none;
+  z-index:1002;
+}
+
+.menu-box.active{
+  display:block;
+}
+
+.menu-section{
+  margin-bottom:10px;
+  padding:10px;
+  background:rgba(0,0,0,0.25);
+  border-radius:10px;
+  font-size:13px;
+}
 </style>
 
 </head>
 
 <body>
+
+<!-- 🔥 MENU AGREGADO -->
+
+<button class="menu-btn" onclick="toggleMenu()">☰</button>
+
+<div class="menu-box" id="menuBox">
+  <div class="menu-section">📊 Historial sonda</div>
+  <div class="menu-section">❓ Ayuda</div>
+  <div class="menu-section">📧 Soporte: correo@editar.cl</div>
+</div>
+
 <div class="app">
 
   <div class="header-logo">
@@ -174,6 +226,12 @@ canvas{width:110px!important;height:110px!important;}
   <div class="note">Umbral alerta distancia: <b>> 40 mm</b></div>
 
 </div>
+
+<script>
+function toggleMenu(){
+  document.getElementById("menuBox").classList.toggle("active");
+}
+</script>
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 
