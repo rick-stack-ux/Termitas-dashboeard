@@ -100,7 +100,6 @@ html,body{
   padding:6px 0;
 }
 
-/* 🔥 CORRECCIÓN AQUÍ: Solo los gráficos de las tarjetas miden 110px */
 .charts canvas { width:110px !important; height:110px !important; }
 
 .labels{
@@ -190,7 +189,7 @@ function estadoConexion(fechaStr){
 }
 
 const NUM = 5, DIST_THRESHOLD_MM = 40;
-const chartsT = [], chartsH = [], active = [true,false,false,false,false],
+const chartsT = [], chartsH = [], active = [true,true,true,true,true],
       lastValues = Array(NUM).fill(null), badCount = Array(NUM).fill(0);
 
 function tempColor(v){
@@ -288,36 +287,26 @@ firebase.initializeApp({
   projectId: "enlace-t"
 });
 
-firebase.database().ref("prueba").on("value",s=>{
-  const d=s.val()||{};
-  const estado = estadoConexion(d.FechaHora);
+// 🔥 Ahora cada Sonda escucha su propio canal (prueba1, prueba2, prueba3...)
+for(let i=0; i<NUM; i++){
+  let sondaId = i + 1;
+  firebase.database().ref(`prueba${sondaId}`).on("value", s => {
+    const d = s.val();
+    if(!d) return; // Si no hay datos, se queda en OFFLINE por defecto
 
-  for(let i=0;i<NUM;i++){
-    if(!active[i]) continue;
+    if(!active[i]) return;
 
-    if(i!==0){
-      document.getElementById(`estado-${i+1}`).textContent="🔴 OFFLINE";
-      document.getElementById(`wifi-${i+1}`).textContent="📶 --";
-      document.getElementById(`tempVal-${i+1}`).textContent="-- °C";
-      document.getElementById(`humVal-${i+1}`).textContent="-- %";
-      document.getElementById(`dist-${i+1}`).textContent="--";
-      document.getElementById(`pres-${i+1}`).textContent="";
-      continue;
-    }
+    const estado = estadoConexion(d.FechaHora);
+    const t = Number(d.Temperatura_C||0);
+    const h = Number(d.Humedad_pct||0);
+    const dist = Number(d.Distancia_mm||0);
+    lastValues[i] = {t,h,dist};
 
-    const t=Number(d.Temperatura_C||0);
-    const h=Number(d.Humedad_pct||0);
-    const dist=Number(d.Distancia_mm||0);
-    lastValues[i]={t,h,dist};
+    if(dist > DIST_THRESHOLD_MM){ badCount[i]++; }
+    else { badCount[i]=0; }
 
-    if(dist > DIST_THRESHOLD_MM){
-      badCount[i]++;
-    }else{
-      badCount[i]=0;
-    }
-
-    const presEl = document.getElementById(`pres-${i+1}`);
-    const cardEl = document.getElementById(`card-${i+1}`);
+    const presEl = document.getElementById(`pres-${sondaId}`);
+    const cardEl = document.getElementById(`card-${sondaId}`);
 
     if(badCount[i]>=3){
       presEl.textContent = "🚨 POSIBLE TERMITA";
@@ -327,12 +316,12 @@ firebase.database().ref("prueba").on("value",s=>{
       cardEl.classList.remove("alert");
     }
 
-    document.getElementById(`tempVal-${i+1}`).textContent=`${t} °C`;
-    document.getElementById(`humVal-${i+1}`).textContent=`${h} %`;
-    document.getElementById(`dist-${i+1}`).textContent=`${Math.round(dist)} mm`;
+    document.getElementById(`tempVal-${sondaId}`).textContent=`${t} °C`;
+    document.getElementById(`humVal-${sondaId}`).textContent=`${h} %`;
+    document.getElementById(`dist-${sondaId}`).textContent=`${Math.round(dist)} mm`;
 
-    document.getElementById(`estado-${i+1}`).textContent = estado==="ONLINE"?"🟢 ONLINE":"🔴 OFFLINE";
-    document.getElementById(`wifi-${i+1}`).textContent = estado==="ONLINE"?"📶 Conectado":"📶 Sin señal";
+    document.getElementById(`estado-${sondaId}`).textContent = estado==="ONLINE"?"🟢 ONLINE":"🔴 OFFLINE";
+    document.getElementById(`wifi-${sondaId}`).textContent = estado==="ONLINE"?"📶 Conectado":"📶 Sin señal";
 
     const tempMax=50;
     const pct=Math.min((t/tempMax)*100,100);
@@ -344,16 +333,15 @@ firebase.database().ref("prueba").on("value",s=>{
     chartsH[i].data.datasets[0].data=[h,100-h];
     chartsH[i].data.datasets[0].backgroundColor[0]=humColor(h);
     chartsH[i].update();
-  }
 
-  updateSummary();
-});
+    updateSummary();
+  });
+}
 </script>
 
-<!-- ===== SISTEMA DE MENÚ Y MODAL ===== -->
+<!-- ===== MODAL HISTORIAL CON PESTAÑAS POR SONDA ===== -->
 
 <style>
-/* Botón y Menú desplegable */
 .btn-pro{position:fixed;top:15px;right:15px;background:var(--card);border:none;border-radius:10px;padding:8px;cursor:pointer;z-index:9999;box-shadow:var(--shadow);}
 .btn-pro span{display:block;width:22px;height:3px;background:#fff;margin:4px 0;}
 .menu-pro{position:fixed;top:60px;right:15px;width:240px;background:#111827;color:#fff;border-radius:12px;padding:8px;display:none;z-index:9999;box-shadow:var(--shadow);}
@@ -362,7 +350,6 @@ firebase.database().ref("prueba").on("value",s=>{
 .menu-pro div:last-child{border-bottom:none;}
 .menu-pro div:hover{background:rgba(255,255,255,0.1);border-radius:6px;}
 
-/* Overlay oscuro para fondo de la modal */
 .modal-overlay {
   position:fixed; top:0; left:0; width:100vw; height:100vh;
   background:rgba(0,0,0,0.6); backdrop-filter:blur(3px);
@@ -370,7 +357,6 @@ firebase.database().ref("prueba").on("value",s=>{
 }
 .modal-overlay.active { display:block; }
 
-/* La Modal amplia */
 .panel-pro{
   position:fixed; top:50%; left:50%; transform:translate(-50%, -50%);
   width:95vw; max-width:980px; background:#ffffff; border-radius:12px;
@@ -379,34 +365,28 @@ firebase.database().ref("prueba").on("value",s=>{
 }
 .panel-pro.active{display:block;}
 
-.modal-header { padding:20px 24px; display:flex; justify-content:space-between; align-items:center; }
-.modal-header h3 { margin:0; font-size:16px; font-weight:700; color:#0f172a; }
+.modal-header { padding:20px 24px 0 24px; display:flex; justify-content:space-between; align-items:center; }
+.modal-header h3 { margin:0; font-size:18px; font-weight:700; color:#0f172a; }
 .btn-close { background:none; border:none; font-size:24px; color:#94a3b8; cursor:pointer; line-height:1; }
 .btn-close:hover { color:#0f172a; }
 
-/* Estructura dividida de la tarjeta */
-.chart-card-container {
-  display:flex; border-top:1px solid #f1f5f9; background:#fff;
-}
-.chart-left {
-  flex:1; padding:20px 24px 30px 24px; border-right:1px solid #f1f5f9; min-width:0;
-}
+/* Pestañas para las sondas */
+.tabs { display:flex; gap:15px; border-bottom:1px solid #f1f5f9; padding:10px 24px 0 24px; background:#fff; margin-top:10px;}
+.tab-btn { background:none; border:none; padding:12px 10px; font-weight:600; color:#64748b; cursor:pointer; border-bottom:3px solid transparent; font-size:14px; outline:none; }
+.tab-btn:hover { color:#0f172a; }
+.tab-btn.active { color:#10b981; border-bottom-color:#10b981; }
 
-/* 🔥 Contenedor relativo forzado para que el canvas use el 100% */
-.chart-wrapper {
-  position: relative;
-  height: 260px;
-  width: 100%;
-}
-
-.chart-right {
-  width:220px; padding:30px 24px; display:flex; flex-direction:column; justify-content:center;
-}
+.chart-card-container { display:flex; background:#fff; }
+.chart-left { flex:1; padding:20px 24px 30px 24px; border-right:1px solid #f1f5f9; min-width:0; }
+.chart-wrapper { position:relative; height:260px; width:100%; }
+.chart-right { width:220px; padding:30px 24px; display:flex; flex-direction:column; justify-content:center; }
 
 @media (max-width: 768px) {
   .chart-card-container { flex-direction:column; }
   .chart-left { border-right:none; border-bottom:1px solid #f1f5f9; }
   .chart-right { width:100%; align-items:center; text-align:center; padding:20px; }
+  .tabs { overflow-x:auto; }
+  .tab-btn { white-space:nowrap; }
 }
 </style>
 
@@ -415,16 +395,46 @@ firebase.database().ref("prueba").on("value",s=>{
 </button>
 
 <div id="menuPro" class="menu-pro">
-  <div onclick="abrirMenuPro('historial')">📊 Ver Historial de Cebo</div>
+  <div onclick="abrirMenuPro()">📊 Ver Historial de Cebo</div>
   <div onclick="descargarCSV()">⬇ Descargar Datos CSV</div>
 </div>
 
 <div id="overlayPro" class="modal-overlay"></div>
-<div id="panelPro" class="panel-pro"></div>
+<div id="panelPro" class="panel-pro">
+  <div class="modal-header">
+    <h3>Movimiento Total (Últimos 7 Días)</h3>
+    <button class="btn-close" onclick="cerrarModal()">×</button>
+  </div>
+  <div class="tabs" id="tabContainer">
+    <button class="tab-btn active" onclick="cargarGraficoSonda(1, this)">Sonda 1</button>
+    <button class="tab-btn" onclick="cargarGraficoSonda(2, this)">Sonda 2</button>
+    <button class="tab-btn" onclick="cargarGraficoSonda(3, this)">Sonda 3</button>
+    <button class="tab-btn" onclick="cargarGraficoSonda(4, this)">Sonda 4</button>
+    <button class="tab-btn" onclick="cargarGraficoSonda(5, this)">Sonda 5</button>
+  </div>
+  <div class="chart-card-container">
+    <div class="chart-left">
+      <div class="chart-wrapper">
+        <canvas id="graficoHistorial" style="width: 100% !important; height: 100% !important;"></canvas>
+      </div>
+    </div>
+    <div class="chart-right">
+      <div style="display:flex; align-items:baseline; gap:6px;">
+        <h1 id="distanciaActual" style="margin:0; font-size:42px; font-weight:800; color:#0f172a; letter-spacing:-1px;">--</h1>
+        <span style="font-size:14px; font-weight:700; color:#334155;">mm</span>
+      </div>
+      <p style="margin:4px 0 8px 0; color:#64748b; font-size:13px;">Distancia Actual</p>
+      <p id="porcentajeCebo" style="margin:0; font-size:13px; font-weight:700; color:#10b981;">--</p>
+    </div>
+  </div>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
 
 <script>
+let activeSondaTab = 1;
+let miGraficoHistorial = null;
+
 btnMenuPro.onclick = () => menuPro.classList.toggle("active");
 
 function cerrarModal() {
@@ -449,134 +459,131 @@ function parseFechaCL(fechaStr) {
   return new Date(f[2], f[1]-1, f[0], h[0], h[1], h[2]);
 }
 
-function abrirMenuPro(tipo){
+function abrirMenuPro(){
   menuPro.classList.remove("active");
   document.getElementById('overlayPro').classList.add('active');
-  const panel = document.getElementById('panelPro');
-  panel.classList.add("active");
+  document.getElementById('panelPro').classList.add("active");
+  
+  // Abrir Sonda 1 por defecto al iniciar
+  cargarGraficoSonda(1, document.querySelector('.tab-btn'));
+}
 
-  if(tipo==="historial"){
-    panel.innerHTML=`
-      <div class="modal-header">
-        <h3>Movimiento Total (Últimos 7 Días)</h3>
-        <button class="btn-close" onclick="cerrarModal()">×</button>
-      </div>
-      <div class="chart-card-container">
-        <!-- Izquierda: Gráfico -->
-        <div class="chart-left">
-          <div class="chart-wrapper">
-            <canvas id="graficoHistorial" style="width: 100% !important; height: 100% !important;"></canvas>
-          </div>
-        </div>
-        <!-- Derecha: Números -->
-        <div class="chart-right">
-          <div style="display:flex; align-items:baseline; gap:6px;">
-            <h1 id="distanciaActual" style="margin:0; font-size:42px; font-weight:800; color:#0f172a; letter-spacing:-1px;">--</h1>
-            <span style="font-size:14px; font-weight:700; color:#334155;">mm</span>
-          </div>
-          <p style="margin:4px 0 8px 0; color:#64748b; font-size:13px;">Distancia Actual</p>
-          <p id="porcentajeCebo" style="margin:0; font-size:13px; font-weight:700; color:#10b981;">--</p>
-        </div>
-      </div>
-    `;
+function cargarGraficoSonda(sondaId, btnElement) {
+  activeSondaTab = sondaId;
+  
+  // Cambiar color de la pestaña seleccionada
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  if(btnElement) btnElement.classList.add('active');
 
+  // Limpiar datos visuales mientras carga
+  document.getElementById('distanciaActual').textContent = "--";
+  document.getElementById('porcentajeCebo').textContent = "Cargando...";
+  document.getElementById('porcentajeCebo').style.color = "#64748b";
+
+  // Buscar historial específico de la sonda seleccionada
+  firebase.database().ref(`historial${sondaId}`).once("value", snap => {
     const records = [];
-    firebase.database().ref("historial").once("value",snap=>{
-      snap.forEach(c=>{
-        const d=c.val();
-        if(d.FechaHora) {
-          records.push({
-            time: parseFechaCL(d.FechaHora),
-            label: d.FechaHora.split(" ")[1].substring(0,5), 
-            val: Number(d.Distancia_mm||0)
-          });
-        }
-      });
-
-      records.sort((a,b) => a.time - b.time);
-
-      const labels = records.map(r => r.label);
-      const data = records.map(r => r.val);
-
-      if (records.length > 0) {
-        const currentVal = records[records.length - 1].val;
-        const currentTime = records[records.length - 1].time;
-        
-        let baselineRecord = records[0]; 
-        const sieteDiasEnMilisegundos = 7 * 24 * 60 * 60 * 1000;
-        
-        for (let i = records.length - 1; i >= 0; i--) {
-          if (currentTime - records[i].time <= sieteDiasEnMilisegundos) {
-            baselineRecord = records[i];
-          } else { break; }
-        }
-        
-        const baselineVal = baselineRecord.val;
-        let diferencia = currentVal - baselineVal;
-        let porcentaje = baselineVal === 0 ? 0 : (diferencia / baselineVal) * 100;
-        
-        let colorText = diferencia >= 0 ? "#10b981" : "#ef4444";
-        let arrow = diferencia >= 0 ? "▲" : "▼";
-        
-        document.getElementById('distanciaActual').textContent = currentVal.toFixed(1);
-        document.getElementById('porcentajeCebo').textContent = `${arrow} ${Math.abs(porcentaje).toFixed(1)}% vs sem. pasada`;
-        document.getElementById('porcentajeCebo').style.color = colorText;
+    snap.forEach(c => {
+      const d = c.val();
+      if(d.FechaHora) {
+        records.push({
+          time: parseFechaCL(d.FechaHora),
+          label: d.FechaHora.split(" ")[1].substring(0,5), 
+          val: Number(d.Distancia_mm||0)
+        });
       }
+    });
 
-      const ctx = document.getElementById('graficoHistorial').getContext('2d');
-      let gradiente = ctx.createLinearGradient(0, 0, 0, 260);
-      gradiente.addColorStop(0, 'rgba(16, 185, 129, 0.18)');
-      gradiente.addColorStop(1, 'rgba(16, 185, 129, 0)');
+    records.sort((a,b) => a.time - b.time);
+    const labels = records.map(r => r.label);
+    const data = records.map(r => r.val);
 
-      new Chart(ctx, {
-        type: "line",
-        data: {
-          labels: labels,
-          datasets: [{
-            data: data,
-            borderColor: "#10b981",
-            backgroundColor: gradiente,
-            borderWidth: 2,
-            tension: 0.4,
-            fill: true,
-            pointBackgroundColor: '#ffffff',
-            pointBorderColor: '#10b981',
-            pointBorderWidth: 2,
-            pointRadius: 4,
-            pointHoverRadius: 6
-          }]
+    if (records.length > 0) {
+      const currentVal = records[records.length - 1].val;
+      const currentTime = records[records.length - 1].time;
+      let baselineRecord = records[0]; 
+      const sieteDiasEnMilisegundos = 7 * 24 * 60 * 60 * 1000;
+      
+      for (let i = records.length - 1; i >= 0; i--) {
+        if (currentTime - records[i].time <= sieteDiasEnMilisegundos) {
+          baselineRecord = records[i];
+        } else { break; }
+      }
+      
+      const baselineVal = baselineRecord.val;
+      let diferencia = currentVal - baselineVal;
+      let porcentaje = baselineVal === 0 ? 0 : (diferencia / baselineVal) * 100;
+      
+      let colorText = diferencia >= 0 ? "#10b981" : "#ef4444";
+      let arrow = diferencia >= 0 ? "▲" : "▼";
+      
+      document.getElementById('distanciaActual').textContent = currentVal.toFixed(1);
+      document.getElementById('porcentajeCebo').textContent = `${arrow} ${Math.abs(porcentaje).toFixed(1)}% vs sem. pasada`;
+      document.getElementById('porcentajeCebo').style.color = colorText;
+    } else {
+      document.getElementById('distanciaActual').textContent = "0";
+      document.getElementById('porcentajeCebo').textContent = "Sin datos aún";
+    }
+
+    // Destruir el gráfico anterior si existe para evitar superposición
+    if (miGraficoHistorial) {
+      miGraficoHistorial.destroy();
+    }
+
+    const ctx = document.getElementById('graficoHistorial').getContext('2d');
+    let gradiente = ctx.createLinearGradient(0, 0, 0, 260);
+    gradiente.addColorStop(0, 'rgba(16, 185, 129, 0.18)');
+    gradiente.addColorStop(1, 'rgba(16, 185, 129, 0)');
+
+    miGraficoHistorial = new Chart(ctx, {
+      type: "line",
+      data: {
+        labels: labels,
+        datasets: [{
+          data: data,
+          borderColor: "#10b981",
+          backgroundColor: gradiente,
+          borderWidth: 2,
+          tension: 0.4,
+          fill: true,
+          pointBackgroundColor: '#ffffff',
+          pointBorderColor: '#10b981',
+          pointBorderWidth: 2,
+          pointRadius: 4,
+          pointHoverRadius: 6
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: '#1e293b',
+            titleFont: { size: 13 },
+            bodyFont: { size: 14, weight: 'bold' },
+            displayColors: false
+          }
         },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: { display: false },
-            tooltip: {
-              backgroundColor: '#1e293b',
-              titleFont: { size: 13 },
-              bodyFont: { size: 14, weight: 'bold' },
-              displayColors: false
-            }
+        scales: {
+          x: { 
+            grid: { color: '#f1f5f9', drawBorder: false },
+            ticks: { color: '#64748b', font: { size: 11 }, maxTicksLimit: 7 } 
           },
-          scales: {
-            x: { 
-              grid: { color: '#f1f5f9', drawBorder: false },
-              ticks: { color: '#64748b', font: { size: 11 }, maxTicksLimit: 7 } 
-            },
-            y: { 
-              beginAtZero: false, 
-              grid: { color: '#f1f5f9', drawBorder: false },
-              ticks: { color: '#64748b', font: { size: 11 } } 
-            }
+          y: { 
+            beginAtZero: false, 
+            grid: { color: '#f1f5f9', drawBorder: false },
+            ticks: { color: '#64748b', font: { size: 11 } } 
           }
         }
-      });
+      }
     });
-  }
+  });
 }
 
 function descargarCSV(){
-  firebase.database().ref("historial").once("value",snap=>{
+  // Descarga el CSV de la pestaña que tengas abierta en ese momento
+  firebase.database().ref(`historial${activeSondaTab}`).once("value",snap=>{
     let csv="FechaHora,Distancia_mm\n";
     snap.forEach(c=>{
       const d=c.val();
@@ -585,7 +592,7 @@ function descargarCSV(){
     const blob=new Blob([csv]);
     const a=document.createElement("a");
     a.href=URL.createObjectURL(blob);
-    a.download="historial_cebo.csv";
+    a.download=`historial_sonda${activeSondaTab}.csv`;
     a.click();
     menuPro.classList.remove("active");
   });
