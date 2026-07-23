@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -189,7 +190,8 @@ function estadoConexion(fechaStr){
 }
 
 const NUM = 5, DIST_THRESHOLD_MM = 40;
-const chartsT = [], chartsH = [], active = [true,true,true,true,true],
+// 🔥 CORRECCIÓN: Solo la Sonda 1 activa por defecto
+const chartsT = [], chartsH = [], active = [true,false,false,false,false],
       lastValues = Array(NUM).fill(null), badCount = Array(NUM).fill(0);
 
 function tempColor(v){
@@ -287,12 +289,14 @@ firebase.initializeApp({
   projectId: "enlace-t"
 });
 
-// 🔥 Ahora cada Sonda escucha su propio canal (prueba1, prueba2, prueba3...)
+// 🔥 CORRECCIÓN: La Sonda 1 vuelve a leer de "prueba" para que no pierda la conexión.
 for(let i=0; i<NUM; i++){
   let sondaId = i + 1;
-  firebase.database().ref(`prueba${sondaId}`).on("value", s => {
+  let nodoFirebase = (sondaId === 1) ? "prueba" : `prueba${sondaId}`;
+
+  firebase.database().ref(nodoFirebase).on("value", s => {
     const d = s.val();
-    if(!d) return; // Si no hay datos, se queda en OFFLINE por defecto
+    if(!d) return; 
 
     if(!active[i]) return;
 
@@ -464,24 +468,23 @@ function abrirMenuPro(){
   document.getElementById('overlayPro').classList.add('active');
   document.getElementById('panelPro').classList.add("active");
   
-  // Abrir Sonda 1 por defecto al iniciar
   cargarGraficoSonda(1, document.querySelector('.tab-btn'));
 }
 
 function cargarGraficoSonda(sondaId, btnElement) {
   activeSondaTab = sondaId;
   
-  // Cambiar color de la pestaña seleccionada
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   if(btnElement) btnElement.classList.add('active');
 
-  // Limpiar datos visuales mientras carga
   document.getElementById('distanciaActual').textContent = "--";
   document.getElementById('porcentajeCebo').textContent = "Cargando...";
   document.getElementById('porcentajeCebo').style.color = "#64748b";
 
-  // Buscar historial específico de la sonda seleccionada
-  firebase.database().ref(`historial${sondaId}`).once("value", snap => {
+  // 🔥 CORRECCIÓN: La Sonda 1 vuelve a leer de "historial" original.
+  let nodoHistorial = (sondaId === 1) ? "historial" : `historial${sondaId}`;
+
+  firebase.database().ref(nodoHistorial).once("value", snap => {
     const records = [];
     snap.forEach(c => {
       const d = c.val();
@@ -525,7 +528,6 @@ function cargarGraficoSonda(sondaId, btnElement) {
       document.getElementById('porcentajeCebo').textContent = "Sin datos aún";
     }
 
-    // Destruir el gráfico anterior si existe para evitar superposición
     if (miGraficoHistorial) {
       miGraficoHistorial.destroy();
     }
@@ -582,8 +584,8 @@ function cargarGraficoSonda(sondaId, btnElement) {
 }
 
 function descargarCSV(){
-  // Descarga el CSV de la pestaña que tengas abierta en ese momento
-  firebase.database().ref(`historial${activeSondaTab}`).once("value",snap=>{
+  let nodoHistorial = (activeSondaTab === 1) ? "historial" : `historial${activeSondaTab}`;
+  firebase.database().ref(nodoHistorial).once("value",snap=>{
     let csv="FechaHora,Distancia_mm\n";
     snap.forEach(c=>{
       const d=c.val();
