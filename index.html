@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -72,7 +73,6 @@ html,body{
   border:2px solid transparent;
 }
 
-/* 🔥 SOLO MEJORA ALERTA */
 .card.alert{
   border-color:#ff0000 !important;
   box-shadow:0 0 15px rgba(255,0,0,0.7);
@@ -123,7 +123,6 @@ canvas{width:110px!important;height:110px!important;}
   color:#ffffff;
 }
 
-/* 🔥 SOLO CAMBIO COLOR ALERTA */
 .presenciaAlert{
   font-weight:700;
   text-align:center;
@@ -152,7 +151,6 @@ canvas{width:110px!important;height:110px!important;}
 <div class="app">
 
   <div class="header-logo">
-    <!-- Reemplaza con tu logo si lo tienes, o déjalo -->
     <img src="logo.png" alt="IguanaLab" onerror="this.style.display='none'">
   </div>
 
@@ -179,7 +177,6 @@ canvas{width:110px!important;height:110px!important;}
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
 <script>
-
 function estadoConexion(fechaStr){
   if(!fechaStr) return "OFFLINE";
   const p = fechaStr.split(" ");
@@ -353,22 +350,55 @@ firebase.database().ref("prueba").on("value",s=>{
 });
 </script>
 
-<!-- ===== SISTEMA PRO MEJORADO ===== -->
+<!-- ===== SISTEMA DE MENÚ Y MODAL TIPO IMAGEN ===== -->
 
 <style>
-.btn-pro{position:fixed;top:15px;right:15px;background:var(--accent);border:none;border-radius:10px;padding:8px;cursor:pointer;z-index:9999;box-shadow:var(--shadow);}
-.btn-pro span{display:block;width:22px;height:3px;background:#000;margin:4px 0;}
-.menu-pro{position:fixed;top:60px;right:15px;width:260px;background:rgba(46,204,15,0.98);border-radius:14px;padding:12px;display:none;z-index:9999;box-shadow:var(--shadow);}
+/* Botón y Menú desplegable */
+.btn-pro{position:fixed;top:15px;right:15px;background:var(--card);border:none;border-radius:10px;padding:8px;cursor:pointer;z-index:9999;box-shadow:var(--shadow);}
+.btn-pro span{display:block;width:22px;height:3px;background:#fff;margin:4px 0;}
+.menu-pro{position:fixed;top:60px;right:15px;width:240px;background:#111827;color:#fff;border-radius:12px;padding:8px;display:none;z-index:9999;box-shadow:var(--shadow);}
 .menu-pro.active{display:block;}
-.menu-pro div{padding:10px;cursor:pointer;font-weight:600;border-bottom:1px solid rgba(255,255,255,0.1);}
+.menu-pro div{padding:12px;cursor:pointer;font-size:14px;border-bottom:1px solid rgba(255,255,255,0.05);}
 .menu-pro div:last-child{border-bottom:none;}
-.menu-pro div:hover{background:rgba(255,255,255,0.1);border-radius:8px;}
+.menu-pro div:hover{background:rgba(255,255,255,0.1);border-radius:6px;}
 
-/* Panel ampliado para soportar el nuevo diseño de gráfico */
-.panel-pro{position:fixed;top:100px;right:15px;width:auto;min-width:480px;max-width:90vw;background:rgba(46,204,15,0.98);border-radius:16px;padding:20px;display:none;z-index:9999;box-shadow:var(--shadow);}
+/* Overlay oscuro para fondo de la modal */
+.modal-overlay {
+  position:fixed; top:0; left:0; width:100vw; height:100vh;
+  background:rgba(0,0,0,0.6); backdrop-filter:blur(3px);
+  display:none; z-index:9998;
+}
+.modal-overlay.active { display:block; }
+
+/* La Modal amplia (Igual a la imagen proporcionada) */
+.panel-pro{
+  position:fixed; top:50%; left:50%; transform:translate(-50%, -50%);
+  width:95vw; max-width:980px; background:#ffffff; border-radius:12px;
+  display:none; z-index:9999; box-shadow:0 25px 50px -12px rgba(0,0,0,0.5);
+  color:#1e293b; overflow:hidden;
+}
 .panel-pro.active{display:block;}
-@media (max-width: 600px) {
-  .panel-pro { min-width: 90vw; }
+
+.modal-header { padding:20px 24px; display:flex; justify-content:space-between; align-items:center; }
+.modal-header h3 { margin:0; font-size:16px; font-weight:700; color:#0f172a; }
+.btn-close { background:none; border:none; font-size:24px; color:#94a3b8; cursor:pointer; line-height:1; }
+.btn-close:hover { color:#0f172a; }
+
+/* Estructura dividida de la tarjeta */
+.chart-card-container {
+  display:flex; border-top:1px solid #f1f5f9; background:#fff;
+}
+.chart-left {
+  flex:1; padding:20px 24px 30px 24px; border-right:1px solid #f1f5f9; min-width:0;
+}
+.chart-right {
+  width:220px; padding:30px 24px; display:flex; flex-direction:column; justify-content:center;
+}
+
+@media (max-width: 768px) {
+  .chart-card-container { flex-direction:column; }
+  .chart-left { border-right:none; border-bottom:1px solid #f1f5f9; }
+  .chart-right { width:100%; align-items:center; text-align:center; padding:20px; }
 }
 </style>
 
@@ -377,26 +407,31 @@ firebase.database().ref("prueba").on("value",s=>{
 </button>
 
 <div id="menuPro" class="menu-pro">
-  <div onclick="abrirMenuPro('historial')">📊 Historial de Cebo</div>
-  <div onclick="descargarCSV()">⬇ Descargar CSV</div>
-  <div onclick="abrirMenuPro('ayuda')">❓ Ayuda</div>
+  <div onclick="abrirMenuPro('historial')">📊 Ver Historial de Cebo</div>
+  <div onclick="descargarCSV()">⬇ Descargar Datos CSV</div>
 </div>
 
+<div id="overlayPro" class="modal-overlay"></div>
 <div id="panelPro" class="panel-pro"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
 
 <script>
-btnMenuPro.onclick=()=>menuPro.classList.toggle("active");
+btnMenuPro.onclick = () => menuPro.classList.toggle("active");
+
+function cerrarModal() {
+  document.getElementById('overlayPro').classList.remove('active');
+  document.getElementById('panelPro').classList.remove('active');
+}
+
+document.getElementById('overlayPro').addEventListener('click', cerrarModal);
 
 document.addEventListener("click",(e)=>{
-  if(!menuPro.contains(e.target)&&!btnMenuPro.contains(e.target)&&!panelPro.contains(e.target)){
+  if(!menuPro.contains(e.target) && !btnMenuPro.contains(e.target)){
     menuPro.classList.remove("active");
-    panelPro.classList.remove("active");
   }
 });
 
-// Convertir fecha string a objeto Date para calcular la semana
 function parseFechaCL(fechaStr) {
   if(!fechaStr) return new Date();
   const p = fechaStr.split(" ");
@@ -407,27 +442,32 @@ function parseFechaCL(fechaStr) {
 }
 
 function abrirMenuPro(tipo){
-  panelPro.classList.add("active");
+  menuPro.classList.remove("active");
+  document.getElementById('overlayPro').classList.add('active');
+  const panel = document.getElementById('panelPro');
+  panel.classList.add("active");
 
   if(tipo==="historial"){
-    // Plantilla visual mejorada con Flexbox (Grafico Izquierda, Datos Derecha)
-    panelPro.innerHTML=`
-      <div style="display:flex; flex-direction:column; gap:10px;">
-        <h3 style="margin:0; color:#fff; font-size:18px;">Movimiento del Cebo (Últimos 7 días)</h3>
-        <div style="display:flex; flex-wrap:wrap; background:rgba(0,0,0,0.25); padding:20px; border-radius:12px; border:1px solid rgba(255,255,255,0.15);">
-          
-          <!-- Contenedor del Gráfico (Flexible) -->
-          <div style="flex: 1 1 250px; border-right: 1px solid rgba(255,255,255,0.15); padding-right: 20px; min-width:0;">
-            <canvas id="graficoHistorial" style="height:160px; width:100%;"></canvas>
+    panel.innerHTML=`
+      <div class="modal-header">
+        <h3>Movimiento Total (Últimos 7 Días)</h3>
+        <button class="btn-close" onclick="cerrarModal()">×</button>
+      </div>
+      <div class="chart-card-container">
+        <!-- Izquierda: Gráfico -->
+        <div class="chart-left">
+          <div style="height:260px; width:100%;">
+            <canvas id="graficoHistorial"></canvas>
           </div>
-
-          <!-- Contenedor de Estadísticas (Fijo) -->
-          <div style="min-width: 140px; text-align: center; display: flex; flex-direction: column; justify-content: center; padding-left: 20px;">
-            <h1 id="distanciaActual" style="margin: 0; font-size: 38px; color: #fff;">-- <span style="font-size: 14px; color: rgba(255,255,255,0.7);">mm</span></h1>
-            <p style="margin: 5px 0; color: rgba(255,255,255,0.7); font-size: 13px;">Distancia Actual</p>
-            <p id="porcentajeCebo" style="font-weight: bold; margin: 0; font-size: 14px;">--</p>
+        </div>
+        <!-- Derecha: Números -->
+        <div class="chart-right">
+          <div style="display:flex; align-items:baseline; gap:6px;">
+            <h1 id="distanciaActual" style="margin:0; font-size:42px; font-weight:800; color:#0f172a; letter-spacing:-1px;">--</h1>
+            <span style="font-size:14px; font-weight:700; color:#334155;">mm</span>
           </div>
-
+          <p style="margin:4px 0 8px 0; color:#64748b; font-size:13px;">Distancia Actual</p>
+          <p id="porcentajeCebo" style="margin:0; font-size:13px; font-weight:700; color:#10b981;">--</p>
         </div>
       </div>
     `;
@@ -439,19 +479,17 @@ function abrirMenuPro(tipo){
         if(d.FechaHora) {
           records.push({
             time: parseFechaCL(d.FechaHora),
-            label: d.FechaHora,
+            label: d.FechaHora.split(" ")[1].substring(0,5), // Extrae solo HH:MM para el eje X
             val: Number(d.Distancia_mm||0)
           });
         }
       });
 
-      // Ordenar por tiempo (por si acaso Firebase los trae desordenados)
       records.sort((a,b) => a.time - b.time);
 
       const labels = records.map(r => r.label);
       const data = records.map(r => r.val);
 
-      // Calcular lógica del porcentaje vs hace 7 días
       if (records.length > 0) {
         const currentVal = records[records.length - 1].val;
         const currentTime = records[records.length - 1].time;
@@ -459,48 +497,44 @@ function abrirMenuPro(tipo){
         let baselineRecord = records[0]; 
         const sieteDiasEnMilisegundos = 7 * 24 * 60 * 60 * 1000;
         
-        // Buscar el registro más cercano a 7 días atrás
         for (let i = records.length - 1; i >= 0; i--) {
           if (currentTime - records[i].time <= sieteDiasEnMilisegundos) {
             baselineRecord = records[i];
-          } else {
-            break; 
-          }
+          } else { break; }
         }
         
         const baselineVal = baselineRecord.val;
         let diferencia = currentVal - baselineVal;
         let porcentaje = baselineVal === 0 ? 0 : (diferencia / baselineVal) * 100;
         
-        // Formato visual de la flecha y color
-        let colorText = diferencia >= 0 ? "#39FF14" : "#ff3b3b";
+        let colorText = diferencia >= 0 ? "#10b981" : "#ef4444"; // Verde estilo Tailwind si sube
         let arrow = diferencia >= 0 ? "▲" : "▼";
         
-        document.getElementById('distanciaActual').innerHTML = `${currentVal.toFixed(1)} <span style="font-size: 14px; color: rgba(255,255,255,0.7);">mm</span>`;
-        document.getElementById('porcentajeCebo').innerHTML = `${arrow} ${Math.abs(porcentaje).toFixed(1)}% vs sem. pasada`;
+        document.getElementById('distanciaActual').textContent = currentVal.toFixed(1);
+        document.getElementById('porcentajeCebo').textContent = `${arrow} ${Math.abs(porcentaje).toFixed(1)}% vs sem. pasada`;
         document.getElementById('porcentajeCebo').style.color = colorText;
       }
 
-      // Dibujar Gráfico Suavizado con Degradado
+      // Dibujar Gráfico exacto a la imagen
       const ctx = document.getElementById('graficoHistorial').getContext('2d');
-      let gradiente = ctx.createLinearGradient(0, 0, 0, 200);
-      gradiente.addColorStop(0, 'rgba(57, 255, 20, 0.45)'); // Verde fluorescente (Accent) con opacidad
-      gradiente.addColorStop(1, 'rgba(57, 255, 20, 0.0)');  // Transparente abajo
+      let gradiente = ctx.createLinearGradient(0, 0, 0, 260);
+      gradiente.addColorStop(0, 'rgba(16, 185, 129, 0.18)'); // Verde claro
+      gradiente.addColorStop(1, 'rgba(16, 185, 129, 0)');    // Transparente
 
       new Chart(ctx, {
         type: "line",
         data: {
           labels: labels,
           datasets: [{
-            label: "Distancia (mm)",
             data: data,
-            borderColor: "#39FF14",
+            borderColor: "#10b981", // Verde esmeralda
             backgroundColor: gradiente,
-            borderWidth: 3,
-            tension: 0.4, // Curva suavizada (Spline)
-            fill: true,   // Activa el sombreado interior
-            pointBackgroundColor: '#fff',
-            pointBorderColor: '#39FF14',
+            borderWidth: 2,
+            tension: 0.4, // Curva suavizada
+            fill: true,
+            pointBackgroundColor: '#ffffff',
+            pointBorderColor: '#10b981',
+            pointBorderWidth: 2,
             pointRadius: 4,
             pointHoverRadius: 6
           }]
@@ -510,26 +544,27 @@ function abrirMenuPro(tipo){
           maintainAspectRatio: false,
           plugins: {
             legend: { display: false },
-            zoom: { zoom: { wheel: { enabled: true }, mode: "x" }, pan: { enabled: true, mode: "x" } }
+            tooltip: {
+              backgroundColor: '#1e293b',
+              titleFont: { size: 13 },
+              bodyFont: { size: 14, weight: 'bold' },
+              displayColors: false
+            }
           },
           scales: {
             x: { 
-              grid: { display: false }, 
-              ticks: { color: 'rgba(255,255,255,0.6)', maxTicksLimit: 5 } 
+              grid: { color: '#f1f5f9', drawBorder: false }, // Líneas grises claras verticales
+              ticks: { color: '#64748b', font: { size: 11 }, maxTicksLimit: 7 } 
             },
             y: { 
-              beginAtZero: true, 
-              grid: { color: 'rgba(255,255,255,0.15)' }, 
-              ticks: { color: 'rgba(255,255,255,0.6)' } 
+              beginAtZero: false, 
+              grid: { color: '#f1f5f9', drawBorder: false }, // Líneas grises claras horizontales
+              ticks: { color: '#64748b', font: { size: 11 } } 
             }
           }
         }
       });
     });
-  }
-
-  if(tipo==="ayuda"){
-    panelPro.innerHTML='<h3 style="margin-top:0">Sistema de Monitoreo</h3><p>Detecta el consumo del cebo térmítico calculando la variación de distancia milimétrica en la sonda.</p><p>Soporte: soporte@empresa.cl</p>';
   }
 }
 
@@ -545,6 +580,7 @@ function descargarCSV(){
     a.href=URL.createObjectURL(blob);
     a.download="historial_cebo.csv";
     a.click();
+    menuPro.classList.remove("active");
   });
 }
 </script>
