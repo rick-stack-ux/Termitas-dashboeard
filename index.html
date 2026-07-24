@@ -188,7 +188,8 @@ function estadoConexion(fechaStr){
   return diffMin <= 780 ? "ONLINE" : "OFFLINE";
 }
 
-const NUM = 5, DIST_THRESHOLD_MM = 40;
+// 🔥 UMBRAL DEVUELTO A 40MM
+const NUM = 5, DIST_THRESHOLD_MM = 40; 
 const chartsT = [], chartsH = [], active = [true,false,false,false,false],
       lastValues = Array(NUM).fill(null), badCount = Array(NUM).fill(0);
 
@@ -270,7 +271,7 @@ function updateSummary(){
     sumT+=lastValues[i].t;
     sumH+=lastValues[i].h;
     count++;
-    if(lastValues[i].dist>DIST_THRESHOLD_MM) alerts++;
+    if(lastValues[i].dist>=DIST_THRESHOLD_MM) alerts++;
   }
   numActivas.textContent=act;
   numAlertas.textContent=alerts;
@@ -303,7 +304,8 @@ for(let i=0; i<NUM; i++){
     const dist = Number(d.Distancia_mm||0);
     lastValues[i] = {t,h,dist};
 
-    if(dist > DIST_THRESHOLD_MM){ badCount[i]++; }
+    // La alarma se activa a los 40mm para las tarjetas
+    if(dist >= DIST_THRESHOLD_MM){ badCount[i]++; }
     else { badCount[i]=0; }
 
     const presEl = document.getElementById(`pres-${sondaId}`);
@@ -419,11 +421,10 @@ for(let i=0; i<NUM; i++){
       <button class="tab-btn" onclick="cargarGraficoSonda(5, this)">Sonda 5</button>
     </div>
     
-    <!-- Filtro de tiempo -->
     <select id="rangoTiempo" class="select-rango" onchange="cargarGraficoSonda(activeSondaTab)">
       <option value="7">Últimos 7 días</option>
-      <option value="30">Último mes</option>
-      <option value="all">Histórico completo</option>
+      <option value="30">Último mes (Vista por Semanas)</option>
+      <option value="all">Histórico completo (Vista por Semanas)</option>
     </select>
   </div>
 
@@ -443,8 +444,6 @@ for(let i=0; i<NUM; i++){
     </div>
   </div>
 </div>
-
-<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
 
 <script>
 let activeSondaTab = 1;
@@ -478,7 +477,6 @@ function abrirMenuPro(){
   menuPro.classList.remove("active");
   document.getElementById('overlayPro').classList.add('active');
   document.getElementById('panelPro').classList.add("active");
-  
   cargarGraficoSonda(1, document.querySelector('.tab-btn'));
 }
 
@@ -498,45 +496,82 @@ function cargarGraficoSonda(sondaId, btnElement = null) {
   const filtroDias = document.getElementById('rangoTiempo').value;
 
   firebase.database().ref(nodoHistorial).once("value", snap => {
-    let records = [];
+    let rawRecords = [];
     snap.forEach(c => {
       const d = c.val();
       if(d.FechaHora) {
-        records.push({
+        rawRecords.push({
           time: parseFechaCL(d.FechaHora),
-          // Cambiado a DD/MM (Días)
-          label: d.FechaHora.split(" ")[0].substring(0,5), 
           val: Number(d.Distancia_mm||0)
         });
       }
     });
 
-    // Ordenar de más antiguo a más nuevo
-    records.sort((a,b) => a.time - b.time);
+    rawRecords.sort((a,b) => a.time - b.time);
 
-    // Aplicar Filtro de Tiempo
     const ahora = new Date();
     if (filtroDias !== 'all') {
       const msLimite = parseInt(filtroDias) * 24 * 60 * 60 * 1000;
-      records = records.filter(r => (ahora - r.time) <= msLimite);
+      rawRecords = rawRecords.filter(r => (ahora - r.time) <= msLimite);
     }
 
-    const labels = records.map(r => r.label);
-    const data = records.map(r => r.val);
+    let labels = [];
+    let data = [];
 
-    if (records.length > 0) {
-      const currentVal = records[records.length - 1].val;
-      const baselineVal = records[0].val; // Se compara vs el inicio del periodo filtrado
-      
-      let diferencia = currentVal - baselineVal;
-      let porcentaje = baselineVal === 0 ? 0 : (diferencia / baselineVal) * 100;
-      
-      let colorText = diferencia >= 0 ? "#10b981" : "#ef4444";
-      let arrow = diferencia >= 0 ? "▲" : "▼";
-      
-      document.getElementById('distanciaActual').textContent = currentVal.toFixed(1);
-      document.getElementById('porcentajeCebo').textContent = `${arrow} ${Math.abs(porcentaje).toFixed(1)}% vs inicio`;
-      document.getElementById('porcentajeCebo').style.color = colorText;
+    if (rawRecords.length > 0) {
+      if (filtroDias === '7') {
+        let dailyData = {};
+        rawRecords.forEach(r => {
+          let lbl = r.time.toLocaleDateString('es-CL', {day:'2-digit', month:'2-digit'}); 
+          if(!dailyData[lbl]) dailyData[lbl] = [];
+          dailyData[lbl].push(r.val);
+        });
+        labels = Object.keys(dailyData);
+        data = labels.map(l => Math.max(...dailyData[l]));
+
+      } else {
+        labels = ["Semana 1", "Semana 2", "Semana 3", "Semana 4", "Semana 5"];
+        let weeklyData = {1:[], 2:[], 3:[], 4:[], 5:[]};
+        let startTime = rawRecords[0].time.getTime();
+        
+        rawRecords.forEach(r => {
+          let daysDiff = (r.time.getTime() - startTime) / (1000 * 60 * 60 * 24);
+          let week = Math.floor(daysDiff / 7) + 1;
+          if (week > 5) week = 5; 
+          weeklyData[week].push(r.val);
+        });
+
+        let currentMax = 0;
+        let currentActualWeek = Math.floor((ahora.getTime() - startTime) / (1000 * 60 * 60 * 24) / 7) + 1;
+        
+        for(let i=1; i<=5; i++) {
+          if(weeklyData[i].length > 0) {
+              currentMax = Math.max(...weeklyData[i]);
+              data.push(currentMax);
+          } else if (i <= currentActualWeek) {
+              data.push(currentMax > 0 ? currentMax : null);
+          } else {
+              data.push(null);
+          }
+        }
+      }
+
+      const validData = data.filter(v => v !== null);
+      if(validData.length > 0){
+        const currentVal = validData[validData.length - 1];
+        const baselineVal = validData[0]; 
+        
+        let diferencia = currentVal - baselineVal;
+        let porcentaje = baselineVal === 0 ? 0 : (diferencia / baselineVal) * 100;
+        
+        let colorText = diferencia >= 0 ? "#10b981" : "#ef4444";
+        let arrow = diferencia >= 0 ? "▲" : "▼";
+        
+        document.getElementById('distanciaActual').textContent = currentVal.toFixed(1);
+        document.getElementById('porcentajeCebo').textContent = `${arrow} ${Math.abs(porcentaje).toFixed(1)}% vs inicio`;
+        document.getElementById('porcentajeCebo').style.color = colorText;
+      }
+
     } else {
       document.getElementById('distanciaActual').textContent = "0";
       document.getElementById('porcentajeCebo').textContent = "Sin datos en el periodo";
@@ -556,19 +591,38 @@ function cargarGraficoSonda(sondaId, btnElement = null) {
       type: "line",
       data: {
         labels: labels,
-        datasets: [{
-          data: data,
-          borderColor: "#10b981",
-          backgroundColor: gradiente,
-          borderWidth: 2,
-          tension: 0.4,
-          fill: true,
-          pointBackgroundColor: '#ffffff',
-          pointBorderColor: '#10b981',
-          pointBorderWidth: 2,
-          pointRadius: 4,
-          pointHoverRadius: 6
-        }]
+        datasets: [
+          {
+            label: "Distancia (mm)",
+            data: data,
+            borderColor: "#10b981", 
+            backgroundColor: gradiente,
+            borderWidth: 2,
+            tension: 0.4,
+            fill: true,
+            spanGaps: true,
+            pointBackgroundColor: '#ffffff',
+            pointBorderColor: '#10b981',
+            pointBorderWidth: 2,
+            pointRadius: 4,
+            pointHoverRadius: 6,
+            order: 2
+          },
+          {
+            // 🔥 LÍNEA ROJA DE LÍMITE DE TERMITAS CLAVADA EN 40MM
+            label: "Límite Termitas (40mm)",
+            data: Array(labels.length).fill(40),
+            borderColor: "#ff3b3b", 
+            backgroundColor: "transparent",
+            borderWidth: 2,
+            borderDash: [6, 4], 
+            pointRadius: 0,
+            pointHoverRadius: 0,
+            fill: false,
+            tension: 0,
+            order: 1
+          }
+        ]
       },
       options: {
         responsive: true,
@@ -589,7 +643,7 @@ function cargarGraficoSonda(sondaId, btnElement = null) {
           },
           y: { 
             min: 0,
-            max: 40, // 🔥 Límite estricto de 40mm (4 cm)
+            max: 60, // 🔥 GRÁFICO LLEGA HASTA 60MM DE TOPE
             grid: { color: '#f1f5f9', drawBorder: false },
             ticks: { color: '#64748b', font: { size: 11 } } 
           }
@@ -599,7 +653,6 @@ function cargarGraficoSonda(sondaId, btnElement = null) {
   });
 }
 
-// 🔥 Exportación Consolidada: Descarga las 5 Sondas en un solo archivo
 function descargarCSVGlobal(){
   const promesas = [];
   
@@ -611,7 +664,6 @@ function descargarCSVGlobal(){
   }
 
   Promise.all(promesas).then(resultados => {
-    // Agregamos \uFEFF al inicio para que Excel lea correctamente el formato
     let csv = "\uFEFFSonda,FechaHora,Distancia_mm\n";
     
     resultados.forEach(res => {
