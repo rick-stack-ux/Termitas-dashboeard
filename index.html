@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -190,7 +189,6 @@ function estadoConexion(fechaStr){
 }
 
 const NUM = 5, DIST_THRESHOLD_MM = 40;
-// 🔥 CORRECCIÓN: Solo la Sonda 1 activa por defecto
 const chartsT = [], chartsH = [], active = [true,false,false,false,false],
       lastValues = Array(NUM).fill(null), badCount = Array(NUM).fill(0);
 
@@ -289,7 +287,6 @@ firebase.initializeApp({
   projectId: "enlace-t"
 });
 
-// 🔥 CORRECCIÓN: La Sonda 1 vuelve a leer de "prueba" para que no pierda la conexión.
 for(let i=0; i<NUM; i++){
   let sondaId = i + 1;
   let nodoFirebase = (sondaId === 1) ? "prueba" : `prueba${sondaId}`;
@@ -343,7 +340,7 @@ for(let i=0; i<NUM; i++){
 }
 </script>
 
-<!-- ===== MODAL HISTORIAL CON PESTAÑAS POR SONDA ===== -->
+<!-- ===== MODAL HISTORIAL REDISEÑADA ===== -->
 
 <style>
 .btn-pro{position:fixed;top:15px;right:15px;background:var(--card);border:none;border-radius:10px;padding:8px;cursor:pointer;z-index:9999;box-shadow:var(--shadow);}
@@ -374,8 +371,7 @@ for(let i=0; i<NUM; i++){
 .btn-close { background:none; border:none; font-size:24px; color:#94a3b8; cursor:pointer; line-height:1; }
 .btn-close:hover { color:#0f172a; }
 
-/* Pestañas para las sondas */
-.tabs { display:flex; gap:15px; border-bottom:1px solid #f1f5f9; padding:10px 24px 0 24px; background:#fff; margin-top:10px;}
+.tabs { display:flex; gap:15px; border:none; padding:0; background:#fff; margin:0;}
 .tab-btn { background:none; border:none; padding:12px 10px; font-weight:600; color:#64748b; cursor:pointer; border-bottom:3px solid transparent; font-size:14px; outline:none; }
 .tab-btn:hover { color:#0f172a; }
 .tab-btn.active { color:#10b981; border-bottom-color:#10b981; }
@@ -385,11 +381,15 @@ for(let i=0; i<NUM; i++){
 .chart-wrapper { position:relative; height:260px; width:100%; }
 .chart-right { width:220px; padding:30px 24px; display:flex; flex-direction:column; justify-content:center; }
 
+.filtros-top { display:flex; justify-content:space-between; align-items:center; padding:10px 24px 0 24px; border-bottom:1px solid #f1f5f9; }
+.select-rango { padding:6px 12px; border-radius:6px; border:1px solid #cbd5e1; font-family:inherit; font-size:13px; color:#334155; outline:none; cursor:pointer; background:#fff; }
+
 @media (max-width: 768px) {
   .chart-card-container { flex-direction:column; }
   .chart-left { border-right:none; border-bottom:1px solid #f1f5f9; }
   .chart-right { width:100%; align-items:center; text-align:center; padding:20px; }
-  .tabs { overflow-x:auto; }
+  .filtros-top { flex-direction:column; align-items:flex-start; gap:10px; padding-bottom:10px;}
+  .tabs { overflow-x:auto; width:100%;}
   .tab-btn { white-space:nowrap; }
 }
 </style>
@@ -400,22 +400,33 @@ for(let i=0; i<NUM; i++){
 
 <div id="menuPro" class="menu-pro">
   <div onclick="abrirMenuPro()">📊 Ver Historial de Cebo</div>
-  <div onclick="descargarCSV()">⬇ Descargar Datos CSV</div>
+  <div onclick="descargarCSVGlobal()">⬇ Descargar Datos CSV (Todas)</div>
 </div>
 
 <div id="overlayPro" class="modal-overlay"></div>
 <div id="panelPro" class="panel-pro">
   <div class="modal-header">
-    <h3>Movimiento Total (Últimos 7 Días)</h3>
+    <h3>Análisis de Sondas</h3>
     <button class="btn-close" onclick="cerrarModal()">×</button>
   </div>
-  <div class="tabs" id="tabContainer">
-    <button class="tab-btn active" onclick="cargarGraficoSonda(1, this)">Sonda 1</button>
-    <button class="tab-btn" onclick="cargarGraficoSonda(2, this)">Sonda 2</button>
-    <button class="tab-btn" onclick="cargarGraficoSonda(3, this)">Sonda 3</button>
-    <button class="tab-btn" onclick="cargarGraficoSonda(4, this)">Sonda 4</button>
-    <button class="tab-btn" onclick="cargarGraficoSonda(5, this)">Sonda 5</button>
+  
+  <div class="filtros-top">
+    <div class="tabs" id="tabContainer">
+      <button class="tab-btn active" onclick="cargarGraficoSonda(1, this)">Sonda 1</button>
+      <button class="tab-btn" onclick="cargarGraficoSonda(2, this)">Sonda 2</button>
+      <button class="tab-btn" onclick="cargarGraficoSonda(3, this)">Sonda 3</button>
+      <button class="tab-btn" onclick="cargarGraficoSonda(4, this)">Sonda 4</button>
+      <button class="tab-btn" onclick="cargarGraficoSonda(5, this)">Sonda 5</button>
+    </div>
+    
+    <!-- Filtro de tiempo -->
+    <select id="rangoTiempo" class="select-rango" onchange="cargarGraficoSonda(activeSondaTab)">
+      <option value="7">Últimos 7 días</option>
+      <option value="30">Último mes</option>
+      <option value="all">Histórico completo</option>
+    </select>
   </div>
+
   <div class="chart-card-container">
     <div class="chart-left">
       <div class="chart-wrapper">
@@ -471,49 +482,52 @@ function abrirMenuPro(){
   cargarGraficoSonda(1, document.querySelector('.tab-btn'));
 }
 
-function cargarGraficoSonda(sondaId, btnElement) {
+function cargarGraficoSonda(sondaId, btnElement = null) {
   activeSondaTab = sondaId;
   
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  if(btnElement) btnElement.classList.add('active');
+  if(btnElement) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btnElement.classList.add('active');
+  }
 
   document.getElementById('distanciaActual').textContent = "--";
   document.getElementById('porcentajeCebo').textContent = "Cargando...";
   document.getElementById('porcentajeCebo').style.color = "#64748b";
 
-  // 🔥 CORRECCIÓN: La Sonda 1 vuelve a leer de "historial" original.
   let nodoHistorial = (sondaId === 1) ? "historial" : `historial${sondaId}`;
+  const filtroDias = document.getElementById('rangoTiempo').value;
 
   firebase.database().ref(nodoHistorial).once("value", snap => {
-    const records = [];
+    let records = [];
     snap.forEach(c => {
       const d = c.val();
       if(d.FechaHora) {
         records.push({
           time: parseFechaCL(d.FechaHora),
-          label: d.FechaHora.split(" ")[1].substring(0,5), 
+          // Cambiado a DD/MM (Días)
+          label: d.FechaHora.split(" ")[0].substring(0,5), 
           val: Number(d.Distancia_mm||0)
         });
       }
     });
 
+    // Ordenar de más antiguo a más nuevo
     records.sort((a,b) => a.time - b.time);
+
+    // Aplicar Filtro de Tiempo
+    const ahora = new Date();
+    if (filtroDias !== 'all') {
+      const msLimite = parseInt(filtroDias) * 24 * 60 * 60 * 1000;
+      records = records.filter(r => (ahora - r.time) <= msLimite);
+    }
+
     const labels = records.map(r => r.label);
     const data = records.map(r => r.val);
 
     if (records.length > 0) {
       const currentVal = records[records.length - 1].val;
-      const currentTime = records[records.length - 1].time;
-      let baselineRecord = records[0]; 
-      const sieteDiasEnMilisegundos = 7 * 24 * 60 * 60 * 1000;
+      const baselineVal = records[0].val; // Se compara vs el inicio del periodo filtrado
       
-      for (let i = records.length - 1; i >= 0; i--) {
-        if (currentTime - records[i].time <= sieteDiasEnMilisegundos) {
-          baselineRecord = records[i];
-        } else { break; }
-      }
-      
-      const baselineVal = baselineRecord.val;
       let diferencia = currentVal - baselineVal;
       let porcentaje = baselineVal === 0 ? 0 : (diferencia / baselineVal) * 100;
       
@@ -521,11 +535,12 @@ function cargarGraficoSonda(sondaId, btnElement) {
       let arrow = diferencia >= 0 ? "▲" : "▼";
       
       document.getElementById('distanciaActual').textContent = currentVal.toFixed(1);
-      document.getElementById('porcentajeCebo').textContent = `${arrow} ${Math.abs(porcentaje).toFixed(1)}% vs sem. pasada`;
+      document.getElementById('porcentajeCebo').textContent = `${arrow} ${Math.abs(porcentaje).toFixed(1)}% vs inicio`;
       document.getElementById('porcentajeCebo').style.color = colorText;
     } else {
       document.getElementById('distanciaActual').textContent = "0";
-      document.getElementById('porcentajeCebo').textContent = "Sin datos aún";
+      document.getElementById('porcentajeCebo').textContent = "Sin datos en el periodo";
+      document.getElementById('porcentajeCebo').style.color = "#64748b";
     }
 
     if (miGraficoHistorial) {
@@ -573,7 +588,8 @@ function cargarGraficoSonda(sondaId, btnElement) {
             ticks: { color: '#64748b', font: { size: 11 }, maxTicksLimit: 7 } 
           },
           y: { 
-            beginAtZero: false, 
+            min: 0,
+            max: 40, // 🔥 Límite estricto de 40mm (4 cm)
             grid: { color: '#f1f5f9', drawBorder: false },
             ticks: { color: '#64748b', font: { size: 11 } } 
           }
@@ -583,18 +599,35 @@ function cargarGraficoSonda(sondaId, btnElement) {
   });
 }
 
-function descargarCSV(){
-  let nodoHistorial = (activeSondaTab === 1) ? "historial" : `historial${activeSondaTab}`;
-  firebase.database().ref(nodoHistorial).once("value",snap=>{
-    let csv="FechaHora,Distancia_mm\n";
-    snap.forEach(c=>{
-      const d=c.val();
-      csv+=`${d.FechaHora},${d.Distancia_mm}\n`;
+// 🔥 Exportación Consolidada: Descarga las 5 Sondas en un solo archivo
+function descargarCSVGlobal(){
+  const promesas = [];
+  
+  for(let i=1; i<=5; i++){
+    let nodo = (i===1) ? "historial" : `historial${i}`;
+    promesas.push(firebase.database().ref(nodo).once("value").then(snap => {
+      return { sonda: i, data: snap.val() };
+    }));
+  }
+
+  Promise.all(promesas).then(resultados => {
+    // Agregamos \uFEFF al inicio para que Excel lea correctamente el formato
+    let csv = "\uFEFFSonda,FechaHora,Distancia_mm\n";
+    
+    resultados.forEach(res => {
+      if(res.data){
+        Object.values(res.data).forEach(d => {
+          if(d.FechaHora) {
+            csv += `Sonda ${res.sonda},${d.FechaHora},${d.Distancia_mm}\n`;
+          }
+        });
+      }
     });
-    const blob=new Blob([csv]);
-    const a=document.createElement("a");
-    a.href=URL.createObjectURL(blob);
-    a.download=`historial_sonda${activeSondaTab}.csv`;
+
+    const blob = new Blob([csv], {type: "text/csv;charset=utf-8;"});
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "comportamiento_todas_las_sondas.csv";
     a.click();
     menuPro.classList.remove("active");
   });
