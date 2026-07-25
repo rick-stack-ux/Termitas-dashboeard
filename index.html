@@ -78,13 +78,15 @@ html,body{
   box-shadow:0 0 15px rgba(255,0,0,0.7);
 }
 
-/* 🔥 ESTILO PARA TARJETAS DESCONECTADAS (Automático) */
 .card.inactive{
   opacity:.4;
   filter:grayscale(1);
 }
 
-.sonda-title{font-weight:600;font-size:15px;margin-bottom:8px;}
+.sonda-title{font-weight:600;font-size:15px;margin-bottom:8px; display:flex; align-items:center; gap:8px;}
+.btn-config{background:rgba(0,0,0,0.2); border:none; border-radius:4px; cursor:pointer; font-size:14px; padding:3px 6px; transition:0.2s;}
+.btn-config:hover{background:rgba(0,0,0,0.4); transform:scale(1.1);}
+
 .tog{font-size:13px;color:var(--muted);display:flex;gap:8px;align-items:center;margin-bottom:8px;}
 
 .meter-box{
@@ -181,7 +183,6 @@ html,body{
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
 <script>
-// 🔥 LÍMITE DE DESCONEXIÓN AJUSTADO A 720 MINUTOS (12 HORAS)
 function estadoConexion(fechaStr){
   if(!fechaStr) return "OFFLINE";
   const p = fechaStr.split(" ");
@@ -195,7 +196,6 @@ function estadoConexion(fechaStr){
 }
 
 const NUM = 5, DIST_THRESHOLD_MM = 40; 
-// 🔥 NUEVO SISTEMA: Arreglo para saber si están online (empiezan todas offline)
 const isOnline = [false,false,false,false,false]; 
 const chartsT = [], chartsH = [], 
       lastValues = Array(NUM).fill(null), badCount = Array(NUM).fill(0);
@@ -215,13 +215,12 @@ function humColor(v){
 function createCard(i){
   const grid=document.getElementById('grid');
   const card=document.createElement('div');
-  // Por defecto inician apagadas hasta que Firebase reporte que están vivas
   card.className='card inactive'; 
   card.id=`card-${i+1}`;
 
   card.innerHTML=`
     <div style="display:flex;justify-content:space-between;align-items:flex-start;">
-      <div class="sonda-title">Sonda ${i+1}</div>
+      <div class="sonda-title">Sonda ${i+1} <button class="btn-config" onclick="abrirConfig(${i+1})" title="Ajustar Offsets">⚙️</button></div>
       <div style="text-align:right;font-size:12px;">
         <div id="estado-${i+1}">🔴 OFFLINE</div>
         <div id="wifi-${i+1}">📶 --</div>
@@ -267,7 +266,6 @@ function createCard(i){
 function updateSummary(){
   let act=0,alerts=0,sumT=0,sumH=0,count=0;
   for(let i=0;i<NUM;i++){
-    // Solo computa para los promedios si la sonda está ONLINE
     if(!isOnline[i]) continue;
     
     act++;
@@ -286,6 +284,7 @@ function updateSummary(){
 for(let i=0;i<NUM;i++) createCard(i);
 updateSummary();
 
+// INICIALIZAR FIREBASE
 firebase.initializeApp({
   authDomain: "enlace-t.firebaseapp.com",
   databaseURL: "https://enlace-t-default-rtdb.firebaseio.com",
@@ -305,7 +304,6 @@ for(let i=0; i<NUM; i++){
 
     const estado = estadoConexion(d.FechaHora);
     
-    // 🔥 LÓGICA DE ACTIVACIÓN AUTOMÁTICA
     if (estado === "ONLINE") {
       isOnline[i] = true;
       cardEl.classList.remove('inactive');
@@ -323,12 +321,11 @@ for(let i=0; i<NUM; i++){
     const dist = Number(d.Distancia_mm||0);
     lastValues[i] = {t,h,dist};
 
-    // La alarma se activa a los 40mm, pero solo si la placa está online
     if(isOnline[i]){
       if(dist >= DIST_THRESHOLD_MM){ badCount[i]++; }
       else { badCount[i]=0; }
     } else {
-      badCount[i]=0; // Apaga la alerta temporalmente si se pierde la conexión
+      badCount[i]=0;
     }
 
     const presEl = document.getElementById(`pres-${sondaId}`);
@@ -363,7 +360,7 @@ for(let i=0; i<NUM; i++){
 }
 </script>
 
-<!-- ===== MODAL HISTORIAL REDISEÑADA ===== -->
+<!-- ===== ESTILOS DEL MODAL PRO Y MODAL CONFIGURACIÓN ===== -->
 
 <style>
 .btn-pro{position:fixed;top:15px;right:15px;background:var(--card);border:none;border-radius:10px;padding:8px;cursor:pointer;z-index:9999;box-shadow:var(--shadow);}
@@ -393,6 +390,14 @@ for(let i=0; i<NUM; i++){
 .modal-header h3 { margin:0; font-size:18px; font-weight:700; color:#0f172a; }
 .btn-close { background:none; border:none; font-size:24px; color:#94a3b8; cursor:pointer; line-height:1; }
 .btn-close:hover { color:#0f172a; }
+
+/* Modal Mini para Ajustes */
+.modal-config { max-width: 400px; padding: 25px; }
+.input-group { margin-bottom: 15px; }
+.input-group label { display:block; font-size: 13px; font-weight: 600; color: #475569; margin-bottom: 5px; }
+.input-group input { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; font-family: inherit; font-size: 14px; }
+.btn-guardar { background: #10b981; color: #fff; border: none; padding: 12px; border-radius: 6px; cursor: pointer; width: 100%; font-weight: 600; font-size: 14px; margin-top: 10px; transition: 0.2s;}
+.btn-guardar:hover { background: #059669; }
 
 .tabs { display:flex; gap:15px; border:none; padding:0; background:#fff; margin:0;}
 .tab-btn { background:none; border:none; padding:12px 10px; font-weight:600; color:#64748b; cursor:pointer; border-bottom:3px solid transparent; font-size:14px; outline:none; }
@@ -427,6 +432,8 @@ for(let i=0; i<NUM; i++){
 </div>
 
 <div id="overlayPro" class="modal-overlay"></div>
+
+<!-- Modal Historial Original -->
 <div id="panelPro" class="panel-pro">
   <div class="modal-header">
     <h3>Análisis de Sondas</h3>
@@ -466,15 +473,40 @@ for(let i=0; i<NUM; i++){
   </div>
 </div>
 
+<!-- ===== NUEVO MODAL PARA AJUSTAR OFFSETS ===== -->
+<div id="modalConfigOffsets" class="panel-pro modal-config">
+  <div class="modal-header" style="padding:0 0 20px 0; border-bottom:1px solid #f1f5f9; margin-bottom:15px;">
+    <h3>⚙️ Configurar Sonda <span id="confSondaId"></span></h3>
+    <button class="btn-close" onclick="cerrarModal()">×</button>
+  </div>
+  
+  <div class="input-group">
+    <label>Offset Temperatura (°C)</label>
+    <input type="number" step="0.1" id="inOffT" placeholder="Ej: -2.0">
+  </div>
+  <div class="input-group">
+    <label>Offset Humedad (%)</label>
+    <input type="number" step="0.1" id="inOffH" placeholder="Ej: +5.0">
+  </div>
+  <div class="input-group">
+    <label>Offset Distancia (mm)</label>
+    <input type="number" step="1" id="inOffD" placeholder="Ej: -16">
+  </div>
+  
+  <button class="btn-guardar" onclick="guardarOffsetsFirebase()">💾 Guardar Ajustes</button>
+</div>
+
 <script>
 let activeSondaTab = 1;
 let miGraficoHistorial = null;
+let currentConfigSonda = null;
 
 btnMenuPro.onclick = () => menuPro.classList.toggle("active");
 
 function cerrarModal() {
   document.getElementById('overlayPro').classList.remove('active');
   document.getElementById('panelPro').classList.remove('active');
+  document.getElementById('modalConfigOffsets').classList.remove('active');
 }
 
 document.getElementById('overlayPro').addEventListener('click', cerrarModal);
@@ -484,6 +516,58 @@ document.addEventListener("click",(e)=>{
     menuPro.classList.remove("active");
   }
 });
+
+// ==== LÓGICA DE CONTRASEÑA Y OFFSETS ====
+
+function abrirConfig(sondaId) {
+  // 1. Pedir usuario/contraseña
+  const pass = prompt("ACCESO RESTRINGIDO\nIngrese la contraseña para configurar:");
+  
+  // 2. Verificar si es la contraseña solicitada
+  if (pass !== "sondTP123") {
+    if (pass !== null) alert("Contraseña incorrecta. Acceso denegado.");
+    return;
+  }
+  
+  currentConfigSonda = sondaId;
+  document.getElementById("confSondaId").textContent = sondaId;
+  
+  // 3. Consultar datos actuales de Firebase
+  let nodo = (sondaId === 1) ? "config" : `config${sondaId}`;
+  
+  firebase.database().ref(nodo).once("value").then(snap => {
+    const data = snap.val() || {};
+    // Cargar los datos a los inputs, o poner 0 si no existe
+    document.getElementById("inOffT").value = data.offsetTemp || 0;
+    document.getElementById("inOffH").value = data.offsetHum || 0;
+    document.getElementById("inOffD").value = data.offsetDist || 0;
+    
+    // Abrir ventana
+    document.getElementById('overlayPro').classList.add('active');
+    document.getElementById('modalConfigOffsets').classList.add('active');
+  });
+}
+
+function guardarOffsetsFirebase() {
+  const t = parseFloat(document.getElementById("inOffT").value) || 0;
+  const h = parseFloat(document.getElementById("inOffH").value) || 0;
+  const d = parseInt(document.getElementById("inOffD").value) || 0;
+  
+  let nodo = (currentConfigSonda === 1) ? "config" : `config${currentConfigSonda}`;
+  
+  firebase.database().ref(nodo).set({
+    offsetTemp: t,
+    offsetHum: h,
+    offsetDist: d
+  }).then(() => {
+    alert("✅ Ajustes guardados exitosamente en Firebase.");
+    cerrarModal();
+  }).catch(err => {
+    alert("Error al guardar: " + err.message);
+  });
+}
+
+// ==== RESTO DE LA LÓGICA (GRÁFICOS, CSV) ====
 
 function parseFechaCL(fechaStr) {
   if(!fechaStr) return new Date();
