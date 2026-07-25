@@ -70,6 +70,7 @@ html,body{
   padding:14px;
   box-shadow:var(--shadow);
   border:2px solid transparent;
+  transition: all 0.3s ease;
 }
 
 .card.alert{
@@ -77,7 +78,11 @@ html,body{
   box-shadow:0 0 15px rgba(255,0,0,0.7);
 }
 
-.card.inactive{opacity:.35;filter:grayscale(.1);}
+/* 🔥 ESTILO PARA TARJETAS DESCONECTADAS (Automático) */
+.card.inactive{
+  opacity:.4;
+  filter:grayscale(1);
+}
 
 .sonda-title{font-weight:600;font-size:15px;margin-bottom:8px;}
 .tog{font-size:13px;color:var(--muted);display:flex;gap:8px;align-items:center;margin-bottom:8px;}
@@ -176,6 +181,7 @@ html,body{
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
 <script>
+// 🔥 LÍMITE DE DESCONEXIÓN AJUSTADO A 720 MINUTOS (12 HORAS)
 function estadoConexion(fechaStr){
   if(!fechaStr) return "OFFLINE";
   const p = fechaStr.split(" ");
@@ -185,12 +191,13 @@ function estadoConexion(fechaStr){
   const fechaDato = new Date(f[2], f[1]-1, f[0], h[0], h[1], h[2]);
   const ahora = new Date();
   const diffMin = (ahora - fechaDato)/60000;
-  return diffMin <= 780 ? "ONLINE" : "OFFLINE";
+  return diffMin <= 720 ? "ONLINE" : "OFFLINE";
 }
 
-// 🔥 UMBRAL DEVUELTO A 40MM
 const NUM = 5, DIST_THRESHOLD_MM = 40; 
-const chartsT = [], chartsH = [], active = [true,false,false,false,false],
+// 🔥 NUEVO SISTEMA: Arreglo para saber si están online (empiezan todas offline)
+const isOnline = [false,false,false,false,false]; 
+const chartsT = [], chartsH = [], 
       lastValues = Array(NUM).fill(null), badCount = Array(NUM).fill(0);
 
 function tempColor(v){
@@ -208,8 +215,9 @@ function humColor(v){
 function createCard(i){
   const grid=document.getElementById('grid');
   const card=document.createElement('div');
-  card.className='card'; card.id=`card-${i+1}`;
-  if(!active[i]) card.classList.add('inactive');
+  // Por defecto inician apagadas hasta que Firebase reporte que están vivas
+  card.className='card inactive'; 
+  card.id=`card-${i+1}`;
 
   card.innerHTML=`
     <div style="display:flex;justify-content:space-between;align-items:flex-start;">
@@ -221,7 +229,7 @@ function createCard(i){
     </div>
 
     <div class="tog">
-      <label><input type="checkbox" id="toggle-${i+1}" ${active[i]?'checked':''}> Activar</label>
+      <div style="font-size:12px; font-weight:bold; color:var(--muted);" id="auto-${i+1}">Buscando señal...</div>
       <div style="flex:1"></div>
       <div style="font-size:12px;color:var(--muted)">Dist: <span id="dist-${i+1}">--</span></div>
     </div>
@@ -243,12 +251,6 @@ function createCard(i){
   pres.className='presenciaAlert'; pres.id=`pres-${i+1}`;
   card.appendChild(pres);
 
-  card.querySelector(`#toggle-${i+1}`).addEventListener('change',e=>{
-    active[i]=e.target.checked;
-    card.classList.toggle('inactive',!active[i]);
-    updateSummary();
-  });
-
   chartsT[i]=new Chart(document.getElementById(`t-${i+1}`),{
     type:'doughnut',
     data:{datasets:[{data:[0,100],backgroundColor:[tempColor(0),'rgba(0,0,0,0.35)'],borderWidth:0}]},
@@ -265,7 +267,9 @@ function createCard(i){
 function updateSummary(){
   let act=0,alerts=0,sumT=0,sumH=0,count=0;
   for(let i=0;i<NUM;i++){
-    if(!active[i]) continue;
+    // Solo computa para los promedios si la sonda está ONLINE
+    if(!isOnline[i]) continue;
+    
     act++;
     if(!lastValues[i]) continue;
     sumT+=lastValues[i].t;
@@ -294,23 +298,40 @@ for(let i=0; i<NUM; i++){
 
   firebase.database().ref(nodoFirebase).on("value", s => {
     const d = s.val();
+    const cardEl = document.getElementById(`card-${sondaId}`);
+    const autoEl = document.getElementById(`auto-${sondaId}`);
+    
     if(!d) return; 
 
-    if(!active[i]) return;
-
     const estado = estadoConexion(d.FechaHora);
+    
+    // 🔥 LÓGICA DE ACTIVACIÓN AUTOMÁTICA
+    if (estado === "ONLINE") {
+      isOnline[i] = true;
+      cardEl.classList.remove('inactive');
+      autoEl.textContent = "✔ En línea";
+      autoEl.style.color = "var(--accent)";
+    } else {
+      isOnline[i] = false;
+      cardEl.classList.add('inactive');
+      autoEl.textContent = "✖ Desconectada (>12h)";
+      autoEl.style.color = "var(--danger)";
+    }
+
     const t = Number(d.Temperatura_C||0);
     const h = Number(d.Humedad_pct||0);
     const dist = Number(d.Distancia_mm||0);
     lastValues[i] = {t,h,dist};
 
-    // La alarma se activa a los 40mm para las tarjetas
-    if(dist >= DIST_THRESHOLD_MM){ badCount[i]++; }
-    else { badCount[i]=0; }
+    // La alarma se activa a los 40mm, pero solo si la placa está online
+    if(isOnline[i]){
+      if(dist >= DIST_THRESHOLD_MM){ badCount[i]++; }
+      else { badCount[i]=0; }
+    } else {
+      badCount[i]=0; // Apaga la alerta temporalmente si se pierde la conexión
+    }
 
     const presEl = document.getElementById(`pres-${sondaId}`);
-    const cardEl = document.getElementById(`card-${sondaId}`);
-
     if(badCount[i]>=3){
       presEl.textContent = "🚨 POSIBLE TERMITA";
       cardEl.classList.add("alert");
@@ -609,7 +630,6 @@ function cargarGraficoSonda(sondaId, btnElement = null) {
             order: 2
           },
           {
-            // 🔥 LÍNEA ROJA DE LÍMITE DE TERMITAS CLAVADA EN 40MM
             label: "Límite Termitas (40mm)",
             data: Array(labels.length).fill(40),
             borderColor: "#ff3b3b", 
@@ -643,7 +663,7 @@ function cargarGraficoSonda(sondaId, btnElement = null) {
           },
           y: { 
             min: 0,
-            max: 60, // 🔥 GRÁFICO LLEGA HASTA 60MM DE TOPE
+            max: 60,
             grid: { color: '#f1f5f9', drawBorder: false },
             ticks: { color: '#64748b', font: { size: 11 } } 
           }
