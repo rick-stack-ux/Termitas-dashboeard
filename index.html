@@ -473,7 +473,7 @@ for(let i=0; i<NUM; i++){
   </div>
 </div>
 
-<!-- ===== NUEVO MODAL PARA AJUSTAR OFFSETS ===== -->
+<!-- ===== NUEVO MODAL PARA AJUSTAR OFFSETS Y SLEEP ===== -->
 <div id="modalConfigOffsets" class="panel-pro modal-config">
   <div class="modal-header" style="padding:0 0 20px 0; border-bottom:1px solid #f1f5f9; margin-bottom:15px;">
     <h3>⚙️ Configurar Sonda <span id="confSondaId"></span></h3>
@@ -491,6 +491,10 @@ for(let i=0; i<NUM; i++){
   <div class="input-group">
     <label>Offset Distancia (mm)</label>
     <input type="number" step="1" id="inOffD" placeholder="Ej: -16">
+  </div>
+  <div class="input-group">
+    <label>Tiempo Deep Sleep (minutos)</label>
+    <input type="number" step="1" id="inSleep" placeholder="Ej: 1">
   </div>
   
   <button class="btn-guardar" onclick="guardarOffsetsFirebase()">💾 Guardar Ajustes</button>
@@ -517,13 +521,10 @@ document.addEventListener("click",(e)=>{
   }
 });
 
-// ==== LÓGICA DE CONTRASEÑA Y OFFSETS ====
+// ==== LÓGICA DE CONTRASEÑA, OFFSETS Y SLEEP ====
 
 function abrirConfig(sondaId) {
-  // 1. Pedir usuario/contraseña
   const pass = prompt("ACCESO RESTRINGIDO\nIngrese la contraseña para configurar:");
-  
-  // 2. Verificar si es la contraseña solicitada
   if (pass !== "sondTP123") {
     if (pass !== null) alert("Contraseña incorrecta. Acceso denegado.");
     return;
@@ -532,17 +533,15 @@ function abrirConfig(sondaId) {
   currentConfigSonda = sondaId;
   document.getElementById("confSondaId").textContent = sondaId;
   
-  // 3. Consultar datos actuales de Firebase
   let nodo = (sondaId === 1) ? "config" : `config${sondaId}`;
   
   firebase.database().ref(nodo).once("value").then(snap => {
     const data = snap.val() || {};
-    // Cargar los datos a los inputs, o poner 0 si no existe
     document.getElementById("inOffT").value = data.offsetTemp || 0;
     document.getElementById("inOffH").value = data.offsetHum || 0;
     document.getElementById("inOffD").value = data.offsetDist || 0;
+    document.getElementById("inSleep").value = data.sleep || 1; // Carga el tiempo de Deep Sleep
     
-    // Abrir ventana
     document.getElementById('overlayPro').classList.add('active');
     document.getElementById('modalConfigOffsets').classList.add('active');
   });
@@ -552,13 +551,20 @@ function guardarOffsetsFirebase() {
   const t = parseFloat(document.getElementById("inOffT").value) || 0;
   const h = parseFloat(document.getElementById("inOffH").value) || 0;
   const d = parseInt(document.getElementById("inOffD").value) || 0;
+  const s = parseInt(document.getElementById("inSleep").value) || 1; // Lee el tiempo de Deep Sleep
   
+  if(s < 1) {
+    alert("El tiempo de sueño no puede ser menor a 1 minuto.");
+    return;
+  }
+
   let nodo = (currentConfigSonda === 1) ? "config" : `config${currentConfigSonda}`;
   
   firebase.database().ref(nodo).set({
     offsetTemp: t,
     offsetHum: h,
-    offsetDist: d
+    offsetDist: d,
+    sleep: s // Lo guarda en Firebase
   }).then(() => {
     alert("✅ Ajustes guardados exitosamente en Firebase.");
     cerrarModal();
