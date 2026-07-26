@@ -175,7 +175,6 @@ html,body{
   </div>
 
   <div class="grid" id="grid"></div>
-  <div class="note">Umbral alerta distancia: <b>> 40 mm</b></div>
 
 </div>
 
@@ -195,8 +194,9 @@ function estadoConexion(fechaStr){
   return diffMin <= 720 ? "ONLINE" : "OFFLINE";
 }
 
-const NUM = 5, DIST_THRESHOLD_MM = 40; 
+const NUM = 5; 
 const isOnline = [false,false,false,false,false]; 
+const umbrales = [40, 40, 40, 40, 40]; // Umbral por defecto para cada sonda
 const chartsT = [], chartsH = [], 
       lastValues = Array(NUM).fill(null), badCount = Array(NUM).fill(0);
 
@@ -220,7 +220,7 @@ function createCard(i){
 
   card.innerHTML=`
     <div style="display:flex;justify-content:space-between;align-items:flex-start;">
-      <div class="sonda-title">Sonda ${i+1} <button class="btn-config" onclick="abrirConfig(${i+1})" title="Ajustar Offsets">⚙️</button></div>
+      <div class="sonda-title">Sonda ${i+1} <button class="btn-config" onclick="abrirConfig(${i+1})" title="Ajustar Offsets y Umbral">⚙️</button></div>
       <div style="text-align:right;font-size:12px;">
         <div id="estado-${i+1}">🔴 OFFLINE</div>
         <div id="wifi-${i+1}">📶 --</div>
@@ -273,7 +273,7 @@ function updateSummary(){
     sumT+=lastValues[i].t;
     sumH+=lastValues[i].h;
     count++;
-    if(lastValues[i].dist>=DIST_THRESHOLD_MM) alerts++;
+    if(lastValues[i].dist >= umbrales[i]) alerts++;
   }
   numActivas.textContent=act;
   numAlertas.textContent=alerts;
@@ -290,6 +290,19 @@ firebase.initializeApp({
   databaseURL: "https://enlace-t-default-rtdb.firebaseio.com",
   projectId: "enlace-t"
 });
+
+// ESCUCHAR CONFIGURACIONES Y UMBRALES DINÁMICOS
+for(let i=0; i<NUM; i++){
+  let sondaId = i + 1;
+  let nodoConfig = (sondaId === 1) ? "config" : `config${sondaId}`;
+  
+  firebase.database().ref(nodoConfig).on("value", s => {
+    const cfg = s.val();
+    if(cfg && cfg.umbral) {
+      umbrales[i] = parseInt(cfg.umbral);
+    }
+  });
+}
 
 for(let i=0; i<NUM; i++){
   let sondaId = i + 1;
@@ -321,8 +334,9 @@ for(let i=0; i<NUM; i++){
     const dist = Number(d.Distancia_mm||0);
     lastValues[i] = {t,h,dist};
 
+    // Alarma basada en el umbral dinámico de cada sonda
     if(isOnline[i]){
-      if(dist >= DIST_THRESHOLD_MM){ badCount[i]++; }
+      if(dist >= umbrales[i]){ badCount[i]++; }
       else { badCount[i]=0; }
     } else {
       badCount[i]=0;
@@ -473,13 +487,17 @@ for(let i=0; i<NUM; i++){
   </div>
 </div>
 
-<!-- ===== NUEVO MODAL PARA AJUSTAR OFFSETS Y SLEEP ===== -->
+<!-- ===== MODAL CONFIGURACIÓN CON CASILLA UMBRAL ===== -->
 <div id="modalConfigOffsets" class="panel-pro modal-config">
   <div class="modal-header" style="padding:0 0 20px 0; border-bottom:1px solid #f1f5f9; margin-bottom:15px;">
     <h3>⚙️ Configurar Sonda <span id="confSondaId"></span></h3>
     <button class="btn-close" onclick="cerrarModal()">×</button>
   </div>
   
+  <div class="input-group">
+    <label>Umbral Alerta Termitas (mm)</label>
+    <input type="number" step="1" id="inUmbral" placeholder="Ej: 40">
+  </div>
   <div class="input-group">
     <label>Offset Temperatura (°C)</label>
     <input type="number" step="0.1" id="inOffT" placeholder="Ej: -2.0">
@@ -521,8 +539,6 @@ document.addEventListener("click",(e)=>{
   }
 });
 
-// ==== LÓGICA DE CONTRASEÑA, OFFSETS Y SLEEP ====
-
 function abrirConfig(sondaId) {
   const pass = prompt("ACCESO RESTRINGIDO\nIngrese la contraseña para configurar:");
   if (pass !== "sondTP123") {
@@ -537,10 +553,11 @@ function abrirConfig(sondaId) {
   
   firebase.database().ref(nodo).once("value").then(snap => {
     const data = snap.val() || {};
+    document.getElementById("inUmbral").value = data.umbral || 40;
     document.getElementById("inOffT").value = data.offsetTemp || 0;
     document.getElementById("inOffH").value = data.offsetHum || 0;
     document.getElementById("inOffD").value = data.offsetDist || 0;
-    document.getElementById("inSleep").value = data.sleep || 1; // Carga el tiempo de Deep Sleep
+    document.getElementById("inSleep").value = data.sleep || 1;
     
     document.getElementById('overlayPro').classList.add('active');
     document.getElementById('modalConfigOffsets').classList.add('active');
@@ -548,10 +565,11 @@ function abrirConfig(sondaId) {
 }
 
 function guardarOffsetsFirebase() {
+  const u = parseInt(document.getElementById("inUmbral").value) || 40;
   const t = parseFloat(document.getElementById("inOffT").value) || 0;
   const h = parseFloat(document.getElementById("inOffH").value) || 0;
   const d = parseInt(document.getElementById("inOffD").value) || 0;
-  const s = parseInt(document.getElementById("inSleep").value) || 1; // Lee el tiempo de Deep Sleep
+  const s = parseInt(document.getElementById("inSleep").value) || 1;
   
   if(s < 1) {
     alert("El tiempo de sueño no puede ser menor a 1 minuto.");
@@ -561,19 +579,19 @@ function guardarOffsetsFirebase() {
   let nodo = (currentConfigSonda === 1) ? "config" : `config${currentConfigSonda}`;
   
   firebase.database().ref(nodo).set({
+    umbral: u,
     offsetTemp: t,
     offsetHum: h,
     offsetDist: d,
-    sleep: s // Lo guarda en Firebase
+    sleep: s
   }).then(() => {
+    umbrales[currentConfigSonda - 1] = u; // Actualiza el umbral en la memoria local
     alert("✅ Ajustes guardados exitosamente en Firebase.");
     cerrarModal();
   }).catch(err => {
     alert("Error al guardar: " + err.message);
   });
 }
-
-// ==== RESTO DE LA LÓGICA (GRÁFICOS, CSV) ====
 
 function parseFechaCL(fechaStr) {
   if(!fechaStr) return new Date();
@@ -693,6 +711,9 @@ function cargarGraficoSonda(sondaId, btnElement = null) {
       miGraficoHistorial.destroy();
     }
 
+    // 🔥 EL LÍMITE ROJO EN EL GRÁFICO SE ADAPTA AL UMBRAL DE LA SONDA
+    const umbralActualSonda = umbrales[sondaId - 1] || 40;
+
     const ctx = document.getElementById('graficoHistorial').getContext('2d');
     let gradiente = ctx.createLinearGradient(0, 0, 0, 260);
     gradiente.addColorStop(0, 'rgba(16, 185, 129, 0.18)');
@@ -720,8 +741,8 @@ function cargarGraficoSonda(sondaId, btnElement = null) {
             order: 2
           },
           {
-            label: "Límite Termitas (40mm)",
-            data: Array(labels.length).fill(40),
+            label: `Límite Termitas (${umbralActualSonda}mm)`,
+            data: Array(labels.length).fill(umbralActualSonda),
             borderColor: "#ff3b3b", 
             backgroundColor: "transparent",
             borderWidth: 2,
@@ -753,7 +774,7 @@ function cargarGraficoSonda(sondaId, btnElement = null) {
           },
           y: { 
             min: 0,
-            max: 60,
+            max: Math.max(60, umbralActualSonda + 20),
             grid: { color: '#f1f5f9', drawBorder: false },
             ticks: { color: '#64748b', font: { size: 11 } } 
           }
