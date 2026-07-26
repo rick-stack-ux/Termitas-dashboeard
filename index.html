@@ -175,18 +175,16 @@ html,body{
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
 <script>
-// REPARACIÓN EN LA EVALUACIÓN DE FECHA Y CONEXIÓN DE TARJETAS
 function estadoConexion(fechaStr){
-  if(!fechaStr || typeof fechaStr !== "string") return "OFFLINE";
-  const p = fechaStr.trim().split(" ");
+  if(!fechaStr) return "OFFLINE";
+  const p = fechaStr.split(" ");
   if(p.length < 2) return "OFFLINE";
   const f = p[0].split("/");
   const h = p[1].split(":");
-  if(f.length < 3 || h.length < 3) return "OFFLINE";
-  const fechaDato = new Date(parseInt(f[2]), parseInt(f[1])-1, parseInt(f[0]), parseInt(h[0]), parseInt(h[1]), parseInt(h[2]));
+  const fechaDato = new Date(f[2], f[1]-1, f[0], h[0], h[1], h[2]);
   const ahora = new Date();
   const diffMin = (ahora - fechaDato)/60000;
-  return (diffMin >= 0 && diffMin <= 720) ? "ONLINE" : "OFFLINE";
+  return diffMin <= 720 ? "ONLINE" : "OFFLINE";
 }
 
 const NUM = 5; 
@@ -299,7 +297,6 @@ for(let i=0; i<NUM; i++){
   });
 }
 
-// LÓGICA DE TARJETAS CORREGIDA Y ESTABILIZADA
 for(let i=0; i<NUM; i++){
   let sondaId = i + 1;
   let nodoFirebase = (sondaId === 1) ? "prueba" : `prueba${sondaId}`;
@@ -309,16 +306,7 @@ for(let i=0; i<NUM; i++){
     const cardEl = document.getElementById(`card-${sondaId}`);
     const autoEl = document.getElementById(`auto-${sondaId}`);
     
-    if(!d) {
-      isOnline[i] = false;
-      cardEl.classList.add('inactive');
-      autoEl.textContent = "✖ Sin datos";
-      autoEl.style.color = "var(--danger)";
-      document.getElementById(`estado-${sondaId}`).textContent = "🔴 OFFLINE";
-      document.getElementById(`wifi-${sondaId}`).textContent = "📶 Sin señal";
-      updateSummary();
-      return; 
-    }
+    if(!d) return; 
 
     const estado = estadoConexion(d.FechaHora);
     
@@ -466,6 +454,7 @@ for(let i=0; i<NUM; i++){
       <button class="tab-btn" onclick="cargarGraficoSonda(5, this)">Sonda 5</button>
     </div>
     
+    <!-- 🔥 OPCIONES DE DÍA, SEMANA Y MES -->
     <select id="rangoTiempo" class="select-rango" onchange="cargarGraficoSonda(activeSondaTab)">
       <option value="dia">📅 Vista Día (Últimas 24 Hrs)</option>
       <option value="semana" selected>📆 Vista Semana (Últimos 7 Días)</option>
@@ -671,6 +660,7 @@ function cargarGraficoSonda(sondaId, btnElement = null) {
     let data = [];
 
     if (filtroTiempo === 'dia') {
+      // 📅 FILTRO DÍA: Muestra las mediciones del último día punto a punto (Hora:Min)
       const ms24h = 24 * 60 * 60 * 1000;
       let dayRecords = rawRecords.filter(r => (ahora - r.time) <= ms24h);
 
@@ -680,6 +670,7 @@ function cargarGraficoSonda(sondaId, btnElement = null) {
       }
 
     } else if (filtroTiempo === 'semana') {
+      // 📆 FILTRO SEMANA: Muestra lecturas agrupadas por día
       const ms7d = 7 * 24 * 60 * 60 * 1000;
       let weekRecords = rawRecords.filter(r => (ahora - r.time) <= ms7d);
 
@@ -695,6 +686,7 @@ function cargarGraficoSonda(sondaId, btnElement = null) {
       }
 
     } else {
+      // 🗓️ FILTRO MES: Agrupado por Semana 1 a 5
       const msMonth = 35 * 24 * 60 * 60 * 1000;
       let monthRecords = rawRecords.filter(r => (ahora - r.time) <= msMonth);
 
@@ -812,7 +804,7 @@ function cargarGraficoSonda(sondaId, btnElement = null) {
           },
           y: { 
             min: 0,
-            max: 100,
+            max: 100, /* 🔥 RANGO RIGUROSO Y FIJO DE 0 A 100 MM */
             grid: { color: '#f1f5f9', drawBorder: false },
             ticks: { color: '#64748b', font: { size: 11 }, stepSize: 20 } 
           }
