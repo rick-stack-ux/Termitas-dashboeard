@@ -397,7 +397,7 @@ for(let i=0; i<NUM; i++){
 .btn-close { background:none; border:none; font-size:24px; color:#94a3b8; cursor:pointer; line-height:1; }
 .btn-close:hover { color:#0f172a; }
 
-.modal-config { max-width: 380px; padding: 25px; }
+.modal-config { max-width: 380px; padding: 25px; height: 80vh; overflow-y: auto; } /* Añadido scroll por si la pantalla es pequeña */
 .input-group { margin-bottom: 15px; }
 .input-group label { display:block; font-size: 13px; font-weight: 600; color: #475569; margin-bottom: 5px; }
 .input-group input { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; font-family: inherit; font-size: 14px; }
@@ -492,7 +492,7 @@ for(let i=0; i<NUM; i++){
   <button class="btn-guardar" onclick="verificarPassword()">Ingresar</button>
 </div>
 
-<!-- ===== MODAL CONFIGURACIÓN CON UMBRAL ===== -->
+<!-- ===== MODAL CONFIGURACIÓN CON UMBRAL Y WHATSAPP ===== -->
 <div id="modalConfigOffsets" class="panel-pro modal-config">
   <div class="modal-header" style="padding:0 0 20px 0; border-bottom:1px solid #f1f5f9; margin-bottom:15px;">
     <h3>⚙️ Configurar Sonda <span id="confSondaId"></span></h3>
@@ -518,6 +518,21 @@ for(let i=0; i<NUM; i++){
   <div class="input-group">
     <label>Tiempo Deep Sleep (minutos)</label>
     <input type="number" step="1" id="inSleep" placeholder="Ej: 1">
+  </div>
+  
+  <!-- NUEVA SECCIÓN DE REDES / WHATSAPP -->
+  <div style="margin-top:25px; padding-top:15px; border-top:1px dashed #cbd5e1;">
+    <h4 style="margin: 0 0 5px 0; color: #10b981; font-size:15px;">📱 Notificaciones WhatsApp</h4>
+    <p style="font-size:11px; color:#64748b; margin-top:0; margin-bottom:15px;">(Usa CallMeBot. Deja en blanco si no deseas recibir alertas por WhatsApp)</p>
+    
+    <div class="input-group">
+      <label>Número WhatsApp (ej: +569...)</label>
+      <input type="text" id="inWaPhone" placeholder="+56912345678">
+    </div>
+    <div class="input-group">
+      <label>API Key CallMeBot</label>
+      <input type="text" id="inWaKey" placeholder="Ej: 123456">
+    </div>
   </div>
   
   <button class="btn-guardar" onclick="guardarOffsetsFirebase()">💾 Guardar Ajustes</button>
@@ -576,6 +591,10 @@ function abrirConfig(sondaId) {
     document.getElementById("inOffD").value = data.offsetDist || 0;
     document.getElementById("inSleep").value = data.sleep || 1;
     
+    // CARGAR DATOS DE WHATSAPP DESDE FIREBASE
+    document.getElementById("inWaPhone").value = data.waPhone || "";
+    document.getElementById("inWaKey").value = data.waKey || "";
+    
     document.getElementById('overlayPro').classList.add('active');
     document.getElementById('modalConfigOffsets').classList.add('active');
   });
@@ -588,6 +607,10 @@ function guardarOffsetsFirebase() {
   const d = parseInt(document.getElementById("inOffD").value) || 0;
   const s = parseInt(document.getElementById("inSleep").value) || 1;
   
+  // LEER DATOS DE WHATSAPP
+  const wp = document.getElementById("inWaPhone").value.trim();
+  const wk = document.getElementById("inWaKey").value.trim();
+  
   if(s < 1) {
     alert("El tiempo de sueño no puede ser menor a 1 minuto.");
     return;
@@ -595,15 +618,18 @@ function guardarOffsetsFirebase() {
 
   let nodo = (currentConfigSonda === 1) ? "config" : `config${currentConfigSonda}`;
   
+  // GUARDAR EN FIREBASE (INCLUYENDO REDES)
   firebase.database().ref(nodo).set({
     umbral: u,
     offsetTemp: t,
     offsetHum: h,
     offsetDist: d,
-    sleep: s
+    sleep: s,
+    waPhone: wp,
+    waKey: wk
   }).then(() => {
     umbrales[currentConfigSonda - 1] = u;
-    alert("✅ Ajustes guardados exitosamente en Firebase.");
+    alert("✅ Ajustes y Redes guardados exitosamente en Firebase.");
     cerrarModal();
   }).catch(err => {
     alert("Error al guardar: " + err.message);
@@ -660,7 +686,6 @@ function cargarGraficoSonda(sondaId, btnElement = null) {
     let data = [];
 
     if (filtroTiempo === 'dia') {
-      // 📅 FILTRO DÍA: Muestra las mediciones del último día punto a punto (Hora:Min)
       const ms24h = 24 * 60 * 60 * 1000;
       let dayRecords = rawRecords.filter(r => (ahora - r.time) <= ms24h);
 
@@ -670,7 +695,6 @@ function cargarGraficoSonda(sondaId, btnElement = null) {
       }
 
     } else if (filtroTiempo === 'semana') {
-      // 📆 FILTRO SEMANA: Muestra lecturas agrupadas por día
       const ms7d = 7 * 24 * 60 * 60 * 1000;
       let weekRecords = rawRecords.filter(r => (ahora - r.time) <= ms7d);
 
@@ -686,7 +710,6 @@ function cargarGraficoSonda(sondaId, btnElement = null) {
       }
 
     } else {
-      // 🗓️ FILTRO MES: Agrupado por Semana 1 a 5
       const msMonth = 35 * 24 * 60 * 60 * 1000;
       let monthRecords = rawRecords.filter(r => (ahora - r.time) <= msMonth);
 
@@ -804,7 +827,7 @@ function cargarGraficoSonda(sondaId, btnElement = null) {
           },
           y: { 
             min: 0,
-            max: 100, /* 🔥 RANGO RIGUROSO Y FIJO DE 0 A 100 MM */
+            max: 100,
             grid: { color: '#f1f5f9', drawBorder: false },
             ticks: { color: '#64748b', font: { size: 11 }, stepSize: 20 } 
           }
