@@ -187,9 +187,9 @@ function estadoConexion(fechaStr){
   return diffMin <= 720 ? "ONLINE" : "OFFLINE";
 }
 
-const NUM = 5; 
-const isOnline = [false,false,false,false,false]; 
-const umbrales = [40, 40, 40, 40, 40];
+const NUM = 10; 
+const isOnline = [false,false,false,false,false,false,false,false,false,false]; 
+const umbrales = [40, 40, 40, 40, 40, 40, 40, 40, 40, 40];
 const chartsT = [], chartsH = [], 
       lastValues = Array(NUM).fill(null), badCount = Array(NUM).fill(0);
 
@@ -213,11 +213,19 @@ function createCard(i){
 
   card.innerHTML=`
     <div style="display:flex;justify-content:space-between;align-items:flex-start;">
-      <div class="sonda-title">Sonda ${i+1} <button class="btn-config" onclick="solicitarAcceso(${i+1})" title="Ajustar Offsets y Umbral">⚙️</button></div>
+      <div class="sonda-title">Sonda ${i+1} 
+        <button class="btn-config" onclick="solicitarAcceso(${i+1})" title="Ajustar Offsets y Umbral">⚙️</button>
+        <button class="btn-config" onclick="solicitarAccesoInfo(${i+1})" title="Editar Cliente y Ubicación">✔️</button>
+      </div>
       <div style="text-align:right;font-size:12px;">
         <div id="estado-${i+1}">🔴 OFFLINE</div>
         <div id="wifi-${i+1}">📶 --</div>
       </div>
+    </div>
+
+    <div style="font-size: 11px; color: var(--muted); margin-bottom: 8px; line-height:1.4;">
+      <div>👤 Cliente: <span id="cli-${i+1}" style="color:#fff; font-weight:600;">--</span></div>
+      <div>📍 Ubicación: <span id="ubi-${i+1}" style="color:#fff; font-weight:600;">--</span></div>
     </div>
 
     <div class="tog">
@@ -293,6 +301,22 @@ for(let i=0; i<NUM; i++){
     const cfg = s.val();
     if(cfg && cfg.umbral) {
       umbrales[i] = parseInt(cfg.umbral);
+    }
+  });
+}
+
+// ESCUCHAR INFO CLIENTE Y UBICACIÓN
+for(let i=0; i<NUM; i++){
+  let sondaId = i + 1;
+  let nodoInfo = (sondaId === 1) ? "info" : `info${sondaId}`;
+  
+  firebase.database().ref(nodoInfo).on("value", s => {
+    const data = s.val();
+    const elCli = document.getElementById(`cli-${sondaId}`);
+    const elUbi = document.getElementById(`ubi-${sondaId}`);
+    if(elCli && elUbi) {
+      elCli.textContent = (data && data.cliente) ? data.cliente : "--";
+      elUbi.textContent = (data && data.ubicacion) ? data.ubicacion : "--";
     }
   });
 }
@@ -397,7 +421,7 @@ for(let i=0; i<NUM; i++){
 .btn-close { background:none; border:none; font-size:24px; color:#94a3b8; cursor:pointer; line-height:1; }
 .btn-close:hover { color:#0f172a; }
 
-.modal-config { max-width: 380px; padding: 25px; height: 80vh; overflow-y: auto; } /* Añadido scroll por si la pantalla es pequeña */
+.modal-config { max-width: 380px; padding: 25px; height: 80vh; overflow-y: auto; } 
 .input-group { margin-bottom: 15px; }
 .input-group label { display:block; font-size: 13px; font-weight: 600; color: #475569; margin-bottom: 5px; }
 .input-group input { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; font-family: inherit; font-size: 14px; }
@@ -452,6 +476,11 @@ for(let i=0; i<NUM; i++){
       <button class="tab-btn" onclick="cargarGraficoSonda(3, this)">Sonda 3</button>
       <button class="tab-btn" onclick="cargarGraficoSonda(4, this)">Sonda 4</button>
       <button class="tab-btn" onclick="cargarGraficoSonda(5, this)">Sonda 5</button>
+      <button class="tab-btn" onclick="cargarGraficoSonda(6, this)">Sonda 6</button>
+      <button class="tab-btn" onclick="cargarGraficoSonda(7, this)">Sonda 7</button>
+      <button class="tab-btn" onclick="cargarGraficoSonda(8, this)">Sonda 8</button>
+      <button class="tab-btn" onclick="cargarGraficoSonda(9, this)">Sonda 9</button>
+      <button class="tab-btn" onclick="cargarGraficoSonda(10, this)">Sonda 10</button>
     </div>
     
     <!-- 🔥 OPCIONES DE DÍA, SEMANA Y MES -->
@@ -538,10 +567,31 @@ for(let i=0; i<NUM; i++){
   <button class="btn-guardar" onclick="guardarOffsetsFirebase()">💾 Guardar Ajustes</button>
 </div>
 
+<!-- ===== MODAL INFO CLIENTE Y UBICACIÓN ===== -->
+<div id="modalInfoSonda" class="panel-pro modal-config">
+  <div class="modal-header" style="padding:0 0 20px 0; border-bottom:1px solid #f1f5f9; margin-bottom:15px;">
+    <h3>✔️ Info Sonda <span id="infoSondaId"></span></h3>
+    <button class="btn-close" onclick="cerrarModal()">×</button>
+  </div>
+  
+  <div class="input-group">
+    <label>Cliente</label>
+    <input type="text" id="inCliente" placeholder="Nombre del cliente">
+  </div>
+  <div class="input-group">
+    <label>Ubicación</label>
+    <input type="text" id="inUbicacion" placeholder="Ej: Cocina, Bodega...">
+  </div>
+  
+  <button class="btn-guardar" onclick="guardarInfoFirebase()">💾 Guardar Info</button>
+</div>
+
 <script>
 let activeSondaTab = 1;
 let miGraficoHistorial = null;
 let currentConfigSonda = null;
+let currentInfoSonda = null;
+let modoAcceso = null;
 
 btnMenuPro.onclick = () => menuPro.classList.toggle("active");
 
@@ -550,6 +600,7 @@ function cerrarModal() {
   document.getElementById('panelPro').classList.remove('active');
   document.getElementById('modalPassword').classList.remove('active');
   document.getElementById('modalConfigOffsets').classList.remove('active');
+  document.getElementById('modalInfoSonda').classList.remove('active');
 }
 
 document.getElementById('overlayPro').addEventListener('click', cerrarModal);
@@ -562,6 +613,16 @@ document.addEventListener("click",(e)=>{
 
 function solicitarAcceso(sondaId) {
   currentConfigSonda = sondaId;
+  modoAcceso = 'config';
+  document.getElementById("inPass").value = "";
+  document.getElementById('overlayPro').classList.add('active');
+  document.getElementById('modalPassword').classList.add('active');
+  setTimeout(() => document.getElementById("inPass").focus(), 100);
+}
+
+function solicitarAccesoInfo(sondaId) {
+  currentInfoSonda = sondaId;
+  modoAcceso = 'info';
   document.getElementById("inPass").value = "";
   document.getElementById('overlayPro').classList.add('active');
   document.getElementById('modalPassword').classList.add('active');
@@ -572,7 +633,11 @@ function verificarPassword() {
   const p = document.getElementById("inPass").value;
   if (p === "sondTP123") {
     document.getElementById('modalPassword').classList.remove('active');
-    abrirConfig(currentConfigSonda);
+    if (modoAcceso === 'config') {
+      abrirConfig(currentConfigSonda);
+    } else if (modoAcceso === 'info') {
+      abrirInfo(currentInfoSonda);
+    }
   } else {
     alert("Contraseña incorrecta. Acceso denegado.");
     cerrarModal();
@@ -597,6 +662,20 @@ function abrirConfig(sondaId) {
     
     document.getElementById('overlayPro').classList.add('active');
     document.getElementById('modalConfigOffsets').classList.add('active');
+  });
+}
+
+function abrirInfo(sondaId) {
+  document.getElementById("infoSondaId").textContent = sondaId;
+  let nodo = (sondaId === 1) ? "info" : `info${sondaId}`;
+  
+  firebase.database().ref(nodo).once("value").then(snap => {
+    const data = snap.val() || {};
+    document.getElementById("inCliente").value = data.cliente || "";
+    document.getElementById("inUbicacion").value = data.ubicacion || "";
+    
+    document.getElementById('overlayPro').classList.add('active');
+    document.getElementById('modalInfoSonda').classList.add('active');
   });
 }
 
@@ -630,6 +709,23 @@ function guardarOffsetsFirebase() {
   }).then(() => {
     umbrales[currentConfigSonda - 1] = u;
     alert("✅ Ajustes y Redes guardados exitosamente en Firebase.");
+    cerrarModal();
+  }).catch(err => {
+    alert("Error al guardar: " + err.message);
+  });
+}
+
+function guardarInfoFirebase() {
+  const cli = document.getElementById("inCliente").value.trim();
+  const ubi = document.getElementById("inUbicacion").value.trim();
+  
+  let nodo = (currentInfoSonda === 1) ? "info" : `info${currentInfoSonda}`;
+  
+  firebase.database().ref(nodo).set({
+    cliente: cli,
+    ubicacion: ubi
+  }).then(() => {
+    alert("✅ Información del cliente guardada exitosamente.");
     cerrarModal();
   }).catch(err => {
     alert("Error al guardar: " + err.message);
@@ -840,7 +936,7 @@ function cargarGraficoSonda(sondaId, btnElement = null) {
 function descargarCSVGlobal(){
   const promesas = [];
   
-  for(let i=1; i<=5; i++){
+  for(let i=1; i<=10; i++){
     let nodo = (i===1) ? "historial" : `historial${i}`;
     promesas.push(firebase.database().ref(nodo).once("value").then(snap => {
       return { sonda: i, data: snap.val() };
