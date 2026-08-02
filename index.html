@@ -258,7 +258,7 @@
             </div>
 
             <!-- PANALES FLOTANTES (MEDIA PANTALLA EXCLUSIVA) -->
-            <!-- 1. HISTORIAL CON DESCARGA -->
+            <!-- 1. HISTORIAL CON DESCARGA (TABLA ACTUALIZADA CON CUADRE) -->
             <div id="drawerHistorial" class="side-drawer">
                 <div class="drawer-header"><h3>🕒 Historial de Consumos y Cargas</h3><i class="ph ph-x drawer-close"></i></div>
                 <div class="config-card-layout">
@@ -272,11 +272,11 @@
                     <p style="font-size:11px; color:var(--text-sub); margin-top:8px;">Incluye Fecha, Folio, Silo, Kilos Iniciales, Kilos Cargados, Diferencias y Detalles de Lote.</p>
                 </div>
                 <table class="custom-table">
-                    <thead><tr><th>Fecha/Hora</th><th>Silo</th><th>Kg Inicial</th><th>Kg Cargados</th><th>Diferencia</th></tr></thead>
+                    <thead><tr><th>Fecha/Hora</th><th>Silo</th><th>Peso Antes Carga</th><th>Kg Cargados</th><th>Nuevo Peso</th></tr></thead>
                     <tbody>
-                        <tr><td>06-07-2026 14:30</td><td>Silo 1</td><td>500</td><td>1500</td><td><span style="color:var(--color-green)">+1000</span></td></tr>
-                        <tr><td>06-07-2026 09:15</td><td>Silo 2</td><td>820</td><td>2000</td><td><span style="color:var(--color-green)">+1180</span></td></tr>
-                        <tr><td>05-07-2026 18:00</td><td>Silo 5</td><td>150</td><td>1500</td><td><span style="color:var(--color-green)">+1350</span></td></tr>
+                        <tr><td>06-07-2026 14:30</td><td>Silo 1</td><td>500 kg</td><td><span style="color:var(--color-green)">+1,500 kg</span></td><td>2,000 kg</td></tr>
+                        <tr><td>06-07-2026 09:15</td><td>Silo 2</td><td>820 kg</td><td><span style="color:var(--color-green)">+2,000 kg</span></td><td>2,820 kg</td></tr>
+                        <tr><td>05-07-2026 18:00</td><td>Silo 5</td><td>150 kg</td><td><span style="color:var(--color-green)">+4,500 kg</span></td><td>4,650 kg</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -364,7 +364,6 @@
         let chartAnalisisInstance = null;
         let chartTendenciaInstance = null;
 
-        // AJUSTE CAPACIDAD 14000 KILOS
         let SILOS = [
             { id: 1, nombre: "SILO 1", capacidad: 14000, peso: 9739, consumo: 850, rssi: -65, estado: "Normal" },
             { id: 2, nombre: "SILO 2", capacidad: 14000, peso: 7241, consumo: 620, rssi: -68, estado: "Normal" },
@@ -396,7 +395,6 @@
             document.getElementById("logoutBox").style.display = "none";
             document.querySelectorAll(".silo-dropdown-menu").forEach(menu => menu.style.display = 'none');
             
-            // Cerrar paneles laterales (drawers) si se hace clic fuera de ellos y no se está clickeando un botón de menú
             if (!e.target.closest('.side-drawer') && !e.target.closest('[data-drawer]') && !e.target.closest('#btnCampana')) {
                 document.querySelectorAll(".side-drawer").forEach(d => d.classList.remove("open"));
             }
@@ -441,11 +439,11 @@
             document.getElementById("drawerAlarmas").classList.add("open");
         });
 
-        // EXPORTACIÓN A EXCEL
+        // EXPORTACIÓN A EXCEL (MODIFICADA CON LÓGICA DE CUADRE)
         function descargarExcelEstructurado() {
-            let csvContent = "data:text/csv;charset=utf-8,Fecha,Folio,Silo,Casilleros,Kilos,Codigo,Descripcion,Lote,Destino,Medicacion,Despachador,Camion,Conductor,Semana,Peso_balanzas,Diferencia\n";
-            csvContent += `06-07-2026,1394,13,1,1500,80012,13064 PUBERTAD 1,2784,13.4.04,13064,Dario,7,Agustin,2,4430,-70\n`;
-            csvContent += `12-01-2026,1424,13,1,1500,80012,13064 PUBERTAD 1,2842,13.4.04,13064,Dario,7,Agustin,3,4470,+1000\n`;
+            let csvContent = "data:text/csv;charset=utf-8,Fecha,Folio,Silo,Casilleros,Kilos_Cargados,Peso_Antes_Carga,Peso_Final_Cuadre,Diferencia,Codigo,Descripcion,Lote,Destino,Medicacion,Despachador,Camion,Conductor,Semana\n";
+            csvContent += `06-07-2026,1394,1,13,1500,500,2000,+1500,80012,13064 PUBERTAD 1,2784,13.4.04,13064,Dario,7,Agustin,2\n`;
+            csvContent += `12-01-2026,1424,2,13,2000,820,2820,+2000,80012,13064 PUBERTAD 1,2842,13.4.04,13064,Dario,7,Agustin,3\n`;
             
             const encodedUri = encodeURI(csvContent);
             const link = document.createElement("a");
@@ -489,7 +487,6 @@
             document.getElementById("menu-silo-" + id).style.display = "block";
         }
 
-        // FUNCIÓN MODIFICADA: APARIENCIA SUAVIZADA Y DATOS A ESCALA DE 14000 KILOS
         function openSiloDetail(id, action) {
             let titulo = "";
             let extraInfo = "";
@@ -516,7 +513,6 @@
                 const ctx = document.getElementById("chartDiferencial").getContext("2d");
                 if(window.chartDiferencialInstance) window.chartDiferencialInstance.destroy();
                 
-                // Creación de gradientes estilo suavizado (como la imagen enviada)
                 const gradGreen = ctx.createLinearGradient(0, 0, 0, 300);
                 gradGreen.addColorStop(0, 'rgba(16, 185, 129, 0.25)');
                 gradGreen.addColorStop(1, 'rgba(16, 185, 129, 0.0)');
@@ -614,7 +610,6 @@
                                     <div class="silo-cone"></div><div class="silo-legs"><div></div><div></div></div>
                                 </div>
                             </div>
-                            <!-- SE INVIERTE TEXTO: KILOS GRANDES, PORCENTAJE ABAJO + AUTONOMÍA -->
                             <div class="silo-text-readout">
                                 <div style="font-size:24px; font-weight:800; color:var(--text-title);">${s.estado==='Desconectado'?'--':s.peso.toLocaleString()+' kg'}</div>
                                 <div style="font-size:14px; font-weight:600; color:var(--text-sub);">${s.estado==='Desconectado'?'--':pct+'%'}</div>
@@ -624,7 +619,6 @@
                     </div>`;
             });
 
-            // CASILLERO 8 - DONA MAXIMIZADA CON DISTRIBUCIÓN EN KILOGRAMOS Y SUMA DE RESTAS
             grid.innerHTML += `
                 <div class="silo-card">
                     <h4 style="font-size:13px; font-weight:700;">Distribución de Consumo (Kg)</h4>
@@ -689,7 +683,6 @@
 
         runRender();
 
-        // LINEAL INFERIOR GENERAL (CON COMPARATIVA HOY VS AYER)
         function updateChartMain() {
             const ctx = document.getElementById("chartConsumo").getContext("2d");
             if(chartConsumoInstance) chartConsumoInstance.destroy();
@@ -718,7 +711,6 @@
             });
         }
         
-        // Inicializar el grafico principal por primera vez
         updateChartMain();
 
     </script>
