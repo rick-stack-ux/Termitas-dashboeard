@@ -567,6 +567,18 @@
                 if(s.estado === "Critica") fStyle = "linear-gradient(to top, #991b1b, #ef4444)";
                 if(s.estado === "Sin Flujo") fStyle = "linear-gradient(to top, #5b21b6, #8b5cf6)";
 
+                // NUEVO: CÁLCULO DE AUTONOMÍA
+                let autonomiaHtml = "";
+                if (s.estado !== "Desconectado") {
+                    if (s.consumo > 0) {
+                        let horas = s.peso / s.consumo;
+                        let textAuto = horas >= 24 ? (horas / 24).toFixed(1) + " días" : Math.round(horas) + " hrs";
+                        autonomiaHtml = `<div style="font-size:11px; font-weight:700; color:var(--text-title); margin-top:4px; opacity:0.8;"><i class="ph ph-hourglass-high"></i> Auto: <span style="color:var(--color-green)">${textAuto}</span></div>`;
+                    } else {
+                        autonomiaHtml = `<div style="font-size:11px; font-weight:700; color:var(--text-title); margin-top:4px; opacity:0.8;"><i class="ph ph-hourglass-high"></i> Auto: <span style="color:var(--color-yellow)">N/A</span></div>`;
+                    }
+                }
+
                 grid.innerHTML += `
                     <div class="silo-card">
                         <div style="display:flex; justify-content:space-between; align-items:center; position:relative;">
@@ -602,10 +614,11 @@
                                     <div class="silo-cone"></div><div class="silo-legs"><div></div><div></div></div>
                                 </div>
                             </div>
-                            <!-- SE INVIERTE TEXTO: KILOS GRANDES, PORCENTAJE ABAJO -->
+                            <!-- SE INVIERTE TEXTO: KILOS GRANDES, PORCENTAJE ABAJO + AUTONOMÍA -->
                             <div class="silo-text-readout">
                                 <div style="font-size:24px; font-weight:800; color:var(--text-title);">${s.estado==='Desconectado'?'--':s.peso.toLocaleString()+' kg'}</div>
                                 <div style="font-size:14px; font-weight:600; color:var(--text-sub);">${s.estado==='Desconectado'?'--':pct+'%'}</div>
+                                ${autonomiaHtml}
                             </div>
                         </div>
                     </div>`;
