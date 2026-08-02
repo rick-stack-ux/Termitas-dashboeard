@@ -346,7 +346,6 @@
                 </div>
                 <div class="config-card-layout">
                     <label style="font-weight:600; font-size:13px;">Tema Visual</label>
-                    <!-- SE AÑADE SELECTED AL MODO CLARO -->
                     <select class="config-select" id="comboTema" onchange="cambiarTema()">
                         <option value="light" selected>Modo Claro Limpio</option>
                         <option value="dark">Modo Oscuro Default</option>
@@ -365,14 +364,15 @@
         let chartAnalisisInstance = null;
         let chartTendenciaInstance = null;
 
+        // AJUSTE CAPACIDAD 14000 KILOS
         let SILOS = [
-            { id: 1, nombre: "SILO 1", capacidad: 15000, peso: 9739, consumo: 850, rssi: -65, estado: "Normal" },
-            { id: 2, nombre: "SILO 2", capacidad: 15000, peso: 7241, consumo: 620, rssi: -68, estado: "Normal" },
-            { id: 3, nombre: "SILO 3", capacidad: 15000, peso: 2279, consumo: 350, rssi: -72, estado: "Baja" },
-            { id: 4, nombre: "SILO 4", capacidad: 15000, peso: 0, consumo: 120, rssi: -75, estado: "Critica" },
-            { id: 5, nombre: "SILO 5", capacidad: 15000, peso: 10871, consumo: 980, rssi: -60, estado: "Normal" },
-            { id: 6, nombre: "SILO 6", capacidad: 15000, peso: 6750, consumo: 0, rssi: -70, estado: "Sin Flujo" },
-            { id: 7, nombre: "SILO 7", capacidad: 15000, peso: 0, consumo: 0, rssi: 0, estado: "Desconectado" }
+            { id: 1, nombre: "SILO 1", capacidad: 14000, peso: 9739, consumo: 850, rssi: -65, estado: "Normal" },
+            { id: 2, nombre: "SILO 2", capacidad: 14000, peso: 7241, consumo: 620, rssi: -68, estado: "Normal" },
+            { id: 3, nombre: "SILO 3", capacidad: 14000, peso: 2279, consumo: 350, rssi: -72, estado: "Baja" },
+            { id: 4, nombre: "SILO 4", capacidad: 14000, peso: 0, consumo: 120, rssi: -75, estado: "Critica" },
+            { id: 5, nombre: "SILO 5", capacidad: 14000, peso: 10871, consumo: 980, rssi: -60, estado: "Normal" },
+            { id: 6, nombre: "SILO 6", capacidad: 14000, peso: 6750, consumo: 0, rssi: -70, estado: "Sin Flujo" },
+            { id: 7, nombre: "SILO 7", capacidad: 14000, peso: 0, consumo: 0, rssi: 0, estado: "Desconectado" }
         ];
 
         // GESTIÓN LOGIN
@@ -384,16 +384,26 @@
             }
         });
 
-        // DESPLEGABLE USER
+        // DESPLEGABLE USER Y CIERRE DINÁMICO (UX)
         document.getElementById("userMenuWidget").addEventListener("click", (e) => {
             e.stopPropagation();
             const box = document.getElementById("logoutBox");
             box.style.display = box.style.display === "block" ? "none" : "block";
         });
+        
+        // CIERRE AL CLIC FUERA PARA CUALQUIER MENU DESPLEGABLE
         document.body.addEventListener("click", () => { 
             document.getElementById("logoutBox").style.display = "none";
             document.querySelectorAll(".silo-dropdown-menu").forEach(menu => menu.style.display = 'none');
         });
+        
+        // CIERRE AL CLIC FUERA PARA EL MODAL GLOBAL
+        document.getElementById("globalModal").addEventListener("click", function(e) {
+            if (e.target === this) {
+                this.style.display = "none";
+            }
+        });
+
         document.getElementById("btnExitAction").addEventListener("click", () => {
             localStorage.removeItem("aurum_logged");
             document.getElementById("loginScreen").style.display = "flex";
@@ -406,7 +416,6 @@
                 const targetDrawer = button.getAttribute("data-drawer");
                 document.getElementById(targetDrawer).classList.add("open");
                 
-                // Si abre consumos, refrescar gráficas internas del drawer
                 if(targetDrawer === "drawerConsumo") { 
                     setTimeout(initChartAnalisis, 100); 
                     setTimeout(initChartTendencia, 100); 
@@ -427,7 +436,7 @@
             document.getElementById("drawerAlarmas").classList.add("open");
         });
 
-        // EXPORTACIÓN A EXCEL (ESTRUCTURA SOLICITADA)
+        // EXPORTACIÓN A EXCEL
         function descargarExcelEstructurado() {
             let csvContent = "data:text/csv;charset=utf-8,Fecha,Folio,Silo,Casilleros,Kilos,Codigo,Descripcion,Lote,Destino,Medicacion,Despachador,Camion,Conductor,Semana,Peso_balanzas,Diferencia\n";
             csvContent += `06-07-2026,1394,13,1,1500,80012,13064 PUBERTAD 1,2784,13.4.04,13064,Dario,7,Agustin,2,4430,-70\n`;
@@ -475,20 +484,20 @@
             document.getElementById("menu-silo-" + id).style.display = "block";
         }
 
-        // FUNCIÓN MODIFICADA PARA MOSTRAR CONTENIDO DINÁMICO SEGÚN LA OPCIÓN
+        // FUNCIÓN MODIFICADA: APARIENCIA SUAVIZADA Y DATOS A ESCALA DE 14000 KILOS
         function openSiloDetail(id, action) {
             let titulo = "";
             let extraInfo = "";
             
             if(action === 'historial') {
                 titulo = `Historial kilos - Silo ${id}`;
-                extraInfo = `<p>Mostrando el registro histórico de variaciones de peso para el Silo ${id}.</p>`;
+                extraInfo = `<p>Mostrando el registro histórico de variaciones de peso (Capacidad Máx: 14.000 kg).</p>`;
             } else if(action === 'cargas') {
                 titulo = `Veces cargado en la semana - Silo ${id}`;
-                extraInfo = `<p>Cálculo automático de cargas: Se detectaron <strong style="color:var(--text-title)">3</strong> cargas esta semana.</p><p>Total kilos ingresados: <strong style="color:var(--color-green)">4,500 kg</strong>.</p>`;
+                extraInfo = `<p>Cálculo automático de cargas: Se detectaron <strong style="color:var(--text-title)">2</strong> cargas mayores esta semana.</p><p>Total kilos ingresados: <strong style="color:var(--color-green)">12.500 kg</strong>.</p>`;
             } else if(action === 'grafico') {
                 titulo = `Gráfico consumo semanal - Silo ${id}`;
-                extraInfo = `<p>Resumen del consumo acumulado en los últimos 7 días.</p>`;
+                extraInfo = `<p>Resumen del consumo acumulado en los últimos 7 días en kilos.</p>`;
             } else if(action === 'diferencial') {
                 titulo = `Consumo Diferencial Día/Noche - Silo ${id}`;
                 extraInfo = `<p>Comparativa superpuesta del consumo durante turno de día vs turno de noche.</p>`;
@@ -502,21 +511,29 @@
                 const ctx = document.getElementById("chartDiferencial").getContext("2d");
                 if(window.chartDiferencialInstance) window.chartDiferencialInstance.destroy();
                 
+                // Creación de gradientes estilo suavizado (como la imagen enviada)
+                const gradGreen = ctx.createLinearGradient(0, 0, 0, 300);
+                gradGreen.addColorStop(0, 'rgba(16, 185, 129, 0.25)');
+                gradGreen.addColorStop(1, 'rgba(16, 185, 129, 0.0)');
+
+                const gradPurple = ctx.createLinearGradient(0, 0, 0, 300);
+                gradPurple.addColorStop(0, 'rgba(139, 92, 246, 0.25)');
+                gradPurple.addColorStop(1, 'rgba(139, 92, 246, 0.0)');
+                
                 let chartType = 'line';
                 let datasets = [];
                 
                 if(action === 'historial') {
-                    datasets = [{ label: 'Kilos Registrados', data: [9500, 9200, 8900, 8500, 11500, 10800, 9739], borderColor: "#3b82f6", backgroundColor: "rgba(59, 130, 246, 0.2)", fill: true, tension: 0.1, stepped: true }];
+                    datasets = [{ label: 'Kilos Registrados', data: [13500, 11200, 12800, 9500, 14000, 10800, 9739], borderColor: "#10b981", backgroundColor: gradGreen, fill: true, tension: 0.35, pointBackgroundColor: '#fff', pointBorderColor: '#10b981', pointBorderWidth: 2, pointRadius: 4 }];
                 } else if(action === 'cargas') {
                     chartType = 'bar';
-                    datasets = [{ label: 'Kilos Cargados', data: [0, 1500, 0, 0, 3000, 0, 0], backgroundColor: "#10b981" }];
+                    datasets = [{ label: 'Kilos Cargados', data: [0, 4500, 0, 0, 8000, 0, 0], backgroundColor: "#10b981" }];
                 } else if(action === 'grafico') {
-                    chartType = 'bar';
-                    datasets = [{ label: 'Consumo (kg)', data: [300, 300, 400, 0, 700, 500, 600], backgroundColor: "#f59e0b" }];
+                    datasets = [{ label: 'Consumo (kg)', data: [1500, 2300, 1100, 3300, 800, 2500, 1200], borderColor: "#10b981", backgroundColor: gradGreen, fill: true, tension: 0.35, pointBackgroundColor: '#fff', pointBorderColor: '#10b981', pointBorderWidth: 2, pointRadius: 4 }];
                 } else if(action === 'diferencial') {
                     datasets = [
-                        { label: 'Consumo Día (kg)', data: [1200, 1500, 1100, 1800, 1600, 900, 800], borderColor: "#f59e0b", backgroundColor: "rgba(245, 158, 11, 0.2)", fill: true, tension: 0.3 },
-                        { label: 'Consumo Noche (kg)', data: [800, 900, 750, 950, 850, 400, 300], borderColor: "#8b5cf6", backgroundColor: "rgba(139, 92, 246, 0.2)", fill: true, tension: 0.3 }
+                        { label: 'Consumo Día (kg)', data: [1100, 1500, 800, 2000, 600, 1800, 900], borderColor: "#10b981", backgroundColor: gradGreen, fill: true, tension: 0.35, pointBackgroundColor: '#fff', pointBorderColor: '#10b981', pointBorderWidth: 2, pointRadius: 4 },
+                        { label: 'Consumo Noche (kg)', data: [400, 800, 300, 1300, 200, 700, 300], borderColor: "#8b5cf6", backgroundColor: gradPurple, fill: true, tension: 0.35, pointBackgroundColor: '#fff', pointBorderColor: '#8b5cf6', pointBorderWidth: 2, pointRadius: 4 }
                     ];
                 }
 
@@ -666,11 +683,11 @@
             gradient.addColorStop(1, 'rgba(16, 185, 129, 0.0)');
 
             let datasets = [
-                { label: 'Hoy', data: [8, 13, 9, 14, 14, 11], borderColor: "#10b981", borderWidth: 2, fill: true, backgroundColor: gradient, tension: 0.35 }
+                { label: 'Hoy', data: [8, 13, 9, 14, 14, 11], borderColor: "#10b981", borderWidth: 2, fill: true, backgroundColor: gradient, tension: 0.35, pointBackgroundColor: '#fff', pointBorderColor: '#10b981', pointBorderWidth: 2, pointRadius: 4 }
             ];
 
             if(comparar) {
-                datasets.push({ label: 'Ayer', data: [7, 10, 11, 12, 10, 9], borderColor: "#64748b", borderWidth: 2, borderDash: [5, 5], fill: false, tension: 0.35 });
+                datasets.push({ label: 'Ayer', data: [7, 10, 11, 12, 10, 9], borderColor: "#64748b", borderWidth: 2, borderDash: [5, 5], fill: false, tension: 0.35, pointBackgroundColor: '#fff', pointBorderColor: '#64748b', pointBorderWidth: 2, pointRadius: 4 });
             }
 
             chartConsumoInstance = new Chart(ctx, {
