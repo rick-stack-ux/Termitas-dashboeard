@@ -1,970 +1,691 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Iguana Lab Sondas</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AURUM.SYS Smart Silo Monitor - MANSEL Edition</title>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-main: #06090e;
+            --bg-sidebar: #090d14;
+            --bg-card: #0b111a;
+            --border-color: #141f2e;
+            --color-green: #10b981;
+            --color-yellow: #f59e0b;
+            --color-red: #ef4444;
+            --color-purple: #8b5cf6;
+            --color-gray: #475569;
+            --text-title: #ffffff;
+            --text-sub: #64748b;
+        }
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        body.theme-light {
+            --bg-main: #f1f5f9;
+            --bg-sidebar: #ffffff;
+            --bg-card: #ffffff;
+            --border-color: #cbd5e1;
+            --text-title: #0f172a;
+            --text-sub: #64748b;
+        }
 
-<style>
-:root{
-  --bg:#FFFFFF;
-  --card:#2ECC0F;
-  --text:#FFFFFF;
-  --muted:rgba(255,255,255,0.75);
-  --accent:#39FF14;
-  --danger:#ff3b3b;
-  --shadow:0 8px 20px rgba(0,0,0,0.35);
-}
+        body.theme-mansel {
+            --bg-main: #c6bfb3; 
+            --bg-sidebar: #1b521f; 
+            --bg-card: #ffffff;
+            --border-color: #a39c91;
+            --text-title: #1b521f;
+            --text-sub: #4a544c;
+            --color-green: #1b521f;
+        }
+        body.theme-mansel .menu-item.active { background: rgba(27, 82, 31, 0.15); color: #ffffff !important; }
+        body.theme-mansel .menu-item { color: #e2e8f0; }
+        body.theme-mansel .brand h2, body.theme-mansel .brand span { color: #ffffff; }
 
-html,body{
-  margin:0;
-  padding:0;
-  font-family:Inter,system-ui,Arial,sans-serif;
-  background:var(--bg);
-  color:var(--text);
-  height:100%;
-}
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', system-ui, sans-serif; }
+        body { background-color: var(--bg-main); color: var(--text-title); display: flex; height: 100vh; overflow: hidden; }
 
-.app{max-width:1200px;margin:18px auto;padding:14px;}
+        #loginScreen { position: fixed; top:0; left:0; width:100vw; height:100vh; background: var(--bg-main); z-index: 9999; display: flex; align-items: center; justify-content: center; }
+        .login-card { background: var(--bg-card); border: 1px solid var(--border-color); padding: 40px; border-radius: 12px; width: 100%; max-width: 380px; text-align: center; }
+        .login-field { width: 100%; padding: 12px; background: rgba(0,0,0,0.1); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-title); margin-top: 12px; font-size: 14px; outline: none; }
+        .btn-login { width: 100%; padding: 12px; background: var(--color-green); color: white; font-weight: 600; border: none; border-radius: 6px; cursor: pointer; margin-top: 18px; }
 
-.header-logo{
-  display:flex;
-  justify-content:center;
-  margin-bottom:12px;
-}
-.header-logo img{height:150px;}
+        .sidebar { width: 240px; height: 100vh; background: var(--bg-sidebar); padding: 24px 16px; display: flex; flex-direction: column; justify-content: space-between; border-right: 1px solid var(--border-color); flex-shrink: 0; transition: all 0.3s ease; }
+        .brand { display: flex; align-items: center; gap: 12px; margin-bottom: 32px; }
+        .brand i { color: var(--color-green); font-size: 32px; }
+        .brand h2 { font-size: 16px; font-weight: 800; }
+        .brand span { display: block; font-size: 11px; color: var(--text-sub); }
+        
+        .menu-list { display: flex; flex-direction: column; gap: 4px; }
+        .menu-item { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; border-radius: 8px; color: var(--text-sub); cursor: pointer; font-size: 13px; font-weight: 500; transition: 0.15s; }
+        .menu-item div { display: flex; align-items: center; gap: 12px; }
+        .menu-item i { font-size: 18px; }
+        .menu-item.active { background: rgba(16, 185, 129, 0.06); color: var(--color-green); font-weight: 600; }
+        .badge { background: var(--color-red); color: white; font-size: 10px; padding: 2px 6px; border-radius: 12px; }
 
-.header{text-align:center;margin-bottom:16px;}
-.title h1{margin:0;font-size:20px;}
-.title p{margin:0;color:var(--muted);font-size:13px;}
+        .wrapper { flex: 1; display: flex; flex-direction: column; background: var(--bg-main); height: 100vh; overflow: hidden; position: relative; }
+        .top-navbar { height: 64px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: flex-end; padding: 0 24px; gap: 24px; background: var(--bg-sidebar); z-index: 10; }
+        .nav-bell { position: relative; font-size: 22px; color: var(--text-sub); cursor: pointer; }
+        .nav-bell span { position: absolute; top: -2px; right: -2px; background: var(--color-red); color: white; width: 14px; height: 14px; border-radius: 50%; font-size: 9px; display: flex; align-items: center; justify-content: center; font-weight: bold; }
+        
+        .user-widget { display: flex; align-items: center; gap: 10px; cursor: pointer; position: relative; padding: 4px 8px; border-radius: 6px; }
+        .logout-dropdown { display: none; position: absolute; top: 48px; right: 0; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 6px; width: 160px; z-index: 1000; }
+        .logout-dropdown button { width: 100%; padding: 10px 14px; background: transparent; border: none; text-align: left; font-size: 12px; cursor: pointer; color: var(--text-title); display: flex; align-items: center; gap: 8px; }
 
-.summary{
-  display:flex;
-  gap:12px;
-  margin-bottom:18px;
-  flex-wrap:wrap;
-  justify-content:center;
-}
-.metric{
-  background:var(--card);
-  padding:12px 14px;
-  border-radius:10px;
-  box-shadow:var(--shadow);
-  min-width:140px;
-  text-align:center;
-}
-.metric small{display:block;color:var(--muted);font-size:12px;}
-.metric b{display:block;font-size:18px;margin-top:6px;}
+        .layout-body { display: flex; flex: 1; overflow: hidden; position: relative; }
+        .main-content { flex: 1; padding: 24px; overflow-y: auto; transition: all 0.3s; }
+        
+        /* MULTIDISPOSITIVO: GRILLAS DINÁMICAS */
+        .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 20px; }
+        .kpi-card { background: var(--bg-card); border: 1px solid var(--border-color); padding: 16px; border-radius: 8px; }
+        .kpi-details h3 { font-size: 18px; font-weight: 700; }
 
-.grid{
-  display:grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap:16px;
-}
+        .silos-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 20px; }
+        .silo-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; padding: 16px; display: flex; flex-direction: column; justify-content: space-between; min-height: 230px; position: relative; }
+        
+        /* DISEÑO INDUSTRIAL DEL SILO */
+        .silo-middle-row { display: flex; align-items: center; justify-content: space-between; height: 160px; }
+        .silo-axis-y { width: 25px; height: 100%; display: flex; flex-direction: column; justify-content: space-between; font-size: 9px; color: var(--text-sub); }
+        .silo-graphic-box { flex: 1; display: flex; justify-content: center; height: 100%; position: relative; }
+        .silo-metal-frame { width: 75px; height: 150px; position: relative; display: flex; flex-direction: column; justify-content: flex-end; }
+        .silo-ladder { position: absolute; top: 12px; left: 2px; width: 6px; height: 106px; border-left: 1px solid #475569; border-right: 1px solid #475569; background: linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px); background-size: 100% 6px; z-index: 4; }
+        .silo-roof { width: 68px; height: 16px; background: linear-gradient(90deg, #334155, #1e293b, #334155); clip-path: polygon(50% 0%, 100% 100%, 0% 100%); position: absolute; top: 10px; left: 5px; z-index: 3; border: 1px solid #475569; }
+        .silo-cylinder { width: 68px; height: 95px; background: linear-gradient(90deg, #1e293b 0%, #0f172a 50%, #1e293b 100%); border: 1.5px solid #334155; border-bottom: none; position: absolute; top: 25px; left: 5px; overflow: hidden; display: flex; align-items: flex-end; z-index: 2; }
+        .silo-cone { width: 68px; height: 24px; background: linear-gradient(90deg, #1a2232 0%, #0b0f19 50%, #1a2232 100%); border: 1.5px solid #334155; border-top: none; clip-path: polygon(0% 0%, 100% 0%, 70% 100%, 30% 100%); position: absolute; top: 120px; left: 5px; z-index: 2; }
+        .silo-legs { width: 68px; height: 26px; position: absolute; top: 120px; left: 5px; z-index: 1; display: flex; justify-content: space-between; }
+        .silo-legs div { width: 3px; height: 100%; background: #475569; }
+        .silo-internal-fluid { width: 100%; height: 0%; transition: height 0.5s; }
+        .silo-text-readout { text-align: right; }
 
-.card{
-  background:var(--card);
-  border-radius:12px;
-  padding:14px;
-  box-shadow:var(--shadow);
-  border:2px solid transparent;
-  transition: all 0.3s ease;
-}
+        /* SEMAFORO Y MENU SILO */
+        .traffic-light { display: flex; flex-direction: column; gap: 4px; margin-right: 6px; }
+        .tl-dot { width: 10px; height: 10px; border-radius: 50%; background: #334155; opacity: 0.3; }
+        .tl-green.active { background: var(--color-green); box-shadow: 0 0 6px var(--color-green); opacity: 1; }
+        .tl-yellow.active { background: var(--color-yellow); box-shadow: 0 0 6px var(--color-yellow); opacity: 1; }
+        .tl-red.active { background: var(--color-red); box-shadow: 0 0 6px var(--color-red); opacity: 1; }
+        .silo-dropdown-menu { display: none; position: absolute; top: 35px; left: 16px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; width: 230px; z-index: 50; box-shadow: 0 10px 25px rgba(0,0,0,0.8); }
+        .silo-dropdown-menu ul { list-style: none; padding: 0; margin: 0; }
+        .silo-dropdown-menu li { padding: 10px 14px; font-size: 12px; color: var(--text-title); cursor: pointer; border-bottom: 1px solid var(--border-color); }
+        .silo-dropdown-menu li:hover { background: rgba(128,128,128,0.1); }
 
-.card.alert{
-  border-color:#ff0000 !important;
-  box-shadow:0 0 15px rgba(255,0,0,0.7);
-}
+        /* GRÁFICO DE DONA MEJORADO (MÁS GRANDE Y LETRA CLARA) */
+        .distribution-box { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; width: 100%; gap: 10px; }
+        .canvas-container { width: 140px; height: 140px; }
+        .dona-legend { font-size: 13px; font-weight: 600; display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; width: 100%; border-top: 1px solid var(--border-color); padding-top: 8px; color: var(--text-title); }
 
-.card.inactive{
-  opacity:.4;
-  filter:grayscale(1);
-}
+        .chart-layout-panel { display: grid; grid-template-columns: 2.2fr 0.8fr; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; padding: 24px; margin-top: 14px; }
+        
+        /* PANALES FLOTANTES DE MEDIA PANTALLA (SIDE DRAWERS) */
+        .side-drawer { position: absolute; top: 0; right: -50%; width: 50%; height: 100%; background: var(--bg-card); border-left: 2px solid var(--border-color); box-shadow: -10px 0 30px rgba(0,0,0,0.5); transition: right 0.4s cubic-bezier(0.05, 0.74, 0.2, 0.99); z-index: 100; padding: 30px; overflow-y: auto; }
+        .side-drawer.open { right: 0; }
+        .drawer-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; border-bottom: 1px solid var(--border-color); padding-bottom: 14px; }
+        .drawer-close { font-size: 24px; cursor: pointer; color: var(--text-sub); }
+        .drawer-close:hover { color: var(--color-red); }
 
-.sonda-title{font-weight:600;font-size:15px;margin-bottom:8px; display:flex; align-items:center; gap:8px;}
-.btn-config{background:rgba(0,0,0,0.2); border:none; border-radius:4px; cursor:pointer; font-size:14px; padding:3px 6px; transition:0.2s;}
-.btn-config:hover{background:rgba(0,0,0,0.4); transform:scale(1.1);}
+        .config-card-layout { background: var(--bg-main); border: 1px solid var(--border-color); padding: 16px; border-radius: 8px; margin-bottom: 16px; }
+        .config-select { padding: 10px; background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-title); border-radius: 6px; width: 100%; margin-top: 8px; outline:none; }
 
-.tog{font-size:13px;color:var(--muted);display:flex;gap:8px;align-items:center;margin-bottom:8px;}
+        .btn-action { padding: 12px 20px; background: var(--color-green); color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; margin-top: 12px; font-size: 14px; }
+        .custom-table { width: 100%; border-collapse: collapse; margin-top: 14px; }
+        .custom-table th, .custom-table td { padding: 12px; text-align: left; font-size: 13px; border-bottom: 1px solid var(--border-color); }
+        .custom-table th { color: var(--text-sub); background: rgba(0,0,0,0.1); }
 
-.meter-box{
-  background:#000020;
-  border-radius:12px;
-  padding:8px 6px 6px 6px;
-  box-shadow:
-    inset 0 0 0 1px rgba(255,255,255,0.08),
-    0 6px 14px rgba(0,0,0,0.45);
-  margin:6px 0 8px 0;
-}
+        #floatingToast { position: fixed; bottom: 20px; right: 20px; background: #7f1d1d; border: 1px solid var(--color-red); color: white; padding: 14px 20px; border-radius: 8px; font-weight: 700; display: none; z-index: 5000; }
 
-.charts{
-  display:flex;
-  gap:10px;
-  justify-content:center;
-  flex-wrap:wrap;
-  padding:6px 0;
-}
+        /* MODAL DE DETALLE (SUPERPOSICIÓN DE GRÁFICOS DÍA/NOCHE) */
+        #globalModal { position: fixed; top:0; left:0; width:100vw; height:100vh; background: rgba(0,0,0,0.8); z-index: 9999; display: none; align-items: center; justify-content: center; }
+        .modal-card { background: var(--bg-card); border: 1px solid var(--border-color); width: 800px; max-width: 90%; border-radius: 12px; padding: 24px; }
+        .modal-header { display: flex; justify-content: space-between; margin-bottom: 16px; border-bottom: 1px solid var(--border-color); padding-bottom: 12px;}
 
-.charts canvas { width:110px !important; height:110px !important; }
+        /* RESPONSIVE DESIGN INTERMEDIO Y MÓVIL */
+        @media (max-width: 1200px) {
+            .silos-grid { grid-template-columns: repeat(2, 1fr); }
+            .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+            .chart-layout-panel { grid-template-columns: 1fr; gap: 20px; }
+            .side-drawer { width: 70%; right: -70%; }
+        }
 
-.labels{
-  display:flex;
-  gap:10px;
-  justify-content:center;
-  flex-wrap:wrap;
-}
-
-.lbl{
-  font-size:12px;
-  color:rgba(255,255,255,0.85);
-  text-align:center;
-  min-width:95px;
-}
-
-.val{
-  font-weight:700;
-  font-size:15px;
-  color:#ffffff;
-}
-
-.presenciaAlert{
-  font-weight:700;
-  text-align:center;
-  padding:8px 6px;
-  margin-top:8px;
-  border-radius:8px;
-  background:rgba(255,0,0,0.08);
-  color:#ff0000;
-  min-height:44px;
-  display:flex;
-  flex-direction:column;
-  justify-content:center;
-}
-</style>
-
+        @media (max-width: 768px) {
+            body { flex-direction: column; }
+            .sidebar { width: 100%; height: auto; border-right: none; border-bottom: 1px solid var(--border-color); padding: 12px; }
+            .brand { margin-bottom: 12px; }
+            .menu-list { flex-direction: row; flex-wrap: wrap; justify-content: space-between; }
+            .silos-grid, .kpi-grid { grid-template-columns: 1fr; }
+            .side-drawer { width: 100%; right: -100%; }
+            .wrapper { height: calc(100vh - 140px); }
+        }
+    </style>
 </head>
+<body class="theme-light"> <!-- TEMA LIMPIO PREDETERMINADO -->
 
-<body>
-<div class="app">
-
-  <div class="header-logo">
-    <img src="logo.png" alt="IguanaLab" onerror="this.style.display='none'">
-  </div>
-
-  <div class="header">
-    <div class="title">
-      <h1>Panel Sondas T</h1>
-      <p>Monitoreo: Temperatura · Humedad · Distancia (mm)</p>
-    </div>
-  </div>
-
-  <div class="summary">
-    <div class="metric"><small>Sondas activas</small><b id="numActivas">0</b></div>
-    <div class="metric"><small>Alertas distancia</small><b id="numAlertas">0</b></div>
-    <div class="metric"><small>Temp. promedio</small><b id="promTemp">-- °C</b></div>
-    <div class="metric"><small>Humedad promedio</small><b id="promHum">-- %</b></div>
-  </div>
-
-  <div class="grid" id="grid"></div>
-
-</div>
-
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-
-<script>
-function estadoConexion(fechaStr){
-  if(!fechaStr) return "OFFLINE";
-  const p = fechaStr.split(" ");
-  if(p.length < 2) return "OFFLINE";
-  const f = p[0].split("/");
-  const h = p[1].split(":");
-  const fechaDato = new Date(f[2], f[1]-1, f[0], h[0], h[1], h[2]);
-  const ahora = new Date();
-  const diffMin = (ahora - fechaDato)/60000;
-  return diffMin <= 720 ? "ONLINE" : "OFFLINE";
-}
-
-const NUM = 10; 
-const isOnline = [false,false,false,false,false,false,false,false,false,false]; 
-const umbrales = [40, 40, 40, 40, 40, 40, 40, 40, 40, 40];
-const chartsT = [], chartsH = [], 
-      lastValues = Array(NUM).fill(null), badCount = Array(NUM).fill(0);
-
-function tempColor(v){
-  return v <= 22 ? 'rgba(46,204,113,0.85)' :
-         v <= 28 ? 'rgba(241,196,15,0.85)' :
-         'rgba(231,76,60,0.9)';
-}
-
-function humColor(v){
-  return v <= 30 ? 'rgba(52,152,219,0.85)' :
-         v <= 60 ? 'rgba(41,128,185,0.9)' :
-         'rgba(31,97,141,0.95)';
-}
-
-function createCard(i){
-  const grid=document.getElementById('grid');
-  const card=document.createElement('div');
-  card.className='card inactive'; 
-  card.id=`card-${i+1}`;
-
-  card.innerHTML=`
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;">
-      <div class="sonda-title">Sonda ${i+1} 
-        <button class="btn-config" onclick="solicitarAcceso(${i+1})" title="Ajustar Offsets y Umbral">⚙️</button>
-        <button class="btn-config" onclick="solicitarAccesoInfo(${i+1})" title="Editar Cliente y Ubicación">📍</button>
-      </div>
-      <div style="text-align:right;font-size:12px;">
-        <div id="estado-${i+1}">🔴 OFFLINE</div>
-        <div id="wifi-${i+1}">📶 --</div>
-      </div>
+    <!-- LOGIN -->
+    <div id="loginScreen">
+        <div class="login-card">
+            <i class="ph-fill ph-lock-keyhole"></i>
+            <h2>AURUM.SYS INTERFACE</h2>
+            <input type="text" id="userInput" class="login-field" placeholder="Usuario (admin)">
+            <input type="password" id="passInput" class="login-field" placeholder="Contraseña (aurum2026)">
+            <button class="btn-login" id="btnLoginAction">Validar Ingreso</button>
+        </div>
     </div>
 
-    <div style="font-size: 11px; color: var(--muted); margin-bottom: 8px; line-height:1.4;">
-      <div>👤 Cliente: <span id="cli-${i+1}" style="color:#fff; font-weight:600;">--</span></div>
-      <div>📍 Ubicación: <span id="ubi-${i+1}" style="color:#fff; font-weight:600;">--</span></div>
+    <!-- GLOBAL MODAL PARA GRÁFICOS DINÁMICOS -->
+    <div id="globalModal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 id="modalTitle">Consumo Diferencial (Día/Noche)</h3>
+                <i class="ph ph-x drawer-close" onclick="document.getElementById('globalModal').style.display='none'" style="cursor:pointer;"></i>
+            </div>
+            <div id="modalContent">
+                <div style="height: 300px;"><canvas id="chartDiferencial"></canvas></div>
+                <div id="modalExtraInfo" style="margin-top: 16px; font-size: 13px; color: var(--text-sub);">
+                    <!-- La info extra se insertará aquí dinámicamente -->
+                </div>
+            </div>
+        </div>
     </div>
 
-    <div class="tog">
-      <div style="font-size:12px; font-weight:bold; color:var(--muted);" id="auto-${i+1}">Buscando señal...</div>
-      <div style="flex:1"></div>
-      <div style="font-size:12px;color:var(--muted)">Dist: <span id="dist-${i+1}">--</span></div>
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+        <div>
+            <div class="brand"><i class="ph-fill ph-nut"></i><div><h2>AURUM.SYS</h2><span>Smart Silo Monitor</span></div></div>
+            <div class="menu-list">
+                <div class="menu-item active" data-target="dashboard"><div><i class="ph-fill ph-squares-four"></i><span class="lng-dash">Dashboard</span></div></div>
+                <div class="menu-item" data-drawer="drawerHistorial"><div><i class="ph ph-clock-counter-clockwise"></i><span class="lng-hist">Historial</span></div></div>
+                <div class="menu-item" data-drawer="drawerConsumo"><div><i class="ph ph-chart-line"></i><span class="lng-cons">Consumo</span></div></div>
+                <div class="menu-item" data-drawer="drawerAlarmas"><div><i class="ph ph-bell"></i><span class="lng-alrm">Alarmas</span></div><span class="badge" id="badgeAlarmas">2</span></div>
+                <div class="menu-item" data-drawer="drawerReportes"><div><i class="ph ph-file-text"></i><span class="lng-repo">Reportes</span></div></div>
+                <div class="menu-item" data-drawer="drawerConfig"><div><i class="ph ph-gear"></i><span class="lng-conf">Configuración</span></div></div>
+            </div>
+        </div>
     </div>
 
-    <div class="meter-box">
-      <div class="charts">
-        <canvas id="t-${i+1}"></canvas>
-        <canvas id="h-${i+1}"></canvas>
-      </div>
-      <div class="labels">
-        <div class="lbl">Temperatura<div class="val" id="tempVal-${i+1}">-- °C</div></div>
-        <div class="lbl">Humedad<div class="val" id="humVal-${i+1}">-- %</div></div>
-      </div>
+    <!-- MAIN INTERFACE -->
+    <div class="wrapper">
+        <div class="top-navbar">
+            <div class="nav-bell" id="btnCampana"><i class="ph ph-bell"></i><span id="navBadgeCount">2</span></div>
+            <div class="user-widget" id="userMenuWidget">
+                <div style="text-align:right; font-size:12px;">
+                    <h4 style="color:var(--text-title);">Erick Gomez</h4>
+                    <span style="color:var(--text-sub); font-size:10px;">Administrador</span>
+                </div>
+                <div style="width:32px; height:32px; border-radius:50%; background:#2a3b4d; color:white; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:600;">EG</div>
+                <div class="logout-dropdown" id="logoutBox">
+                    <button onclick="alert('Función para añadir operadores del sistema.')"><i class="ph ph-user-plus"></i> <span id="lblAddUser">Nuevo Usuario</span></button>
+                    <button id="btnExitAction" style="color:var(--color-red);"><i class="ph ph-sign-out"></i> Exit</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="layout-body">
+            <!-- DASHBOARD SIEMPRE VISIBLE DE FONDO -->
+            <div class="main-content">
+                <div class="kpi-grid">
+                    <div class="kpi-card"><div class="kpi-details"><p class="lng-kpi1">Silos Activos</p><h3>7</h3></div></div>
+                    <div class="kpi-card"><div class="kpi-details"><p class="lng-kpi2">Peso Total</p><h3 id="pesoTotal">36.880 kg</h3></div></div>
+                    <div class="kpi-card"><div class="kpi-details"><p class="lng-kpi3">Consumo Actual</p><h3>2.920 kg/h</h3></div></div>
+                    <div class="kpi-card"><div class="kpi-details"><p class="lng-kpi4">Alarmas Activas</p><h3 style="color:var(--color-red)">2</h3></div></div>
+                </div>
+
+                <div class="silos-grid" id="silosGrid"></div>
+
+                <div class="chart-layout-panel">
+                    <div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+                            <h4 style="font-size:14px; font-weight:700;" class="lng-charttitle">Consumo Total (Últimas 24 Horas)</h4>
+                            <div style="display:flex; align-items:center; gap:10px;">
+                                <select id="filtroSiloGrafico" class="config-select" style="margin-top:0; padding:6px 10px; width:auto; font-size:12px;" onchange="updateChartMain()">
+                                    <option value="todos">Todos los Silos</option>
+                                    <option value="1">Silo 1</option>
+                                    <option value="2">Silo 2</option>
+                                    <option value="3">Silo 3</option>
+                                </select>
+                                <label style="font-size:12px; display:flex; align-items:center; gap:4px; cursor:pointer;">
+                                    <input type="checkbox" id="checkCompararAyer" onchange="updateChartMain()"> <span style="color:var(--text-sub);">vs Ayer</span>
+                                </label>
+                            </div>
+                        </div>
+                        <div style="height:165px;"><canvas id="chartConsumo"></canvas></div>
+                    </div>
+                    <div style="display:flex; flex-direction:column; justify-content:center; padding-left:24px; border-left:1px solid var(--border-color);">
+                        <h2 style="font-size:32px; font-weight:800;">12.450 <span style="font-size:14px; color:var(--text-sub);">kg/h</span></h2>
+                        <p style="font-size:13px;" class="lng-kpi3">Consumo Actual</p>
+                        <span style="color:var(--color-green); font-size:12px; font-weight:600; margin-top:10px;">▲ 8.5% vs ayer</span>
+                        <p style="font-size:11px; color:var(--text-sub); margin-top:8px;">El sistema resta automáticamente los kilos para visualizar los consumos por hora en las 24 hrs.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PANALES FLOTANTES (MEDIA PANTALLA EXCLUSIVA) -->
+            <!-- 1. HISTORIAL CON DESCARGA -->
+            <div id="drawerHistorial" class="side-drawer">
+                <div class="drawer-header"><h3>🕒 Historial de Consumos y Cargas</h3><i class="ph ph-x drawer-close"></i></div>
+                <div class="config-card-layout">
+                    <label style="font-size:13px; font-weight:600;">Filtrar Período de Datos</label>
+                    <select class="config-select" id="filtroHistorial">
+                        <option value="semana">Última Semana</option>
+                        <option value="mes">Último Mes</option>
+                        <option value="ano">Año Completo</option>
+                    </select>
+                    <button class="btn-action" onclick="descargarExcelEstructurado()"><i class="ph ph-file-xls"></i> Descargar Reporte Excel Estructurado</button>
+                    <p style="font-size:11px; color:var(--text-sub); margin-top:8px;">Incluye Fecha, Folio, Silo, Kilos Iniciales, Kilos Cargados, Diferencias y Detalles de Lote.</p>
+                </div>
+                <table class="custom-table">
+                    <thead><tr><th>Fecha/Hora</th><th>Silo</th><th>Kg Inicial</th><th>Kg Cargados</th><th>Diferencia</th></tr></thead>
+                    <tbody>
+                        <tr><td>06-07-2026 14:30</td><td>Silo 1</td><td>500</td><td>1500</td><td><span style="color:var(--color-green)">+1000</span></td></tr>
+                        <tr><td>06-07-2026 09:15</td><td>Silo 2</td><td>820</td><td>2000</td><td><span style="color:var(--color-green)">+1180</span></td></tr>
+                        <tr><td>05-07-2026 18:00</td><td>Silo 5</td><td>150</td><td>1500</td><td><span style="color:var(--color-green)">+1350</span></td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 2. CONSUMO DETALLADO (CONCENTRADO GLOBAL) -->
+            <div id="drawerConsumo" class="side-drawer">
+                <div class="drawer-header"><h3>📊 Concentrado Global de Datos</h3><i class="ph ph-x drawer-close"></i></div>
+                
+                <div class="config-card-layout" style="display:flex; justify-content:space-between; align-items:center; padding:10px 16px;">
+                    <span style="font-size:13px; font-weight:600;">Filtro de Datos Globales:</span>
+                    <select class="config-select" style="width:150px; margin-top:0;">
+                        <option>Consumo (kg/h)</option>
+                        <option>Cargas (kg)</option>
+                        <option>Diferencias</option>
+                    </select>
+                </div>
+
+                <h4 style="font-size:14px; margin-bottom:10px;">Análisis de Consumo por Silo</h4>
+                <div style="height:200px; margin-bottom:30px;"><canvas id="chartAnalisisSilos"></canvas></div>
+                
+                <h4 style="font-size:14px; margin-bottom:10px;">Histórico Anual Automático (Meses)</h4>
+                <div style="height:220px; margin-bottom:20px;"><canvas id="chartTendenciaAnual"></canvas></div>
+                <p style="font-size:13px; color:var(--text-sub);">El sistema ingresa automáticamente los valores de los consumos (kilos) de todos los silos.</p>
+            </div>
+
+            <!-- 3. ALARMAS ACTIVAS -->
+            <div id="drawerAlarmas" class="side-drawer">
+                <div class="drawer-header"><h3>🔔 Alertas y Alarmas de Planta</h3><i class="ph ph-x drawer-close"></i></div>
+                <div style="background:rgba(239,68,68,0.1); border:1px solid var(--color-red); padding:14px; border-radius:8px; margin-bottom:12px;">
+                    <h5 style="color:var(--color-red); font-size:14px;">⚠️ ALERTA: Silo 4 Crítico</h5>
+                    <p style="font-size:12px; margin-top:4px;">Nivel de llenado inferior al 5% de la capacidad nominal.</p>
+                </div>
+                <div style="background:rgba(139,92,246,0.1); border:1px solid var(--color-purple); padding:14px; border-radius:8px;">
+                    <h5 style="color:var(--color-purple); font-size:14px;">⚡ ALERTA: Silo 6 Sin Flujo</h5>
+                    <p style="font-size:12px; margin-top:4px;">Se detectó detención abrupta en tubería de salida.</p>
+                </div>
+            </div>
+
+            <!-- 4. REPORTES -->
+            <div id="drawerReportes" class="side-drawer">
+                <div class="drawer-header"><h3>📝 Generador de Reportes</h3><i class="ph ph-x drawer-close"></i></div>
+                <div class="config-card-layout">
+                    <p style="font-size:13px;">Generar bitácora consolidada en Excel mostrando veces cargadas, hora, fecha (Día/Semana/Mes/Año) y cantidad de kilos por silo y global.</p>
+                    <button class="btn-action" onclick="alert('Generando y descargando Excel Global...')"><i class="ph ph-file-xls"></i> Descargar Excel Global</button>
+                </div>
+                <div class="config-card-layout" style="margin-top:16px;">
+                    <h4 style="font-size:14px; margin-bottom:12px; color:var(--text-title);">Insights y Comparativas</h4>
+                    <ul style="font-size:13px; color:var(--text-sub); list-style:none; padding:0; display:flex; flex-direction:column; gap:8px;">
+                        <li><i class="ph-fill ph-trend-up" style="color:var(--color-yellow)"></i> Esta semana se consumió <b>1,250 kg más</b> que la semana pasada.</li>
+                        <li><i class="ph-fill ph-trend-down" style="color:var(--color-green)"></i> Este mes presenta una baja de consumo del <b>4%</b> respecto al mes anterior.</li>
+                        <li><i class="ph-fill ph-info" style="color:var(--color-purple)"></i> El Silo 1 fue cargado <b>3 veces</b> esta semana (Total: 4,500 kg ingresados).</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- 5. CONFIGURACIÓN -->
+            <div id="drawerConfig" class="side-drawer">
+                <div class="drawer-header"><h3>⚙️ Ajustes del Sistema</h3><i class="ph ph-x drawer-close"></i></div>
+                <div class="config-card-layout">
+                    <label style="font-weight:600; font-size:13px;">Idioma de Interfaz</label>
+                    <select class="config-select" id="comboIdioma" onchange="cambiarIdioma()">
+                        <option value="es">Español</option>
+                        <option value="en">English</option>
+                        <option value="zh">中文 (Chino)</option>
+                        <option value="de">Deutsch (Alemán)</option>
+                    </select>
+                </div>
+                <div class="config-card-layout">
+                    <label style="font-weight:600; font-size:13px;">Tema Visual</label>
+                    <!-- SE AÑADE SELECTED AL MODO CLARO -->
+                    <select class="config-select" id="comboTema" onchange="cambiarTema()">
+                        <option value="light" selected>Modo Claro Limpio</option>
+                        <option value="dark">Modo Oscuro Default</option>
+                        <option value="mansel">Modo Corporativo MANSEL</option>
+                    </select>
+                </div>
+            </div>
+
+        </div>
     </div>
-  `;
-  grid.appendChild(card);
 
-  const pres=document.createElement('div');
-  pres.className='presenciaAlert'; pres.id=`pres-${i+1}`;
-  card.appendChild(pres);
-
-  chartsT[i]=new Chart(document.getElementById(`t-${i+1}`),{
-    type:'doughnut',
-    data:{datasets:[{data:[0,100],backgroundColor:[tempColor(0),'rgba(0,0,0,0.35)'],borderWidth:0}]},
-    options:{rotation:-90,circumference:180,cutout:'72%',plugins:{legend:{display:false}}}
-  });
-
-  chartsH[i]=new Chart(document.getElementById(`h-${i+1}`),{
-    type:'doughnut',
-    data:{datasets:[{data:[0,100],backgroundColor:[humColor(0),'rgba(0,0,0,0.35)'],borderWidth:0}]},
-    options:{rotation:-90,circumference:180,cutout:'72%',plugins:{legend:{display:false}}}
-  });
-}
-
-function updateSummary(){
-  let act=0,alerts=0,sumT=0,sumH=0,count=0;
-  for(let i=0;i<NUM;i++){
-    if(!isOnline[i]) continue;
-    
-    act++;
-    if(!lastValues[i]) continue;
-    sumT+=lastValues[i].t;
-    sumH+=lastValues[i].h;
-    count++;
-    if(lastValues[i].dist >= umbrales[i]) alerts++;
-  }
-  numActivas.textContent=act;
-  numAlertas.textContent=alerts;
-  promTemp.textContent=(count?Math.round(sumT/count):'--')+' °C';
-  promHum.textContent=(count?Math.round(sumH/count):'--')+' %';
-}
-
-for(let i=0;i<NUM;i++) createCard(i);
-updateSummary();
-
-// INICIALIZAR FIREBASE
-firebase.initializeApp({
-  authDomain: "enlace-t.firebaseapp.com",
-  databaseURL: "https://enlace-t-default-rtdb.firebaseio.com",
-  projectId: "enlace-t"
-});
-
-// ESCUCHAR CONFIGURACIONES Y UMBRALES DINÁMICOS
-for(let i=0; i<NUM; i++){
-  let sondaId = i + 1;
-  let nodoConfig = (sondaId === 1) ? "config" : `config${sondaId}`;
-  
-  firebase.database().ref(nodoConfig).on("value", s => {
-    const cfg = s.val();
-    if(cfg && cfg.umbral) {
-      umbrales[i] = parseInt(cfg.umbral);
-    }
-  });
-}
-
-// ESCUCHAR INFO CLIENTE Y UBICACIÓN
-for(let i=0; i<NUM; i++){
-  let sondaId = i + 1;
-  let nodoInfo = (sondaId === 1) ? "info" : `info${sondaId}`;
-  
-  firebase.database().ref(nodoInfo).on("value", s => {
-    const data = s.val();
-    const elCli = document.getElementById(`cli-${sondaId}`);
-    const elUbi = document.getElementById(`ubi-${sondaId}`);
-    if(elCli && elUbi) {
-      elCli.textContent = (data && data.cliente) ? data.cliente : "--";
-      elUbi.textContent = (data && data.ubicacion) ? data.ubicacion : "--";
-    }
-  });
-}
-
-for(let i=0; i<NUM; i++){
-  let sondaId = i + 1;
-  let nodoFirebase = (sondaId === 1) ? "prueba" : `prueba${sondaId}`;
-
-  firebase.database().ref(nodoFirebase).on("value", s => {
-    const d = s.val();
-    const cardEl = document.getElementById(`card-${sondaId}`);
-    const autoEl = document.getElementById(`auto-${sondaId}`);
-    
-    if(!d) return; 
-
-    const estado = estadoConexion(d.FechaHora);
-    
-    if (estado === "ONLINE") {
-      isOnline[i] = true;
-      cardEl.classList.remove('inactive');
-      autoEl.textContent = "✔ En línea";
-      autoEl.style.color = "var(--accent)";
-    } else {
-      isOnline[i] = false;
-      cardEl.classList.add('inactive');
-      autoEl.textContent = "✖ Desconectada (>12h)";
-      autoEl.style.color = "var(--danger)";
-    }
-
-    const t = Number(d.Temperatura_C||0);
-    const h = Number(d.Humedad_pct||0);
-    const dist = Number(d.Distancia_mm||0);
-    lastValues[i] = {t,h,dist};
-
-    if(isOnline[i]){
-      if(dist >= umbrales[i]){ badCount[i]++; }
-      else { badCount[i]=0; }
-    } else {
-      badCount[i]=0;
-    }
-
-    const presEl = document.getElementById(`pres-${sondaId}`);
-    if(badCount[i]>=3){
-      presEl.textContent = "🚨 POSIBLE TERMITA";
-      cardEl.classList.add("alert");
-    }else{
-      presEl.textContent = "";
-      cardEl.classList.remove("alert");
-    }
-
-    document.getElementById(`tempVal-${sondaId}`).textContent=`${t} °C`;
-    document.getElementById(`humVal-${sondaId}`).textContent=`${h} %`;
-    document.getElementById(`dist-${sondaId}`).textContent=`${Math.round(dist)} mm`;
-
-    document.getElementById(`estado-${sondaId}`).textContent = estado==="ONLINE"?"🟢 ONLINE":"🔴 OFFLINE";
-    document.getElementById(`wifi-${sondaId}`).textContent = estado==="ONLINE"?"📶 Conectado":"📶 Sin señal";
-
-    const tempMax=50;
-    const pct=Math.min((t/tempMax)*100,100);
-
-    chartsT[i].data.datasets[0].data=[pct,100-pct];
-    chartsT[i].data.datasets[0].backgroundColor[0]=tempColor(t);
-    chartsT[i].update();
-
-    chartsH[i].data.datasets[0].data=[h,100-h];
-    chartsH[i].data.datasets[0].backgroundColor[0]=humColor(h);
-    chartsH[i].update();
-
-    updateSummary();
-  });
-}
-</script>
-
-<!-- ===== ESTILOS DE MODALES Y COMPONENTES ===== -->
-
-<style>
-.btn-pro{position:fixed;top:15px;right:15px;background:var(--card);border:none;border-radius:10px;padding:8px;cursor:pointer;z-index:9999;box-shadow:var(--shadow);}
-.btn-pro span{display:block;width:22px;height:3px;background:#fff;margin:4px 0;}
-.menu-pro{position:fixed;top:60px;right:15px;width:240px;background:#111827;color:#fff;border-radius:12px;padding:8px;display:none;z-index:9999;box-shadow:var(--shadow);}
-.menu-pro.active{display:block;}
-.menu-pro div{padding:12px;cursor:pointer;font-size:14px;border-bottom:1px solid rgba(255,255,255,0.05);}
-.menu-pro div:last-child{border-bottom:none;}
-.menu-pro div:hover{background:rgba(255,255,255,0.1);border-radius:6px;}
-
-.modal-overlay {
-  position:fixed; top:0; left:0; width:100vw; height:100vh;
-  background:rgba(0,0,0,0.6); backdrop-filter:blur(3px);
-  display:none; z-index:9998;
-}
-.modal-overlay.active { display:block; }
-
-.panel-pro{
-  position:fixed; top:50%; left:50%; transform:translate(-50%, -50%);
-  width:95vw; max-width:980px; background:#ffffff; border-radius:12px;
-  display:none; z-index:9999; box-shadow:0 25px 50px -12px rgba(0,0,0,0.5);
-  color:#1e293b; overflow:hidden;
-}
-.panel-pro.active{display:block;}
-
-.modal-header { padding:20px 24px 0 24px; display:flex; justify-content:space-between; align-items:center; }
-.modal-header h3 { margin:0; font-size:18px; font-weight:700; color:#0f172a; }
-.btn-close { background:none; border:none; font-size:24px; color:#94a3b8; cursor:pointer; line-height:1; }
-.btn-close:hover { color:#0f172a; }
-
-.modal-config { max-width: 380px; padding: 25px; height: 80vh; overflow-y: auto; } 
-.input-group { margin-bottom: 15px; }
-.input-group label { display:block; font-size: 13px; font-weight: 600; color: #475569; margin-bottom: 5px; }
-.input-group input { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; font-family: inherit; font-size: 14px; }
-.btn-guardar { background: #10b981; color: #fff; border: none; padding: 12px; border-radius: 6px; cursor: pointer; width: 100%; font-weight: 600; font-size: 14px; margin-top: 10px; transition: 0.2s;}
-.btn-guardar:hover { background: #059669; }
-
-.tabs { display:flex; gap:15px; border:none; padding:0; background:#fff; margin:0;}
-.tab-btn { background:none; border:none; padding:12px 10px; font-weight:600; color:#64748b; cursor:pointer; border-bottom:3px solid transparent; font-size:14px; outline:none; }
-.tab-btn:hover { color:#0f172a; }
-.tab-btn.active { color:#10b981; border-bottom-color:#10b981; }
-
-.chart-card-container { display:flex; background:#fff; }
-.chart-left { flex:1; padding:20px 24px 30px 24px; border-right:1px solid #f1f5f9; min-width:0; }
-.chart-wrapper { position:relative; height:260px; width:100%; }
-.chart-right { width:220px; padding:30px 24px; display:flex; flex-direction:column; justify-content:center; }
-
-.filtros-top { display:flex; justify-content:space-between; align-items:center; padding:10px 24px 0 24px; border-bottom:1px solid #f1f5f9; }
-.select-rango { padding:6px 12px; border-radius:6px; border:1px solid #cbd5e1; font-family:inherit; font-size:13px; color:#334155; outline:none; cursor:pointer; background:#fff; font-weight:600; }
-
-@media (max-width: 768px) {
-  .chart-card-container { flex-direction:column; }
-  .chart-left { border-right:none; border-bottom:1px solid #f1f5f9; }
-  .chart-right { width:100%; align-items:center; text-align:center; padding:20px; }
-  .filtros-top { flex-direction:column; align-items:flex-start; gap:10px; padding-bottom:10px;}
-  .tabs { overflow-x:auto; width:100%;}
-  .tab-btn { white-space:nowrap; }
-}
-</style>
-
-<button class="btn-pro" id="btnMenuPro">
-  <span></span><span></span><span></span>
-</button>
-
-<div id="menuPro" class="menu-pro">
-  <div onclick="abrirMenuPro()">📊 Ver Historial de Cebo</div>
-  <div onclick="descargarCSVGlobal()">⬇ Descargar Datos CSV (Todas)</div>
-</div>
-
-<div id="overlayPro" class="modal-overlay"></div>
-
-<!-- Modal Historial -->
-<div id="panelPro" class="panel-pro">
-  <div class="modal-header">
-    <h3>Análisis de Sondas</h3>
-    <button class="btn-close" onclick="cerrarModal()">×</button>
-  </div>
-  
-  <div class="filtros-top">
-    <div class="tabs" id="tabContainer">
-      <button class="tab-btn active" onclick="cargarGraficoSonda(1, this)">Sonda 1</button>
-      <button class="tab-btn" onclick="cargarGraficoSonda(2, this)">Sonda 2</button>
-      <button class="tab-btn" onclick="cargarGraficoSonda(3, this)">Sonda 3</button>
-      <button class="tab-btn" onclick="cargarGraficoSonda(4, this)">Sonda 4</button>
-      <button class="tab-btn" onclick="cargarGraficoSonda(5, this)">Sonda 5</button>
-      <button class="tab-btn" onclick="cargarGraficoSonda(6, this)">Sonda 6</button>
-      <button class="tab-btn" onclick="cargarGraficoSonda(7, this)">Sonda 7</button>
-      <button class="tab-btn" onclick="cargarGraficoSonda(8, this)">Sonda 8</button>
-      <button class="tab-btn" onclick="cargarGraficoSonda(9, this)">Sonda 9</button>
-      <button class="tab-btn" onclick="cargarGraficoSonda(10, this)">Sonda 10</button>
-    </div>
-    
-    <!-- 🔥 OPCIONES DE DÍA, SEMANA Y MES -->
-    <select id="rangoTiempo" class="select-rango" onchange="cargarGraficoSonda(activeSondaTab)">
-      <option value="dia">📅 Vista Día (Últimas 24 Hrs)</option>
-      <option value="semana" selected>📆 Vista Semana (Últimos 7 Días)</option>
-      <option value="mes">🗓️ Vista Mes (Últimas 5 Semanas)</option>
-    </select>
-  </div>
-
-  <div class="chart-card-container">
-    <div class="chart-left">
-      <div class="chart-wrapper">
-        <canvas id="graficoHistorial" style="width: 100% !important; height: 100% !important;"></canvas>
-      </div>
-    </div>
-    <div class="chart-right">
-      <div style="display:flex; align-items:baseline; gap:6px;">
-        <h1 id="distanciaActual" style="margin:0; font-size:42px; font-weight:800; color:#0f172a; letter-spacing:-1px;">--</h1>
-        <span style="font-size:14px; font-weight:700; color:#334155;">mm</span>
-      </div>
-      <p style="margin:4px 0 8px 0; color:#64748b; font-size:13px;">Distancia Actual</p>
-      <p id="porcentajeCebo" style="margin:0; font-size:13px; font-weight:700; color:#10b981;">--</p>
-    </div>
-  </div>
-</div>
-
-<!-- ===== VENTANA PERSONALIZADA DE ACCESO RESTRINGIDO ===== -->
-<div id="modalPassword" class="panel-pro modal-config">
-  <div class="modal-header" style="padding:0 0 15px 0; border-bottom:1px solid #f1f5f9; margin-bottom:15px;">
-    <h3>🔒 Iguana Lab Sondas</h3>
-    <button class="btn-close" onclick="cerrarModal()">×</button>
-  </div>
-  <p style="font-size:13px; color:#475569; margin-top:0;">ACCESO RESTRINGIDO<br>Ingrese la contraseña para configurar:</p>
-  <div class="input-group">
-    <input type="password" id="inPass" placeholder="Contraseña de acceso" onkeydown="if(event.key==='Enter') verificarPassword()">
-  </div>
-  <button class="btn-guardar" onclick="verificarPassword()">Ingresar</button>
-</div>
-
-<!-- ===== MODAL CONFIGURACIÓN CON UMBRAL Y WHATSAPP ===== -->
-<div id="modalConfigOffsets" class="panel-pro modal-config">
-  <div class="modal-header" style="padding:0 0 20px 0; border-bottom:1px solid #f1f5f9; margin-bottom:15px;">
-    <h3>⚙️ Configurar Sonda <span id="confSondaId"></span></h3>
-    <button class="btn-close" onclick="cerrarModal()">×</button>
-  </div>
-  
-  <div class="input-group">
-    <label>Umbral Alerta Termitas (mm)</label>
-    <input type="number" step="1" id="inUmbral" placeholder="Ej: 40">
-  </div>
-  <div class="input-group">
-    <label>Offset Temperatura (°C)</label>
-    <input type="number" step="0.1" id="inOffT" placeholder="Ej: -2.0">
-  </div>
-  <div class="input-group">
-    <label>Offset Humedad (%)</label>
-    <input type="number" step="0.1" id="inOffH" placeholder="Ej: +5.0">
-  </div>
-  <div class="input-group">
-    <label>Offset Distancia (mm)</label>
-    <input type="number" step="1" id="inOffD" placeholder="Ej: -16">
-  </div>
-  <div class="input-group">
-    <label>Tiempo Deep Sleep (minutos)</label>
-    <input type="number" step="1" id="inSleep" placeholder="Ej: 1">
-  </div>
-  
-  <!-- NUEVA SECCIÓN DE REDES / WHATSAPP -->
-  <div style="margin-top:25px; padding-top:15px; border-top:1px dashed #cbd5e1;">
-    <h4 style="margin: 0 0 5px 0; color: #10b981; font-size:15px;">📱 Notificaciones WhatsApp</h4>
-    <p style="font-size:11px; color:#64748b; margin-top:0; margin-bottom:15px;">(Usa CallMeBot. Deja en blanco si no deseas recibir alertas por WhatsApp)</p>
-    
-    <div class="input-group">
-      <label>Número WhatsApp (ej: +569...)</label>
-      <input type="text" id="inWaPhone" placeholder="+56912345678">
-    </div>
-    <div class="input-group">
-      <label>API Key CallMeBot</label>
-      <input type="text" id="inWaKey" placeholder="Ej: 123456">
-    </div>
-  </div>
-  
-  <button class="btn-guardar" onclick="guardarOffsetsFirebase()">💾 Guardar Ajustes</button>
-</div>
-
-<!-- ===== MODAL INFO CLIENTE Y UBICACIÓN ===== -->
-<div id="modalInfoSonda" class="panel-pro modal-config">
-  <div class="modal-header" style="padding:0 0 20px 0; border-bottom:1px solid #f1f5f9; margin-bottom:15px;">
-    <h3>📍 Info Sonda <span id="infoSondaId"></span></h3>
-    <button class="btn-close" onclick="cerrarModal()">×</button>
-  </div>
-  
-  <div class="input-group">
-    <label>Cliente</label>
-    <input type="text" id="inCliente" placeholder="Nombre del cliente">
-  </div>
-  <div class="input-group">
-    <label>Ubicación</label>
-    <input type="text" id="inUbicacion" placeholder="Ej: Cocina, Bodega...">
-  </div>
-  
-  <button class="btn-guardar" onclick="guardarInfoFirebase()">💾 Guardar Info</button>
-</div>
-
-<script>
-let activeSondaTab = 1;
-let miGraficoHistorial = null;
-let currentConfigSonda = null;
-let currentInfoSonda = null;
-let modoAcceso = null;
-
-btnMenuPro.onclick = () => menuPro.classList.toggle("active");
-
-function cerrarModal() {
-  document.getElementById('overlayPro').classList.remove('active');
-  document.getElementById('panelPro').classList.remove('active');
-  document.getElementById('modalPassword').classList.remove('active');
-  document.getElementById('modalConfigOffsets').classList.remove('active');
-  document.getElementById('modalInfoSonda').classList.remove('active');
-}
-
-document.getElementById('overlayPro').addEventListener('click', cerrarModal);
-
-document.addEventListener("click",(e)=>{
-  if(!menuPro.contains(e.target) && !btnMenuPro.contains(e.target)){
-    menuPro.classList.remove("active");
-  }
-});
-
-function solicitarAcceso(sondaId) {
-  currentConfigSonda = sondaId;
-  modoAcceso = 'config';
-  document.getElementById("inPass").value = "";
-  document.getElementById('overlayPro').classList.add('active');
-  document.getElementById('modalPassword').classList.add('active');
-  setTimeout(() => document.getElementById("inPass").focus(), 100);
-}
-
-function solicitarAccesoInfo(sondaId) {
-  currentInfoSonda = sondaId;
-  modoAcceso = 'info';
-  document.getElementById("inPass").value = "";
-  document.getElementById('overlayPro').classList.add('active');
-  document.getElementById('modalPassword').classList.add('active');
-  setTimeout(() => document.getElementById("inPass").focus(), 100);
-}
-
-function verificarPassword() {
-  const p = document.getElementById("inPass").value;
-  if (p === "sondTP123") {
-    document.getElementById('modalPassword').classList.remove('active');
-    if (modoAcceso === 'config') {
-      abrirConfig(currentConfigSonda);
-    } else if (modoAcceso === 'info') {
-      abrirInfo(currentInfoSonda);
-    }
-  } else {
-    alert("Contraseña incorrecta. Acceso denegado.");
-    cerrarModal();
-  }
-}
-
-function abrirConfig(sondaId) {
-  document.getElementById("confSondaId").textContent = sondaId;
-  let nodo = (sondaId === 1) ? "config" : `config${sondaId}`;
-  
-  firebase.database().ref(nodo).once("value").then(snap => {
-    const data = snap.val() || {};
-    document.getElementById("inUmbral").value = data.umbral || 40;
-    document.getElementById("inOffT").value = data.offsetTemp || 0;
-    document.getElementById("inOffH").value = data.offsetHum || 0;
-    document.getElementById("inOffD").value = data.offsetDist || 0;
-    document.getElementById("inSleep").value = data.sleep || 1;
-    
-    // CARGAR DATOS DE WHATSAPP DESDE FIREBASE
-    document.getElementById("inWaPhone").value = data.waPhone || "";
-    document.getElementById("inWaKey").value = data.waKey || "";
-    
-    document.getElementById('overlayPro').classList.add('active');
-    document.getElementById('modalConfigOffsets').classList.add('active');
-  });
-}
-
-function abrirInfo(sondaId) {
-  document.getElementById("infoSondaId").textContent = sondaId;
-  let nodo = (sondaId === 1) ? "info" : `info${sondaId}`;
-  
-  firebase.database().ref(nodo).once("value").then(snap => {
-    const data = snap.val() || {};
-    document.getElementById("inCliente").value = data.cliente || "";
-    document.getElementById("inUbicacion").value = data.ubicacion || "";
-    
-    document.getElementById('overlayPro').classList.add('active');
-    document.getElementById('modalInfoSonda').classList.add('active');
-  });
-}
-
-function guardarOffsetsFirebase() {
-  const u = parseInt(document.getElementById("inUmbral").value) || 40;
-  const t = parseFloat(document.getElementById("inOffT").value) || 0;
-  const h = parseFloat(document.getElementById("inOffH").value) || 0;
-  const d = parseInt(document.getElementById("inOffD").value) || 0;
-  const s = parseInt(document.getElementById("inSleep").value) || 1;
-  
-  // LEER DATOS DE WHATSAPP
-  const wp = document.getElementById("inWaPhone").value.trim();
-  const wk = document.getElementById("inWaKey").value.trim();
-  
-  if(s < 1) {
-    alert("El tiempo de sueño no puede ser menor a 1 minuto.");
-    return;
-  }
-
-  let nodo = (currentConfigSonda === 1) ? "config" : `config${currentConfigSonda}`;
-  
-  // GUARDAR EN FIREBASE (INCLUYENDO REDES)
-  firebase.database().ref(nodo).set({
-    umbral: u,
-    offsetTemp: t,
-    offsetHum: h,
-    offsetDist: d,
-    sleep: s,
-    waPhone: wp,
-    waKey: wk
-  }).then(() => {
-    umbrales[currentConfigSonda - 1] = u;
-    alert("✅ Ajustes y Redes guardados exitosamente en Firebase.");
-    cerrarModal();
-  }).catch(err => {
-    alert("Error al guardar: " + err.message);
-  });
-}
-
-function guardarInfoFirebase() {
-  const cli = document.getElementById("inCliente").value.trim();
-  const ubi = document.getElementById("inUbicacion").value.trim();
-  
-  let nodo = (currentInfoSonda === 1) ? "info" : `info${currentInfoSonda}`;
-  
-  firebase.database().ref(nodo).set({
-    cliente: cli,
-    ubicacion: ubi
-  }).then(() => {
-    alert("✅ Información del cliente guardada exitosamente.");
-    cerrarModal();
-  }).catch(err => {
-    alert("Error al guardar: " + err.message);
-  });
-}
-
-function parseFechaCL(fechaStr) {
-  if(!fechaStr) return new Date();
-  const p = fechaStr.split(" ");
-  if(p.length < 2) return new Date();
-  const f = p[0].split("/");
-  const h = p[1].split(":");
-  return new Date(f[2], f[1]-1, f[0], h[0], h[1], h[2]);
-}
-
-function abrirMenuPro(){
-  menuPro.classList.remove("active");
-  document.getElementById('overlayPro').classList.add('active');
-  document.getElementById('panelPro').classList.add("active");
-  cargarGraficoSonda(1, document.querySelector('.tab-btn'));
-}
-
-function cargarGraficoSonda(sondaId, btnElement = null) {
-  activeSondaTab = sondaId;
-  
-  if(btnElement) {
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    btnElement.classList.add('active');
-  }
-
-  document.getElementById('distanciaActual').textContent = "--";
-  document.getElementById('porcentajeCebo').textContent = "Cargando...";
-  document.getElementById('porcentajeCebo').style.color = "#64748b";
-
-  let nodoHistorial = (sondaId === 1) ? "historial" : `historial${sondaId}`;
-  const filtroTiempo = document.getElementById('rangoTiempo').value;
-
-  firebase.database().ref(nodoHistorial).once("value", snap => {
-    let rawRecords = [];
-    snap.forEach(c => {
-      const d = c.val();
-      if(d.FechaHora) {
-        rawRecords.push({
-          time: parseFechaCL(d.FechaHora),
-          val: Number(d.Distancia_mm||0)
-        });
-      }
-    });
-
-    rawRecords.sort((a,b) => a.time - b.time);
-
-    const ahora = new Date();
-    let labels = [];
-    let data = [];
-
-    if (filtroTiempo === 'dia') {
-      const ms24h = 24 * 60 * 60 * 1000;
-      let dayRecords = rawRecords.filter(r => (ahora - r.time) <= ms24h);
-
-      if (dayRecords.length > 0) {
-        labels = dayRecords.map(r => r.time.toLocaleTimeString('es-CL', {hour: '2-digit', minute: '2-digit'}));
-        data = dayRecords.map(r => r.val);
-      }
-
-    } else if (filtroTiempo === 'semana') {
-      const ms7d = 7 * 24 * 60 * 60 * 1000;
-      let weekRecords = rawRecords.filter(r => (ahora - r.time) <= ms7d);
-
-      if (weekRecords.length > 0) {
-        let dailyData = {};
-        weekRecords.forEach(r => {
-          let lbl = r.time.toLocaleDateString('es-CL', {day:'2-digit', month:'2-digit'}); 
-          if(!dailyData[lbl]) dailyData[lbl] = [];
-          dailyData[lbl].push(r.val);
-        });
-        labels = Object.keys(dailyData);
-        data = labels.map(l => Math.max(...dailyData[l]));
-      }
-
-    } else {
-      const msMonth = 35 * 24 * 60 * 60 * 1000;
-      let monthRecords = rawRecords.filter(r => (ahora - r.time) <= msMonth);
-
-      if (monthRecords.length > 0) {
-        labels = ["Semana 1", "Semana 2", "Semana 3", "Semana 4", "Semana 5"];
-        let weeklyData = {1:[], 2:[], 3:[], 4:[], 5:[]};
-        let startTime = monthRecords[0].time.getTime();
-        
-        monthRecords.forEach(r => {
-          let daysDiff = (r.time.getTime() - startTime) / (1000 * 60 * 60 * 24);
-          let week = Math.floor(daysDiff / 7) + 1;
-          if (week > 5) week = 5; 
-          weeklyData[week].push(r.val);
+    <div id="floatingToast"><i class="ph-fill ph-warning-octagon"></i> ALERTA ACTIVA EN SILO TRABADO / CRÍTICO</div>
+
+    <script>
+        let chartConsumoInstance = null;
+        let chartAnalisisInstance = null;
+        let chartTendenciaInstance = null;
+
+        let SILOS = [
+            { id: 1, nombre: "SILO 1", capacidad: 15000, peso: 9739, consumo: 850, rssi: -65, estado: "Normal" },
+            { id: 2, nombre: "SILO 2", capacidad: 15000, peso: 7241, consumo: 620, rssi: -68, estado: "Normal" },
+            { id: 3, nombre: "SILO 3", capacidad: 15000, peso: 2279, consumo: 350, rssi: -72, estado: "Baja" },
+            { id: 4, nombre: "SILO 4", capacidad: 15000, peso: 0, consumo: 120, rssi: -75, estado: "Critica" },
+            { id: 5, nombre: "SILO 5", capacidad: 15000, peso: 10871, consumo: 980, rssi: -60, estado: "Normal" },
+            { id: 6, nombre: "SILO 6", capacidad: 15000, peso: 6750, consumo: 0, rssi: -70, estado: "Sin Flujo" },
+            { id: 7, nombre: "SILO 7", capacidad: 15000, peso: 0, consumo: 0, rssi: 0, estado: "Desconectado" }
+        ];
+
+        // GESTIÓN LOGIN
+        if(localStorage.getItem("aurum_logged") === "true") { document.getElementById("loginScreen").style.display = "none"; }
+        document.getElementById("btnLoginAction").addEventListener("click", () => {
+            if(document.getElementById("userInput").value === "admin" && document.getElementById("passInput").value === "aurum2026") {
+                localStorage.setItem("aurum_logged", "true");
+                document.getElementById("loginScreen").style.display = "none";
+            }
         });
 
-        let currentMax = 0;
-        let currentActualWeek = Math.floor((ahora.getTime() - startTime) / (1000 * 60 * 60 * 24) / 7) + 1;
-        
-        for(let i=1; i<=5; i++) {
-          if(weeklyData[i].length > 0) {
-              currentMax = Math.max(...weeklyData[i]);
-              data.push(currentMax);
-          } else if (i <= currentActualWeek) {
-              data.push(currentMax > 0 ? currentMax : null);
-          } else {
-              data.push(null);
-          }
+        // DESPLEGABLE USER
+        document.getElementById("userMenuWidget").addEventListener("click", (e) => {
+            e.stopPropagation();
+            const box = document.getElementById("logoutBox");
+            box.style.display = box.style.display === "block" ? "none" : "block";
+        });
+        document.body.addEventListener("click", () => { 
+            document.getElementById("logoutBox").style.display = "none";
+            document.querySelectorAll(".silo-dropdown-menu").forEach(menu => menu.style.display = 'none');
+        });
+        document.getElementById("btnExitAction").addEventListener("click", () => {
+            localStorage.removeItem("aurum_logged");
+            document.getElementById("loginScreen").style.display = "flex";
+        });
+
+        // CONTROLADORES DE PANEL FLOTANTE DE MEDIA PANTALLA
+        document.querySelectorAll("[data-drawer]").forEach(button => {
+            button.addEventListener("click", () => {
+                document.querySelectorAll(".side-drawer").forEach(d => d.classList.remove("open"));
+                const targetDrawer = button.getAttribute("data-drawer");
+                document.getElementById(targetDrawer).classList.add("open");
+                
+                // Si abre consumos, refrescar gráficas internas del drawer
+                if(targetDrawer === "drawerConsumo") { 
+                    setTimeout(initChartAnalisis, 100); 
+                    setTimeout(initChartTendencia, 100); 
+                }
+            });
+        });
+
+        document.querySelectorAll(".drawer-close").forEach(closeBtn => {
+            closeBtn.addEventListener("click", () => {
+                closeBtn.closest(".side-drawer").classList.remove("open");
+            });
+        });
+
+        // MANEJO NOTIFICACIÓN CAMPANA
+        document.getElementById("btnCampana").addEventListener("click", () => {
+            document.getElementById("navBadgeCount").style.display = "none"; 
+            document.querySelectorAll(".side-drawer").forEach(d => d.classList.remove("open"));
+            document.getElementById("drawerAlarmas").classList.add("open");
+        });
+
+        // EXPORTACIÓN A EXCEL (ESTRUCTURA SOLICITADA)
+        function descargarExcelEstructurado() {
+            let csvContent = "data:text/csv;charset=utf-8,Fecha,Folio,Silo,Casilleros,Kilos,Codigo,Descripcion,Lote,Destino,Medicacion,Despachador,Camion,Conductor,Semana,Peso_balanzas,Diferencia\n";
+            csvContent += `06-07-2026,1394,13,1,1500,80012,13064 PUBERTAD 1,2784,13.4.04,13064,Dario,7,Agustin,2,4430,-70\n`;
+            csvContent += `12-01-2026,1424,13,1,1500,80012,13064 PUBERTAD 1,2842,13.4.04,13064,Dario,7,Agustin,3,4470,+1000\n`;
+            
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `Historial_Estructurado.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         }
-      }
-    }
 
-    const validData = data.filter(v => v !== null);
-    if(validData.length > 0){
-      const currentVal = validData[validData.length - 1];
-      const baselineVal = validData[0]; 
-      
-      let diferencia = currentVal - baselineVal;
-      let porcentaje = baselineVal === 0 ? 0 : (diferencia / baselineVal) * 100;
-      
-      let colorText = diferencia >= 0 ? "#10b981" : "#ef4444";
-      let arrow = diferencia >= 0 ? "▲" : "▼";
-      
-      document.getElementById('distanciaActual').textContent = currentVal.toFixed(1);
-      document.getElementById('porcentajeCebo').textContent = `${arrow} ${Math.abs(porcentaje).toFixed(1)}% vs inicio`;
-      document.getElementById('porcentajeCebo').style.color = colorText;
-    } else {
-      document.getElementById('distanciaActual').textContent = "0";
-      document.getElementById('porcentajeCebo').textContent = "Sin datos en el periodo";
-      document.getElementById('porcentajeCebo').style.color = "#64748b";
-    }
-
-    if (miGraficoHistorial) {
-      miGraficoHistorial.destroy();
-    }
-
-    const umbralActualSonda = umbrales[sondaId - 1] || 40;
-
-    const ctx = document.getElementById('graficoHistorial').getContext('2d');
-    let gradiente = ctx.createLinearGradient(0, 0, 0, 260);
-    gradiente.addColorStop(0, 'rgba(16, 185, 129, 0.18)');
-    gradiente.addColorStop(1, 'rgba(16, 185, 129, 0)');
-
-    miGraficoHistorial = new Chart(ctx, {
-      type: "line",
-      data: {
-        labels: labels,
-        datasets: [
-          {
-            label: "Distancia (mm)",
-            data: data,
-            borderColor: "#10b981", 
-            backgroundColor: gradiente,
-            borderWidth: 2,
-            tension: 0.3,
-            fill: true,
-            spanGaps: true,
-            pointBackgroundColor: '#ffffff',
-            pointBorderColor: '#10b981',
-            pointBorderWidth: 2,
-            pointRadius: 4,
-            pointHoverRadius: 6,
-            order: 2
-          },
-          {
-            label: `Límite Termitas (${umbralActualSonda}mm)`,
-            data: Array(labels.length).fill(umbralActualSonda),
-            borderColor: "#ff3b3b", 
-            backgroundColor: "transparent",
-            borderWidth: 2,
-            borderDash: [6, 4], 
-            pointRadius: 0,
-            pointHoverRadius: 0,
-            fill: false,
-            tension: 0,
-            order: 1
-          }
-        ]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            backgroundColor: '#1e293b',
-            titleFont: { size: 13 },
-            bodyFont: { size: 14, weight: 'bold' },
-            displayColors: false
-          }
-        },
-        scales: {
-          x: { 
-            grid: { color: '#f1f5f9', drawBorder: false },
-            ticks: { color: '#64748b', font: { size: 11 }, maxTicksLimit: 8 } 
-          },
-          y: { 
-            min: 0,
-            max: 100,
-            grid: { color: '#f1f5f9', drawBorder: false },
-            ticks: { color: '#64748b', font: { size: 11 }, stepSize: 20 } 
-          }
+        // CONTROL DE TEMAS E IDIOMAS
+        function cambiarTema() {
+            const t = document.getElementById("comboTema").value;
+            document.body.className = "";
+            if(t !== "dark") document.body.classList.add("theme-" + t);
         }
-      }
-    });
-  });
-}
 
-function descargarCSVGlobal(){
-  const promesas = [];
-  
-  for(let i=1; i<=10; i++){
-    let nodo = (i===1) ? "historial" : `historial${i}`;
-    promesas.push(firebase.database().ref(nodo).once("value").then(snap => {
-      return { sonda: i, data: snap.val() };
-    }));
-  }
+        const langData = {
+            es: { dash: "Dashboard", hist: "Historial", cons: "Consumo", alrm: "Alarmas", repo: "Reportes", conf: "Configuración", add: "Nuevo Usuario" },
+            en: { dash: "Dashboard", hist: "History", cons: "Consumption", alrm: "Alarms", repo: "Reports", conf: "Settings", add: "Add User" },
+            zh: { dash: "仪表板", hist: "历史记录", cons: "消耗量", alrm: "报警控制", repo: "报表", conf: "系统设置", add: "添加用户" },
+            de: { dash: "Dashboard", hist: "Verlauf", cons: "Verbrauch", alrm: "Alarme", repo: "Berichte", conf: "Setup", add: "Benutzer hinzufügen" }
+        };
 
-  Promise.all(promesas).then(resultados => {
-    let csv = "\uFEFFSonda,FechaHora,Distancia_mm\n";
-    
-    resultados.forEach(res => {
-      if(res.data){
-        Object.values(res.data).forEach(d => {
-          if(d.FechaHora) {
-            csv += `Sonda ${res.sonda},${d.FechaHora},${d.Distancia_mm}\n`;
-          }
-        });
-      }
-    });
+        function cambiarIdioma() {
+            const l = document.getElementById("comboIdioma").value;
+            const d = langData[l];
+            document.querySelectorAll(".lng-dash").forEach(e => e.innerText = d.dash);
+            document.querySelectorAll(".lng-hist").forEach(e => e.innerText = d.hist);
+            document.querySelectorAll(".lng-cons").forEach(e => e.innerText = d.cons);
+            document.querySelectorAll(".lng-alrm").forEach(e => e.innerText = d.alrm);
+            document.querySelectorAll(".lng-repo").forEach(e => e.innerText = d.repo);
+            document.querySelectorAll(".lng-conf").forEach(e => e.innerText = d.conf);
+            document.getElementById("lblAddUser").innerText = d.add;
+        }
 
-    const blob = new Blob([csv], {type: "text/csv;charset=utf-8;"});
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = "comportamiento_todas_las_sondas.csv";
-    a.click();
-    menuPro.classList.remove("active");
-  });
-}
-</script>
+        // CONTROL MENU SILOS
+        function toggleSiloMenu(event, id) {
+            event.stopPropagation();
+            document.querySelectorAll(".silo-dropdown-menu").forEach(m => m.style.display = 'none');
+            document.getElementById("menu-silo-" + id).style.display = "block";
+        }
 
+        // FUNCIÓN MODIFICADA PARA MOSTRAR CONTENIDO DINÁMICO SEGÚN LA OPCIÓN
+        function openSiloDetail(id, action) {
+            let titulo = "";
+            let extraInfo = "";
+            
+            if(action === 'historial') {
+                titulo = `Historial kilos - Silo ${id}`;
+                extraInfo = `<p>Mostrando el registro histórico de variaciones de peso para el Silo ${id}.</p>`;
+            } else if(action === 'cargas') {
+                titulo = `Veces cargado en la semana - Silo ${id}`;
+                extraInfo = `<p>Cálculo automático de cargas: Se detectaron <strong style="color:var(--text-title)">3</strong> cargas esta semana.</p><p>Total kilos ingresados: <strong style="color:var(--color-green)">4,500 kg</strong>.</p>`;
+            } else if(action === 'grafico') {
+                titulo = `Gráfico consumo semanal - Silo ${id}`;
+                extraInfo = `<p>Resumen del consumo acumulado en los últimos 7 días.</p>`;
+            } else if(action === 'diferencial') {
+                titulo = `Consumo Diferencial Día/Noche - Silo ${id}`;
+                extraInfo = `<p>Comparativa superpuesta del consumo durante turno de día vs turno de noche.</p>`;
+            }
+            
+            document.getElementById("modalTitle").innerText = titulo;
+            document.getElementById("modalExtraInfo").innerHTML = extraInfo;
+            document.getElementById("globalModal").style.display = "flex";
+            
+            setTimeout(() => {
+                const ctx = document.getElementById("chartDiferencial").getContext("2d");
+                if(window.chartDiferencialInstance) window.chartDiferencialInstance.destroy();
+                
+                let chartType = 'line';
+                let datasets = [];
+                
+                if(action === 'historial') {
+                    datasets = [{ label: 'Kilos Registrados', data: [9500, 9200, 8900, 8500, 11500, 10800, 9739], borderColor: "#3b82f6", backgroundColor: "rgba(59, 130, 246, 0.2)", fill: true, tension: 0.1, stepped: true }];
+                } else if(action === 'cargas') {
+                    chartType = 'bar';
+                    datasets = [{ label: 'Kilos Cargados', data: [0, 1500, 0, 0, 3000, 0, 0], backgroundColor: "#10b981" }];
+                } else if(action === 'grafico') {
+                    chartType = 'bar';
+                    datasets = [{ label: 'Consumo (kg)', data: [300, 300, 400, 0, 700, 500, 600], backgroundColor: "#f59e0b" }];
+                } else if(action === 'diferencial') {
+                    datasets = [
+                        { label: 'Consumo Día (kg)', data: [1200, 1500, 1100, 1800, 1600, 900, 800], borderColor: "#f59e0b", backgroundColor: "rgba(245, 158, 11, 0.2)", fill: true, tension: 0.3 },
+                        { label: 'Consumo Noche (kg)', data: [800, 900, 750, 950, 850, 400, 300], borderColor: "#8b5cf6", backgroundColor: "rgba(139, 92, 246, 0.2)", fill: true, tension: 0.3 }
+                    ];
+                }
+
+                window.chartDiferencialInstance = new Chart(ctx, {
+                    type: chartType,
+                    data: {
+                        labels: ["Lun", "Mar", "Mie", "Jue", "Vie", "Sab", "Dom"],
+                        datasets: datasets
+                    },
+                    options: { responsive: true, maintainAspectRatio: false }
+                });
+            }, 100);
+        }
+
+        // RENDER DE CUADROS DE SILOS Y DONA GRANDE
+        function runRender() {
+            const grid = document.getElementById("silosGrid");
+            grid.innerHTML = "";
+
+            SILOS.forEach(s => {
+                let pct = Math.round(s.peso / s.capacidad * 100);
+                let stClass = "var(--text-sub)";
+                let fStyle = "transparent";
+                if(s.estado === "Normal") fStyle = "linear-gradient(to top, #065f46, #10b981)";
+                if(s.estado === "Baja") fStyle = "linear-gradient(to top, #9a3412, #f59e0b)";
+                if(s.estado === "Critica") fStyle = "linear-gradient(to top, #991b1b, #ef4444)";
+                if(s.estado === "Sin Flujo") fStyle = "linear-gradient(to top, #5b21b6, #8b5cf6)";
+
+                grid.innerHTML += `
+                    <div class="silo-card">
+                        <div style="display:flex; justify-content:space-between; align-items:center; position:relative;">
+                            <div style="display:flex; align-items:center; gap:8px;">
+                                <div style="background:rgba(255,255,255,0.1); padding:4px; border-radius:4px; cursor:pointer;" onclick="toggleSiloMenu(event, ${s.id})"><i class="ph ph-list"></i></div>
+                                <span style="font-weight:700; font-size:14px;">${s.nombre}</span>
+                            </div>
+                            
+                            <div class="silo-dropdown-menu" id="menu-silo-${s.id}">
+                                <ul>
+                                    <li onclick="openSiloDetail(${s.id}, 'historial')">Historial kilos x silo</li>
+                                    <li onclick="openSiloDetail(${s.id}, 'cargas')">Veces cargado en la semana / Cálculo Kilos</li>
+                                    <li onclick="openSiloDetail(${s.id}, 'grafico')">Gráfico consumo semanal</li>
+                                    <li onclick="openSiloDetail(${s.id}, 'diferencial')">Consumo diferencial (Día/Noche)</li>
+                                </ul>
+                            </div>
+
+                            <div style="display:flex; align-items:center;">
+                                <div class="traffic-light">
+                                    <div class="tl-dot tl-green ${s.estado==='Normal'?'active':''}"></div>
+                                    <div class="tl-dot tl-yellow ${s.estado==='Baja'?'active':''}"></div>
+                                    <div class="tl-dot tl-red ${s.estado==='Critica' || s.estado==='Sin Flujo'?'active':''}"></div>
+                                </div>
+                                <span style="font-size:11px; font-weight:700; color:${s.estado==='Critica'?'var(--color-red)':''}">${s.estado}</span>
+                            </div>
+                        </div>
+                        <div class="silo-middle-row">
+                            <div class="silo-axis-y"><span>100%</span><span>50%</span><span>0%</span></div>
+                            <div class="silo-graphic-box">
+                                <div class="silo-metal-frame">
+                                    <div class="silo-ladder"></div><div class="silo-roof"></div>
+                                    <div class="silo-cylinder"><div class="silo-internal-fluid" style="height:${s.estado==='Desconectado'?0:pct}%; background:${fStyle};"></div></div>
+                                    <div class="silo-cone"></div><div class="silo-legs"><div></div><div></div></div>
+                                </div>
+                            </div>
+                            <!-- SE INVIERTE TEXTO: KILOS GRANDES, PORCENTAJE ABAJO -->
+                            <div class="silo-text-readout">
+                                <div style="font-size:24px; font-weight:800; color:var(--text-title);">${s.estado==='Desconectado'?'--':s.peso.toLocaleString()+' kg'}</div>
+                                <div style="font-size:14px; font-weight:600; color:var(--text-sub);">${s.estado==='Desconectado'?'--':pct+'%'}</div>
+                            </div>
+                        </div>
+                    </div>`;
+            });
+
+            // CASILLERO 8 - DONA MAXIMIZADA CON DISTRIBUCIÓN EN KILOGRAMOS Y SUMA DE RESTAS
+            grid.innerHTML += `
+                <div class="silo-card">
+                    <h4 style="font-size:13px; font-weight:700;">Distribución de Consumo (Kg)</h4>
+                    <p style="font-size:10px; color:var(--text-sub); margin-bottom:4px;">Suma autonóma de restas por silo.</p>
+                    <div class="distribution-box">
+                        <div class="canvas-container"><canvas id="chartDonaDistribucion"></canvas></div>
+                        <div class="dona-legend">
+                            <div><span style="color:#10b981">●</span> S1: 2,450 kg</div>
+                            <div><span style="color:#3b82f6">●</span> S2: 1,820 kg</div>
+                            <div><span style="color:#f59e0b">●</span> S3: 1,280 kg</div>
+                            <div><span style="color:#ef4444">●</span> S4: 420 kg</div>
+                            <div><span style="color:#ec4899">●</span> S5: 2,630 kg</div>
+                            <div><span style="color:#8b5cf6">●</span> S6: 1,310 kg</div>
+                        </div>
+                    </div>
+                </div>`;
+
+            setTimeout(renderDona, 50);
+        }
+
+        function renderDona() {
+            const c = document.getElementById("chartDonaDistribucion");
+            if(!c) return;
+            new Chart(c, {
+                type: 'doughnut',
+                data: {
+                    datasets: [{
+                        data: [2450, 1820, 1280, 420, 2630, 1310],
+                        backgroundColor: ["#10b981", "#3b82f6", "#f59e0b", "#ef4444", "#ec4899", "#8b5cf6"],
+                        borderWidth: 0
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+            });
+        }
+
+        function initChartAnalisis() {
+            if(chartAnalisisInstance) chartAnalisisInstance.destroy();
+            const ctx = document.getElementById("chartAnalisisSilos").getContext("2d");
+            chartAnalisisInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ["S1", "S2", "S3", "S4", "S5", "S6"],
+                    datasets: [{ label: 'Consumo Histórico (kg)', data: [8500, 6200, 3500, 1200, 9800, 0], backgroundColor: '#10b981' }]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+        }
+
+        function initChartTendencia() {
+            if(chartTendenciaInstance) chartTendenciaInstance.destroy();
+            const ctx = document.getElementById("chartTendenciaAnual").getContext("2d");
+            chartTendenciaInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"],
+                    datasets: [{ label: 'Consumo Global Mensual (kg)', data: [45000, 42000, 48000, 51000, 49000, 46000, 12450, 0, 0, 0, 0, 0], backgroundColor: '#3b82f6' }]
+                },
+                options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false }
+            });
+        }
+
+        runRender();
+
+        // LINEAL INFERIOR GENERAL (CON COMPARATIVA HOY VS AYER)
+        function updateChartMain() {
+            const ctx = document.getElementById("chartConsumo").getContext("2d");
+            if(chartConsumoInstance) chartConsumoInstance.destroy();
+
+            const comparar = document.getElementById("checkCompararAyer").checked;
+            
+            const gradient = ctx.createLinearGradient(0, 0, 0, 160);
+            gradient.addColorStop(0, 'rgba(16, 185, 129, 0.25)');
+            gradient.addColorStop(1, 'rgba(16, 185, 129, 0.0)');
+
+            let datasets = [
+                { label: 'Hoy', data: [8, 13, 9, 14, 14, 11], borderColor: "#10b981", borderWidth: 2, fill: true, backgroundColor: gradient, tension: 0.35 }
+            ];
+
+            if(comparar) {
+                datasets.push({ label: 'Ayer', data: [7, 10, 11, 12, 10, 9], borderColor: "#64748b", borderWidth: 2, borderDash: [5, 5], fill: false, tension: 0.35 });
+            }
+
+            chartConsumoInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ["10:00", "14:00", "18:00", "22:00", "02:00", "06:00"],
+                    datasets: datasets
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+            });
+        }
+        
+        // Inicializar el grafico principal por primera vez
+        updateChartMain();
+
+    </script>
 </body>
 </html>
