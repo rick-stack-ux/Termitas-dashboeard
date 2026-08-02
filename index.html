@@ -57,6 +57,11 @@
         .brand h2 { font-size: 16px; font-weight: 800; }
         .brand span { display: block; font-size: 11px; color: var(--text-sub); }
         
+        /* LOGO CLIENTE CON FILTRO DINÁMICO */
+        .client-logo { width: 120px; opacity: 0.9; margin: 0 auto; display: block; transition: all 0.3s; }
+        body.theme-light .client-logo { filter: invert(1); opacity: 0.7; }
+        body.theme-mansel .client-logo, body:not(.theme-light):not(.theme-mansel) .client-logo { filter: invert(0); }
+
         .menu-list { display: flex; flex-direction: column; gap: 4px; }
         .menu-item { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; border-radius: 8px; color: var(--text-sub); cursor: pointer; font-size: 13px; font-weight: 500; transition: 0.15s; }
         .menu-item div { display: flex; align-items: center; gap: 12px; }
@@ -164,7 +169,7 @@
         <div class="login-card">
             <i class="ph-fill ph-lock-keyhole"></i>
             <h2>AURUM.SYS INTERFACE</h2>
-            <input type="text" id="userInput" class="login-field" placeholder="Usuario (admin)">
+            <input type="text" id="userInput" class="login-field" placeholder="Usuario (admin o usuario)">
             <input type="password" id="passInput" class="login-field" placeholder="Contraseña (aurum2026)">
             <button class="btn-login" id="btnLoginAction">Validar Ingreso</button>
         </div>
@@ -196,8 +201,13 @@
                 <div class="menu-item" data-drawer="drawerConsumo"><div><i class="ph ph-chart-line"></i><span class="lng-cons">Consumo</span></div></div>
                 <div class="menu-item" data-drawer="drawerAlarmas"><div><i class="ph ph-bell"></i><span class="lng-alrm">Alarmas</span></div><span class="badge" id="badgeAlarmas">2</span></div>
                 <div class="menu-item" data-drawer="drawerReportes"><div><i class="ph ph-file-text"></i><span class="lng-repo">Reportes</span></div></div>
-                <div class="menu-item" data-drawer="drawerConfig"><div><i class="ph ph-gear"></i><span class="lng-conf">Configuración</span></div></div>
+                <!-- ID AÑADIDO PARA OCULTAR EN ROL USUARIO -->
+                <div class="menu-item" id="menuConfig" data-drawer="drawerConfig"><div><i class="ph ph-gear"></i><span class="lng-conf">Configuración</span></div></div>
             </div>
+        </div>
+        <!-- ZONA DEL LOGO DEL CLIENTE -->
+        <div style="text-align: center; margin-top: 20px;">
+            <img src="agricola-mansel-vertical-blanco.png" alt="Mansel" class="client-logo">
         </div>
     </div>
 
@@ -207,13 +217,13 @@
             <div class="nav-bell" id="btnCampana"><i class="ph ph-bell"></i><span id="navBadgeCount">2</span></div>
             <div class="user-widget" id="userMenuWidget">
                 <div style="text-align:right; font-size:12px;">
-                    <h4 style="color:var(--text-title);">Erick Gomez</h4>
-                    <span style="color:var(--text-sub); font-size:10px;">Administrador</span>
+                    <h4 id="topUserName" style="color:var(--text-title);">Administrador 1</h4>
+                    <span id="topUserRole" style="color:var(--text-sub); font-size:10px;">Administrador Global</span>
                 </div>
-                <div style="width:32px; height:32px; border-radius:50%; background:#2a3b4d; color:white; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:600;">EG</div>
+                <div id="topUserInitials" style="width:32px; height:32px; border-radius:50%; background:#2a3b4d; color:white; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:600;">A1</div>
                 <div class="logout-dropdown" id="logoutBox">
-                    <button onclick="alert('Función para añadir operadores del sistema.')"><i class="ph ph-user-plus"></i> <span id="lblAddUser">Nuevo Usuario</span></button>
-                    <button id="btnExitAction" style="color:var(--color-red);"><i class="ph ph-sign-out"></i> Exit</button>
+                    <button id="btnAddNewUser" onclick="alert('Función para añadir operadores del sistema.')"><i class="ph ph-user-plus"></i> <span id="lblAddUser">Nuevo Usuario</span></button>
+                    <button id="btnExitAction" style="color:var(--color-red);"><i class="ph ph-sign-out"></i> Cerrar Sesión</button>
                 </div>
             </div>
         </div>
@@ -364,6 +374,7 @@
         let chartAnalisisInstance = null;
         let chartTendenciaInstance = null;
 
+        // AJUSTE CAPACIDAD 14000 KILOS
         let SILOS = [
             { id: 1, nombre: "SILO 1", capacidad: 14000, peso: 9739, consumo: 850, rssi: -65, estado: "Normal" },
             { id: 2, nombre: "SILO 2", capacidad: 14000, peso: 7241, consumo: 620, rssi: -68, estado: "Normal" },
@@ -374,12 +385,42 @@
             { id: 7, nombre: "SILO 7", capacidad: 14000, peso: 0, consumo: 0, rssi: 0, estado: "Desconectado" }
         ];
 
+        // LÓGICA DE ROLES DE USUARIO
+        function applyRole(role) {
+            if(role === 'usuario') {
+                // Ocultar configuraciones y creacion de usuarios
+                document.getElementById("menuConfig").style.display = "none";
+                document.getElementById("btnAddNewUser").style.display = "none";
+                document.getElementById("topUserName").innerText = "Operador Planta";
+                document.getElementById("topUserRole").innerText = "Solo Lectura";
+                document.getElementById("topUserInitials").innerText = "OP";
+            } else {
+                // Mostrar todo para admin
+                document.getElementById("menuConfig").style.display = "flex";
+                document.getElementById("btnAddNewUser").style.display = "flex";
+                document.getElementById("topUserName").innerText = "Administrador 1";
+                document.getElementById("topUserRole").innerText = "Administrador Global";
+                document.getElementById("topUserInitials").innerText = "A1";
+            }
+        }
+
         // GESTIÓN LOGIN
-        if(localStorage.getItem("aurum_logged") === "true") { document.getElementById("loginScreen").style.display = "none"; }
+        if(localStorage.getItem("aurum_logged") === "true") { 
+            document.getElementById("loginScreen").style.display = "none";
+            applyRole(localStorage.getItem("aurum_role") || "admin");
+        }
+        
         document.getElementById("btnLoginAction").addEventListener("click", () => {
-            if(document.getElementById("userInput").value === "admin" && document.getElementById("passInput").value === "aurum2026") {
+            const user = document.getElementById("userInput").value;
+            const pass = document.getElementById("passInput").value;
+            
+            if((user === "admin" || user === "usuario") && pass === "aurum2026") {
                 localStorage.setItem("aurum_logged", "true");
+                localStorage.setItem("aurum_role", user);
+                applyRole(user);
                 document.getElementById("loginScreen").style.display = "none";
+            } else {
+                alert("Credenciales incorrectas. Pruebe 'admin' o 'usuario'.");
             }
         });
 
@@ -395,6 +436,7 @@
             document.getElementById("logoutBox").style.display = "none";
             document.querySelectorAll(".silo-dropdown-menu").forEach(menu => menu.style.display = 'none');
             
+            // Cerrar paneles laterales (drawers) si se hace clic fuera de ellos y no se está clickeando un botón de menú
             if (!e.target.closest('.side-drawer') && !e.target.closest('[data-drawer]') && !e.target.closest('#btnCampana')) {
                 document.querySelectorAll(".side-drawer").forEach(d => d.classList.remove("open"));
             }
@@ -409,6 +451,7 @@
 
         document.getElementById("btnExitAction").addEventListener("click", () => {
             localStorage.removeItem("aurum_logged");
+            localStorage.removeItem("aurum_role");
             document.getElementById("loginScreen").style.display = "flex";
         });
 
@@ -439,11 +482,11 @@
             document.getElementById("drawerAlarmas").classList.add("open");
         });
 
-        // EXPORTACIÓN A EXCEL (MODIFICADA CON LÓGICA DE CUADRE)
+        // EXPORTACIÓN A EXCEL MODIFICADA CON LÓGICA DE CUADRE (PESO ANTES + CARGA = PESO FINAL)
         function descargarExcelEstructurado() {
-            let csvContent = "data:text/csv;charset=utf-8,Fecha,Folio,Silo,Casilleros,Kilos_Cargados,Peso_Antes_Carga,Peso_Final_Cuadre,Diferencia,Codigo,Descripcion,Lote,Destino,Medicacion,Despachador,Camion,Conductor,Semana\n";
-            csvContent += `06-07-2026,1394,1,13,1500,500,2000,+1500,80012,13064 PUBERTAD 1,2784,13.4.04,13064,Dario,7,Agustin,2\n`;
-            csvContent += `12-01-2026,1424,2,13,2000,820,2820,+2000,80012,13064 PUBERTAD 1,2842,13.4.04,13064,Dario,7,Agustin,3\n`;
+            let csvContent = "data:text/csv;charset=utf-8,Fecha,Hora,Folio,Silo,Peso_Antes_Carga(kg),Kilos_Cargados(kg),Peso_Final_Cuadre(kg),Diferencia,Casilleros,Codigo,Descripcion,Lote,Destino,Camion,Conductor,Semana\n";
+            csvContent += `06-07-2026,14:30,1394,SILO 1,500,1500,2000,+1500,13,80012,13064 PUBERTAD 1,2784,13.4.04,7,Agustin,2\n`;
+            csvContent += `12-01-2026,09:15,1424,SILO 2,820,2000,2820,+2000,13,80012,13064 PUBERTAD 1,2842,13.4.04,7,Agustin,3\n`;
             
             const encodedUri = encodeURI(csvContent);
             const link = document.createElement("a");
@@ -487,6 +530,7 @@
             document.getElementById("menu-silo-" + id).style.display = "block";
         }
 
+        // FUNCIÓN MODIFICADA: APARIENCIA SUAVIZADA Y DATOS A ESCALA DE 14000 KILOS
         function openSiloDetail(id, action) {
             let titulo = "";
             let extraInfo = "";
@@ -513,6 +557,7 @@
                 const ctx = document.getElementById("chartDiferencial").getContext("2d");
                 if(window.chartDiferencialInstance) window.chartDiferencialInstance.destroy();
                 
+                // Creación de gradientes estilo suavizado (como la imagen enviada)
                 const gradGreen = ctx.createLinearGradient(0, 0, 0, 300);
                 gradGreen.addColorStop(0, 'rgba(16, 185, 129, 0.25)');
                 gradGreen.addColorStop(1, 'rgba(16, 185, 129, 0.0)');
@@ -610,6 +655,7 @@
                                     <div class="silo-cone"></div><div class="silo-legs"><div></div><div></div></div>
                                 </div>
                             </div>
+                            <!-- SE INVIERTE TEXTO: KILOS GRANDES, PORCENTAJE ABAJO + AUTONOMÍA -->
                             <div class="silo-text-readout">
                                 <div style="font-size:24px; font-weight:800; color:var(--text-title);">${s.estado==='Desconectado'?'--':s.peso.toLocaleString()+' kg'}</div>
                                 <div style="font-size:14px; font-weight:600; color:var(--text-sub);">${s.estado==='Desconectado'?'--':pct+'%'}</div>
@@ -619,6 +665,7 @@
                     </div>`;
             });
 
+            // CASILLERO 8 - DONA MAXIMIZADA CON DISTRIBUCIÓN EN KILOGRAMOS Y SUMA DE RESTAS
             grid.innerHTML += `
                 <div class="silo-card">
                     <h4 style="font-size:13px; font-weight:700;">Distribución de Consumo (Kg)</h4>
@@ -683,6 +730,7 @@
 
         runRender();
 
+        // LINEAL INFERIOR GENERAL (CON COMPARATIVA HOY VS AYER)
         function updateChartMain() {
             const ctx = document.getElementById("chartConsumo").getContext("2d");
             if(chartConsumoInstance) chartConsumoInstance.destroy();
@@ -711,6 +759,7 @@
             });
         }
         
+        // Inicializar el grafico principal por primera vez
         updateChartMain();
 
     </script>
